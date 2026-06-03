@@ -1,0 +1,21 @@
+{
+  "windowDays": 7,
+  "latestStatus": "Completed",
+  "latestRefreshTime": "2026-05-10T18:06:34.967Z",
+  "lastSuccessTime": "2026-05-10T18:06:34.967Z",
+  "failureCount": 1,
+  "failures": [
+    {
+      "time": "2026-05-08T18:21:51.450Z",
+      "code": "ModelRefresh_ShortMessage_ProcessingError",
+      "message": "Failed to get OAuth resource id, please make sure the OAuth is supported",
+      "withinWindow": true
+    }
+  ],
+  "lastKnownFailure": {
+    "time": "2026-05-08T18:21:51.450Z",
+    "code": "ModelRefresh_ShortMessage_ProcessingError",
+    "message": "Failed to get OAuth resource id, please make sure the OAuth is supported",
+    "withinWindow": true
+  }
+}

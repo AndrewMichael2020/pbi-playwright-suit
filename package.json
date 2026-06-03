@@ -1,0 +1,30 @@
+{
+  "name": "pbi-playwright-suit",
+  "version": "1.0.0",
+  "description": "Lightweight Playwright-based Power BI workspace quality suite",
+  "scripts": {
+    "generate:fixtures": "tsx scripts/generate-upcc-fixtures.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test",
+    "test:metadata": "playwright test --project=metadata",
+    "test:visual": "playwright test --project=visual"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AndrewMichael2020/pbi-playwright-suit.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AndrewMichael2020/pbi-playwright-suit/issues"
+  },
+  "homepage": "https://github.com/AndrewMichael2020/pbi-playwright-suit#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.60.0",
+    "@types/node": "^25.9.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

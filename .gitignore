@@ -216,3 +216,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node / Playwright
+node_modules/
+playwright-report/
+test-results/
+
+UPCC Dashboard.pbip
+UPCC Dashboard.txt
+legacy_concept_powerbi_meta.md
+legacy_discover_upcc_v14_fixed_v5.py

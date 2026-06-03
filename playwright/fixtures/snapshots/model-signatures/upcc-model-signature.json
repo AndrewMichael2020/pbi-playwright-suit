@@ -1,0 +1,1613 @@
+{
+  "datasetName": "UPCC Dashboard",
+  "tableCount": 20,
+  "relationshipCount": 19,
+  "roleCount": 1,
+  "tables": [
+    {
+      "name": "_DimMeasure",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [
+        {
+          "name": "% of encounters after hour",
+          "expressionHash": "21dfc219e1bcdc476a38a5e1beb7698a9e178b353a46cd1c7f4526e143509c8d"
+        },
+        {
+          "name": "% of provider encounters that are virtual",
+          "expressionHash": "4cfe332d41bd59606ee7f5090a5107cfb86df107ce8a1f621d1ac28d65b37030"
+        },
+        {
+          "name": "% of total encounters that are longitudinal",
+          "expressionHash": "da3cee284d004d8bf7ebd25bf9cc3b66f8a106e196bff310df2898f0a406234b"
+        },
+        {
+          "name": "% of total visits that are longitudinal",
+          "expressionHash": "543da93fc9aa47405de609c4c44c144a6c72e69941c2415f6b9e2a5d7884ed37"
+        },
+        {
+          "name": "% of triage appointments that are virtual",
+          "expressionHash": "24128a55d62a2b75dc4a10c15976d77fead9c16583ad011773d0f91b85d4a138"
+        },
+        {
+          "name": "% of visits that include an allied health appt",
+          "expressionHash": "dc504914e99739c80107951f74791bde5e73a90a032ca82bd572ee07a02c27fd"
+        },
+        {
+          "name": "% of visits that only include RN/LPN appts​",
+          "expressionHash": "0bc2c684903b0daa38fd8148ac7a69ea4530a19d08b7d11fd41b867b3571b4f9"
+        },
+        {
+          "name": "% of visits with pediatric patients",
+          "expressionHash": "b1037b3e2f4b5ce50c146d8216558ef81e46de565cfaeefaaa96c7081ee770aa"
+        },
+        {
+          "name": "% provider only",
+          "expressionHash": "183f5d12c2b293df2f5f2a3f4428dbd7051c229b3c0fe3d936ae053b987fa09a"
+        },
+        {
+          "name": "% visits that are triage only",
+          "expressionHash": "69d00716f0330d7bb2b8568b14855934716249d96380445474735e95ee87da21"
+        },
+        {
+          "name": "Appointments",
+          "expressionHash": "02c2a4ea037ae9c6b672722bc26e4aab86b6afa6134b6c7c40841f575d232153"
+        },
+        {
+          "name": "Attachment",
+          "expressionHash": "dbffb22b9ef1f76450f461154a54031aecac520a0f55ebe71f359e436a13c0e5"
+        },
+        {
+          "name": "Average Referrals",
+          "expressionHash": "fa1c52308ae34f3e70558ac8bc8770f66e4316a67edb6e8dfde8d8b3dbd9e7a2"
+        },
+        {
+          "name": "Avg Attachments",
+          "expressionHash": "a747b9c3672ab0f430a74d00305fd985d1827b3cdb14bbc75a9d4ed515acf586"
+        },
+        {
+          "name": "Avg Encounters/Visits",
+          "expressionHash": "d3f2141d99766b7fc15522d8859bf1110937865850d7e4a8b7b858a7fefdb9e1"
+        },
+        {
+          "name": "Avg Visits/Encounters/Appointments",
+          "expressionHash": "e89773f6c3d3701bcafff04b5bc6da52958da036cb1eef363c9438e898ab0d39"
+        },
+        {
+          "name": "Booked Appointments",
+          "expressionHash": "271a521994cd86220270e75c90331946abd4b77f7957c9684b66b934c7e164ec"
+        },
+        {
+          "name": "Cancelled and did not attend meetings",
+          "expressionHash": "d45805ad768cf3b2ae4f45260123e48ce5f635f765acfed370d631f5736b7e5c"
+        },
+        {
+          "name": "Closed Attachments",
+          "expressionHash": "b7bb9f67bc7c9b23dfe4c7afb0d2354969930484e05d292b36801f6215f19a6c"
+        },
+        {
+          "name": "Count By Category",
+          "expressionHash": "697284ac5863559f7bd112831bf9fe93418b1f6d53907b90b24f7f4ab4446b7a"
+        },
+        {
+          "name": "CountRowsCareTeam",
+          "expressionHash": "cdac485e982e9e4463fc7f37cd482972fd479e7deafc5652a710517947f1bf63"
+        },
+        {
+          "name": "Current Open Attachments",
+          "expressionHash": "402723ee5a125c9ac8d3e51432fca65ea337baceed16338817c0cff80c13eb0a"
+        },
+        {
+          "name": "Display Category Referral",
+          "expressionHash": "725505c6a7dea1724ee5562a2021dc99f814fe5e3e3a49d77918fe7a9853e981"
+        },
+        {
+          "name": "Distinct patients MOH",
+          "expressionHash": "52a5fdf14f99f22bf7b1897ba785674ea381b337e96673849423be15d020bca2"
+        },
+        {
+          "name": "Distinct patients since opening",
+          "expressionHash": "ff3764301817bf6e4f319114b15f13b2e7e369bd5f50165d0df42d2129ab2bb4"
+        },
+        {
+          "name": "Encounters",
+          "expressionHash": "e61279e992bdde25b432ac7120aa6d6ed4136c153ba7eee53ee380ccdbdac361"
+        },
+        {
+          "name": "Last day of Period",
+          "expressionHash": "1c881b1ca2dbd0bcaeb9956508141d8655c93273e6f53a453449d512f738826e"
+        },
+        {
+          "name": "M Info",
+          "expressionHash": "423bc0cf5fb594146b8194ebe4612eb1d012fd82cccf18eae25958b62bc136b0"
+        },
+        {
+          "name": "Max Attachments",
+          "expressionHash": "3eef39dbf5e7e50a332f9726aefdac075a74f801cd60d5b3c58be6082b0af8d6"
+        },
+        {
+          "name": "Max Referrals",
+          "expressionHash": "12ddad9db1c256a3b4405c3f6b805e5f6ec50a4f58d495bf5071aad91404c4a1"
+        },
+        {
+          "name": "Max Visits/Encounters/Appointments",
+          "expressionHash": "e038cedca7d11424b855e86cdd41a290533ca366565c261d53d6dbb440a52929"
+        },
+        {
+          "name": "Min Attachments",
+          "expressionHash": "8f7516f9799694c0bab68008197a0b62dd22ac516778387fc2a878cc039f7f0a"
+        },
+        {
+          "name": "Min Referrals",
+          "expressionHash": "a8684079e8448818656a3ff7fc444057bcbad8c183c47e28a4b9dab6e2b5d1b9"
+        },
+        {
+          "name": "Min Visits/Encounters/Appointments",
+          "expressionHash": "0d5b832dbcf3daf1d4d483cf56987e74209304b82c854cad6d2d5fd4ce450391"
+        },
+        {
+          "name": "Msg Open Attachments details",
+          "expressionHash": "4257f142c77372b55e17642a570e751b379570478524fa8628673e9a02c6cc2a"
+        },
+        {
+          "name": "Net New Attachments",
+          "expressionHash": "caab329cd9ecc3c29ed0465152251ab32bb09d1864dd6c9e9b6ab22dbdd8297d"
+        },
+        {
+          "name": "Open Attachments (at the end of period)",
+          "expressionHash": "c206c101e30383151308a4310321dc121648d79408762a43b42224c1ca103ba4"
+        },
+        {
+          "name": "Open Referrals",
+          "expressionHash": "fe6da808fd69d06437aa826d790785af68466fd48ec85ec0bfa36e11c06fefae"
+        },
+        {
+          "name": "Patients",
+          "expressionHash": "22e5a3bb3d11a7fd49aa12d4bd8cc1eb29e99722ed40113aec73e2df362e474b"
+        },
+        {
+          "name": "Referral Type",
+          "expressionHash": "9534c3b83fade5a488a94356b9edd0ecf8226df035dc66dcd5d16a1c0ce6b1bf"
+        },
+        {
+          "name": "Referrals",
+          "expressionHash": "a9a3befba3e53f88560a312eb04ab0a6b56c283f74a32cd5d5144fb5c7712b23"
+        },
+        {
+          "name": "RLS Flag",
+          "expressionHash": "730da1605bc21c158fb55181274d90b7a51c60670391bee208fe54f29af22d5b"
+        },
+        {
+          "name": "Selected Attachment Type",
+          "expressionHash": "903e0f9d2a24068491097556269d9060883763f3ef7a1b4fef14cde6ec9b1103"
+        },
+        {
+          "name": "Selected Metric",
+          "expressionHash": "0dd9edca99eefd21044ccbfe15315cb50c67d9c60e7da79d7f7c4b591f9fe25a"
+        },
+        {
+          "name": "Title 1",
+          "expressionHash": "0b69c7f74fa13426f18d22427121e33d708eeb2ab365d4b23e258c9c1b41c3b2"
+        },
+        {
+          "name": "Title 2",
+          "expressionHash": "fbaf3e4b7c96fe517662f2095dd8c3a5835ea9513b4f6730a9ac774fae08e7ee"
+        },
+        {
+          "name": "Title 3",
+          "expressionHash": "96bc8290993c65037556ded299ad5e52488bab490469554f0787c3add4591eec"
+        },
+        {
+          "name": "Title 4",
+          "expressionHash": "4d2175e712bbc236885fa14def251fb0b2a9077b8a2e1f8cc885dffcf6254f28"
+        },
+        {
+          "name": "Title Attachments 1",
+          "expressionHash": "4ffff4c734130e666d4f9f6bf5f63156e86df6ed08b44e1f7e9bae8764891c70"
+        },
+        {
+          "name": "Title Attachments 2",
+          "expressionHash": "9f9376516d5f10f0500f9eac7b4b3f33ee104f321c04e0ab6b6870c6edd6037f"
+        },
+        {
+          "name": "Title Attachments 3",
+          "expressionHash": "0e5ba14b0dffa4a6f3f03f24cd596f1a5397c771d5d73be6fb393bd67a0d398e"
+        },
+        {
+          "name": "Title Referrals 1",
+          "expressionHash": "18d9517de7d721c39f47348c87f484708aa388be0a30e9ef700ee0f8410884ed"
+        },
+        {
+          "name": "Title Referrals 2",
+          "expressionHash": "805cce5c68ff44b735b97367531079c8eda247edd3fb8a38c1a8590804c8ffe1"
+        },
+        {
+          "name": "Title Referrals 3",
+          "expressionHash": "d6338e58bbb76959f4e50b276d65cba064c3b10bf91800887a6637615379c214"
+        },
+        {
+          "name": "Title Referrals 4",
+          "expressionHash": "07732fdd86e1d64ce1db2ff8e9d5e97f6a9155691ef6f4b031f90cdd8e486419"
+        },
+        {
+          "name": "Title Referrals 5",
+          "expressionHash": "d59e9c01f080a00e98e922ebe0eb259a07c3fddc772832cb20799026e413cb1a"
+        },
+        {
+          "name": "ToolTip Summary Page",
+          "expressionHash": "45d3802841073555f515b78291b24a513eae893f2729436ffb93951b0b3b80bf"
+        },
+        {
+          "name": "User",
+          "expressionHash": "ca7cf4d7c4e926a28051fb751433f0bf2f084711c16c3fc4902601cbcbd35114"
+        },
+        {
+          "name": "Visits",
+          "expressionHash": "7ae81c7c21e302185bfd65bece93e57d1c1abae01fb86872716f97235a6eb3da"
+        },
+        {
+          "name": "Visits/Encounters/Appointments",
+          "expressionHash": "6493e8edc34a82c89fb4fde9497118dbeed06288f20115a53db35495ebb49df5"
+        }
+      ],
+      "partitions": [
+        {
+          "name": "_DimMeasure-3b5dd2e8-d2a3-45cd-b68d-6b46db5df9d7",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Age",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Age",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [
+        {
+          "name": "Check Interval",
+          "expressionHash": "2443bda703448b49020a4fc77f0ff5cdcbe7c6c0652def38bccee8a2f1eacfe6"
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Age",
+          "mode": "Import",
+          "sourceType": "CalculatedPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Appointment Reporting Categories",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Appointment Categories",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Appointment Categories Fields",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Appointment Categories Order",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [
+        {
+          "name": "Coming soon (Hidden)",
+          "expressionHash": "dea484ab2df73b93cb21610a9d050542653754a1b24a4c775b61c4911b597f47"
+        },
+        {
+          "name": "From Date (Hidden)",
+          "expressionHash": "bfccce7d6e8fd8677f44f7c9ecd8a5ddbb759dec5d1b2058ee2424d265cd1167"
+        },
+        {
+          "name": "To Date (Hidden)",
+          "expressionHash": "a7cbf9413d9fe05977d9a49c97099f8c55a6e58090a3785a7d7ccd061367387e"
+        }
+      ],
+      "partitions": [
+        {
+          "name": "Appointment Reporting Categories",
+          "mode": "Import",
+          "sourceType": "CalculatedPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "Age Groups",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Allied Health Provider Flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "AppointmentID",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "AppointmentKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Arrival Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Attachment",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Book Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Business Hours/After Hours",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Encounter Flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Exclusion Flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "FacilityKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "First visit of the day flag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "LastVisitOfDayFlag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Longitudinal/Urgent",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "LPN Provider flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Only one appointment /day flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Patient age at appointment booking",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "PatientFileNum",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "PatientKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Provider Only Visits",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ProviderKey",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "ProviderOnlyflag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Registered Nurse provider flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Seen Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Seen Hour",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Seen Time",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ServiceKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Status",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "TimeDateHoliday",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Triage Flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Type Code",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Type Code Description",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Virtual/In Person",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "VirtualFlagChanged",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "VirtualInPersonFlag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "VisitAlliedHealthFlag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "VisitProviderOnlyflag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "VisitTriageFlag",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Weekday",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "WeekdayNo",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Appointments-70c7a40e-a753-4332-9208-4b39339f7be5",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "aca6605a727d349b86536f0ddf16a0e182d64c51b2089f733bca7c419c100b48"
+        }
+      ]
+    },
+    {
+      "name": "Calendar Dates",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Day of the week",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Day of the week name",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Holiday",
+          "type": "Boolean",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "TimeDateID",
+          "type": "Int64",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Calendar Dates",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "9be39031eb200fbf669a1c8495bf3da01eec1074282a8924dde1899104623cfc"
+        }
+      ]
+    },
+    {
+      "name": "Care Teams",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "AttachmentType",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Care Closed Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Care Open Date",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Care Status",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "CareTeamID",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "CareTeamKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "FacilityKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Generic Provider flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Net New Attachment Flag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "NetNewAttachmentFlagDesc",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Patient Age at Care Open date",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "PatientKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ProviderKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "TeamRoleCode",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "TeamRoleDesc",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Care Teams-ac41dd8f-d026-4846-9c62-8c63c067e336",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "28376baddc5591fd0597e48ddcd9e80080453a18510c78b3cb74c72c5f29fd34"
+        }
+      ]
+    },
+    {
+      "name": "dimAttachment",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Sort",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Type",
+          "type": "String",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "dimAttachment",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Facility",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "City",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Code",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "FacilityKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Postal Code",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "UPCC",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Facility-c77278ff-10ab-4152-8875-820ac2647200",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "9c1288f769006c2f97175e641f28d72f4162a4e036e598a4fb390c05b126b20a"
+        }
+      ]
+    },
+    {
+      "name": "Fiscal and Calendar Periods Bridge",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "ID",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Period",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "PeriodKey",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Sort",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "SortAsc",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "timedate",
+          "type": "DateTime",
+          "hidden": true
+        },
+        {
+          "name": "TimeDateHoliday",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "timedateid",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Value",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Fiscal and Calendar Periods Bridge-f5bee65b-b488-4764-8442-1f53f7aa8988",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "fa82532619248ae806970c6e7152b14f78325a71b74d3b178241a3d3bd31dea9"
+        }
+      ]
+    },
+    {
+      "name": "LastUpdate",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "LastUpdate",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "LastUpdate",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "6e891b41ce7e67b27b0f42b9c3c39256829b3d347f4c7cd67d1847f01e783c30"
+        }
+      ]
+    },
+    {
+      "name": "Metrics Definition",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Definition",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Exclusions",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Inclusions",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Metric Id",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Metric Name",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Metrics Definition",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Note",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Note Id",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Page",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "short desc",
+          "type": "String",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Notes",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "Addressline1",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "City",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "DoB",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "DoD",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "PatientFileNum",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "PatientKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "PHN",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Province",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Sex",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Patient-34b3c338-ec0f-4b0e-b26c-0f0a91d26d5c",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "1b4e3476571748bdfef43bb2892b5a8e2e2441fb8b3a7eaf9da785c684bda2cc"
+        }
+      ]
+    },
+    {
+      "name": "Provider",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "AlliedHealthFlag",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Category",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Clinical Role",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Full Name",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Job Title",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Provider Code",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Provider Type",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ProviderKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Referral Category",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Role Description",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Specialty Description",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "Status",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Provider-67c9e59d-066a-40d3-8850-3caa22484659",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "8a51711cdb804e6a1e5ce7cf1f15bbb8da88736dbb06457ca9e04d2d75e77425"
+        }
+      ]
+    },
+    {
+      "name": "Referrals",
+      "hidden": false,
+      "columns": [
+        {
+          "name": "AgeAtRef",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "AppointmentKey",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Decision",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "DiagnosisDescription",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ExternalAppBookedDate",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ExternalProviderKey",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "FacilityCode",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Longitudinal/Urgent",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "PatientFileNum",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferralCreatedOnDate",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferralCreatedOnTIME",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferralDecisionReasonDescription",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferralKey",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "ReferralReferredOnDate",
+          "type": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferralStatus",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferralType",
+          "type": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferredBYExternalProviderCode",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredByFacilityCode",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredToExternalProviderCode",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredToFacilityCode",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredToPOSID",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "rn",
+          "type": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "TreatmentDescription",
+          "type": "String",
+          "hidden": false
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Referrals",
+          "mode": "Import",
+          "sourceType": "MPartitionSource",
+          "extractedSqlHash": "d99b18dc984cecd35a35943dd6d8f4a38d302c7af573f7f5f02714b617e5364b"
+        }
+      ]
+    },
+    {
+      "name": "Referrals Reporting Categories",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Referrals Reporting Categories",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Referrals Reporting Categories Fields",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Referrals Reporting Categories Order",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Referrals Reporting Categories",
+          "mode": "Import",
+          "sourceType": "CalculatedPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "Reporting group: Visit, Encounters, Appointments",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Measure",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Sort",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "Reporting group: Visit, Encounters, Appointments",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "User Access",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Code",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Email",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Parameter",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "User Access",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "User Access Drill Down",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "Code",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "email",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "User Access Drill Down",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    },
+    {
+      "name": "User Access Facility",
+      "hidden": true,
+      "columns": [
+        {
+          "name": "email",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "Facility Code",
+          "type": "String",
+          "hidden": true
+        },
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "type": "Int64",
+          "hidden": true
+        }
+      ],
+      "measures": [],
+      "partitions": [
+        {
+          "name": "User Access Facility",
+          "mode": "Import",
+          "sourceType": "MPartitionSource"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "d87c990c-e7a4-1f13-dfb5-01654b0760a1",
+      "fromTable": "Appointments",
+      "fromColumn": "Book Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": false,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "09708d6e-60cf-4e04-a42b-ff3dc014803e",
+      "fromTable": "Appointments",
+      "fromColumn": "FacilityKey",
+      "toTable": "Facility",
+      "toColumn": "FacilityKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "54f00509-087a-4dd5-91b2-52923a81c084",
+      "fromTable": "Appointments",
+      "fromColumn": "Patient age at appointment booking",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "b45b509e-27b1-4670-a123-6bc221a52319",
+      "fromTable": "Appointments",
+      "fromColumn": "PatientKey",
+      "toTable": "Patient",
+      "toColumn": "PatientKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "b8c8d78f-f336-4ef2-a832-8a26101640c5",
+      "fromTable": "Appointments",
+      "fromColumn": "ProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "e30518a7-257b-4339-ba22-daf494b53bdf",
+      "fromTable": "Appointments",
+      "fromColumn": "Seen Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "db02abad-3bce-3143-1632-4d2f9221c78c",
+      "fromTable": "Calendar Dates",
+      "fromColumn": "TimeDateID",
+      "toTable": "Fiscal and Calendar Periods Bridge",
+      "toColumn": "timedateid",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> Many"
+    },
+    {
+      "id": "30b72aa0-f3ae-5064-7094-defff90ddeaf",
+      "fromTable": "Care Teams",
+      "fromColumn": "Care Closed Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": false,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "f15cc5e8-7080-4c88-80c6-4f25a954d723",
+      "fromTable": "Care Teams",
+      "fromColumn": "Care Open Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "aeda68ea-b750-4553-9524-ad40b734e3d2",
+      "fromTable": "Care Teams",
+      "fromColumn": "FacilityKey",
+      "toTable": "Facility",
+      "toColumn": "FacilityKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "7de1dd62-c321-4d37-84ea-dfe55e5625ce",
+      "fromTable": "Care Teams",
+      "fromColumn": "Patient Age at Care Open date",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "92e8e997-1308-4512-b717-7f9cb7aa48dc",
+      "fromTable": "Care Teams",
+      "fromColumn": "PatientKey",
+      "toTable": "Patient",
+      "toColumn": "PatientKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "3ca7e135-e059-4c8c-b226-5d3ad13e6924",
+      "fromTable": "Care Teams",
+      "fromColumn": "ProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "3d4aabfd-d219-0104-14a1-fcaf9d1f6460",
+      "fromTable": "Facility",
+      "fromColumn": "Code",
+      "toTable": "User Access Facility",
+      "toColumn": "Facility Code",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> Many"
+    },
+    {
+      "id": "46aa77be-79fd-4b2f-b894-077a917a532c",
+      "fromTable": "Referrals",
+      "fromColumn": "AgeAtRef",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "3d8ee994-0fc1-3be7-2fdc-be61d827107f",
+      "fromTable": "Referrals",
+      "fromColumn": "ExternalProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "abf7e0a6-bfd4-a796-ee66-e2c80c496fc0",
+      "fromTable": "Referrals",
+      "fromColumn": "FacilityCode",
+      "toTable": "Facility",
+      "toColumn": "Code",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "ec5005d3-afb7-4adf-851b-a85716831e63",
+      "fromTable": "Referrals",
+      "fromColumn": "PatientFileNum",
+      "toTable": "Patient",
+      "toColumn": "PatientFileNum",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "8f0dd34e-ae2a-7529-27f0-b58e6675b2d0",
+      "fromTable": "Referrals",
+      "fromColumn": "ReferralReferredOnDate",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "securityFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    }
+  ],
+  "roles": [
+    {
+      "name": "Restricted",
+      "memberCount": 1,
+      "filterCount": 2
+    }
+  ],
+  "allowlist": {
+    "hiddenSupportColumnPrefixes": [
+      "RowNumber-"
+    ],
+    "inactiveRelationshipKeys": [
+      "Appointments::Book Date::Calendar Dates::Date",
+      "Care Teams::Care Closed Date::Calendar Dates::Date"
+    ]
+  }
+}

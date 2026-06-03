@@ -1,0 +1,18 @@
+[
+  {
+    "startTime": "2026-05-10T17:30:00.000Z",
+    "endTime": "2026-05-10T18:06:34.967Z",
+    "status": "Completed"
+  },
+  {
+    "startTime": "2026-05-08T17:30:00.000Z",
+    "endTime": "2026-05-08T18:21:51.450Z",
+    "status": "Failed",
+    "serviceExceptionJson": "{\"errorCode\":\"ModelRefresh_ShortMessage_ProcessingError\",\"errorDescription\":\"{\\\"error\\\":{\\\"pbi.error\\\":{\\\"details\\\":[{\\\"message\\\":\\\"Refresh failed\\\"},{\\\"detail\\\":{\\\"value\\\":\\\"Failed to get OAuth resource id, please make sure the OAuth is supported\\\"}}]}}}\"}"
+  },
+  {
+    "startTime": "2026-05-05T17:30:00.000Z",
+    "endTime": "2026-05-05T18:03:00.000Z",
+    "status": "Completed"
+  }
+]
