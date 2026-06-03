@@ -33,11 +33,12 @@ Do **not** prioritize:
 ## Repository conventions
 
 - Use the commands in `package.json`:
-  - `npm run generate:fixtures`
+  - `npm run discover:enterprise-upcc`
   - `npm run typecheck`
   - `npm test`
-- Regenerate fixtures from `UPCC Dashboard.txt` using:
-  - `scripts/generate-upcc-fixtures.ts`
+- Default local runs should use the committed mock fixtures already in the repo.
+- Treat `scripts/generate-upcc-fixtures.ts` as a maintenance utility for deliberate baseline refreshes, not part of the normal workflow.
+- Use `scripts/discover-upcc-enterprise.ts` to wire the UPCC enterprise visual configuration.
 - Keep metadata tests runnable in isolated/local environments.
 - Keep visual smoke tests enterprise-oriented and avoid pretending local mocks are equivalent to real Power BI rendering.
 
@@ -50,7 +51,7 @@ When adding or changing code, prefer this order:
 3. refresh health logic
 4. schema signature and drift logic
 5. duplicate heuristics
-6. live visual smoke implementation
+6. enterprise discovery and live visual smoke implementation
 
 ## Editing guidance
 
@@ -63,4 +64,4 @@ When adding or changing code, prefer this order:
 ## Current known status
 
 - Metadata lane is implemented and passing.
-- Visual smoke lane is scaffolded but intentionally skipped until enterprise configuration is available.
+- Visual smoke lane is implemented for enterprise embed-based execution and auto-skips until discovery output and credentials are available.

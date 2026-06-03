@@ -4,6 +4,7 @@
   "description": "Lightweight Playwright-based Power BI workspace quality suite",
   "scripts": {
     "generate:fixtures": "tsx scripts/generate-upcc-fixtures.ts",
+    "discover:enterprise-upcc": "tsx scripts/discover-upcc-enterprise.ts",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "test:metadata": "playwright test --project=metadata",
@@ -24,7 +25,11 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.9.1",
+    "dotenv": "^17.2.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
   }
 }

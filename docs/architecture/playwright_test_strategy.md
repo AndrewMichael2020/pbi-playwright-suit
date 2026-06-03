@@ -130,6 +130,7 @@ playwright/
     environments/
       sandbox.json
       enterprise-uat.json
+    upcc-enterprise.generated.json
   fixtures/
     snapshots/
       workspace/
@@ -159,6 +160,11 @@ package.json
 ```
 
 This is deliberately flatter than a large enterprise UI framework.
+
+For the current UPCC-first implementation:
+
+- local runs should use the committed mock fixtures already in the repo
+- enterprise visual setup should be produced by a CLI discovery command, not by manual ID editing
 
 ---
 
@@ -279,7 +285,7 @@ Use:
 - service principal
 - Power BI REST
 - XMLA endpoint where allowed
-- generated or curated report test cases
+- a CLI discovery step that resolves the single UPCC workspace/report/page configuration
 
 This matches both the reference repo and your legacy extraction workflow.
 
@@ -315,15 +321,33 @@ That is much cheaper and better aligned to the current goal.
 
 The suite should be driven by a few compact artifacts.
 
-### 9.1 Report case file
+### 9.1 Generated UPCC enterprise config
 
-For visual tests:
+For the current single-report visual lane, prefer a generated JSON config written by the discovery CLI:
 
-```csv
-workspace_id,report_id,report_name,page_id,page_name,dataset_id,enabled
+```json
+{
+  "workspaceId": "<guid>",
+  "workspaceName": "FHA-ADAR-BI-UAT",
+  "datasetId": "<guid>",
+  "datasetName": "UPCC Dashboard",
+  "reportId": "<guid>",
+  "reportName": "UPCC Dashboard",
+  "pageId": "ReportSection...",
+  "pageDisplayName": "Summary",
+  "embedUrl": "https://app.powerbi.com/reportEmbed?...",
+  "reportUrl": "https://app.powerbi.com/groups/.../reports/.../ReportSection...",
+  "discoveredAt": "2026-06-03T..."
+}
 ```
 
-This mirrors the kerski approach and keeps report coverage generic.
+This is simpler and less error-prone than a manually edited CSV for the current UPCC-only scope.
+
+The generated file should be:
+
+- created by CLI
+- gitignored
+- treated as enterprise runtime state, not source-controlled configuration
 
 ### 9.2 Workspace model inventory file
 
@@ -380,6 +404,8 @@ Per dataset/model:
 ```
 
 These files become the transfer-friendly contract between environments.
+
+For the current implementation, the committed mock fixtures are the default local contract. Regeneration is a maintenance action, not part of the routine workflow.
 
 ---
 

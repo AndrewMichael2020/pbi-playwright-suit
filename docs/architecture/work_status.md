@@ -33,7 +33,7 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
 
 - Added `README.md` with:
   - local setup and run instructions
-  - enterprise bring-up sequence
+  - simplified enterprise bring-up sequence
   - what to watch for
   - debugging guidance
 - Added this `work_status.md`
@@ -54,6 +54,11 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - `playwright/tests/`
   - `playwright/global/`
   - `scripts/`
+- Refactored the normal local workflow so it uses committed mock fixtures already in the repo
+- Added enterprise discovery CLI:
+  - `scripts/discover-upcc-enterprise.ts`
+- Added generated enterprise config support:
+  - `playwright/config/upcc-enterprise.generated.json` (gitignored)
 
 ### Metadata lane implemented
 
@@ -81,17 +86,16 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - schema drift tests
   - duplicate-check tests
 - Visual tests:
-  - scaffolded UPCC visual smoke test, currently skipped until enterprise values and access are available
+  - real UPCC visual smoke implementation that auto-skips until enterprise discovery output and credentials are available
 
 ## Current result
 
 - **Metadata lane is runnable and passing locally**
 - **Visual lane exists as a scaffold but is not enabled yet**
 
-Current validated commands:
+Current validated local commands:
 
 ```bash
-npm run generate:fixtures
 npm run typecheck
 npm test
 ```
@@ -101,17 +105,19 @@ npm test
 - The visual smoke implementation is not live yet
 - `report_id` and `page_id` are still placeholders in:
   - `playwright/test-cases/reports.csv`
-- Enterprise runtime configuration is still minimal
+- Enterprise discovery is currently single-report and UPCC-specific
 - Live REST/XMLA capture has not yet replaced the committed local fixtures
 
 ## Recommended next steps
 
 1. Copy the suite into the enterprise-connected environment.
-2. Supply the real UPCC `report_id` and `page_id`.
-3. Update enterprise configuration in `playwright/config/environments/enterprise-uat.json`.
-4. Unskip and implement the real visual smoke test in `playwright/tests/visual/upcc-visual-smoke.spec.ts`.
+2. Set enterprise credentials and run:
+   - `npm run discover:enterprise-upcc`
+3. Confirm the generated file:
+   - `playwright/config/upcc-enterprise.generated.json`
+4. Run:
+   - `npm run test:visual`
 5. Run:
    - `npm run test:metadata`
-   - `npm run test:visual`
    - `npm test`
 6. Decide whether to add live refresh/XMLA capture to regenerate snapshots automatically in enterprise.
