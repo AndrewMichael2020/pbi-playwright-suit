@@ -96,8 +96,8 @@ async function pickOne<T extends { name: string }>(
   while (true) {
     const canExpand = sorted.length > visible.length;
     const hint = canExpand
-      ? dim(`  type ${cyan('/term')} to filter (e.g. ${cyan('/sales')}) · Enter to show all ${sorted.length} · `)
-      : dim(`  type ${cyan('/term')} to filter · `);
+      ? dim(`  type to search · Enter to show all ${sorted.length} · `)
+      : dim(`  type to search · `);
     const answer = (await rl.question(`${hint}Enter number (1–${visible.length}): `)).trim();
 
     if (!answer && canExpand) {
@@ -105,11 +105,14 @@ async function pickOne<T extends { name: string }>(
       printList(visible, label);
       continue;
     }
-    if (answer.startsWith('/')) {
-      const term = answer.slice(1).trim();
-      const filtered = filterBySearch(sorted, term);
+    // Number selection
+    const idx = parseInt(answer, 10) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < visible.length) return visible[idx]!;
+    // Non-numeric, non-empty → treat as search
+    if (answer) {
+      const filtered = filterBySearch(sorted, answer);
       if (filtered.length === 0) {
-        console.log(yellow(`  No matches for "${term}" — showing full list.`));
+        console.log(yellow(`  No matches for "${answer}" — showing full list.`));
         visible = sorted;
       } else {
         visible = filtered;
@@ -117,8 +120,6 @@ async function pickOne<T extends { name: string }>(
       printList(visible, label, sorted.length);
       continue;
     }
-    const idx = parseInt(answer, 10) - 1;
-    if (idx >= 0 && idx < visible.length) return visible[idx]!;
     console.log(red(`  Please enter a number between 1 and ${visible.length}.`));
   }
 }
@@ -139,8 +140,8 @@ async function pickMany<T extends { name: string }>(
   while (true) {
     const canExpand = sorted.length > visible.length;
     const refineHint = canExpand
-      ? `  ${dim(`type ${cyan('/term')} to filter (e.g. ${cyan('/sales')}) · Enter to show all ${sorted.length}`)}\n`
-      : `  ${dim(`type ${cyan('/term')} to filter`)}\n`;
+      ? `  ${dim(`type to search · Enter to show all ${sorted.length}`)}\n`
+      : `  ${dim('type to search')}\n`;
     const answer = (
       await rl.question(
         `${refineHint}  Enter number(s) — ${dim('1')}  ${dim('1,3,5')}  ${dim('2-6')}  ${dim('all')}\n  > `,
@@ -152,38 +153,41 @@ async function pickMany<T extends { name: string }>(
       printList(visible, label);
       continue;
     }
-    if (answer.startsWith('/')) {
-      const term = answer.slice(1).trim();
-      const filtered = filterBySearch(sorted, term);
+    if (answer === 'all') return visible;
+
+    // If answer looks like numbers/ranges, try to parse as selection
+    if (/^[\d,\-\s]+$/.test(answer)) {
+      const indices = new Set<number>();
+      let valid = true;
+      for (const token of answer.split(',').map((t) => t.trim())) {
+        const range = token.match(/^(\d+)-(\d+)$/);
+        if (range) {
+          const lo = parseInt(range[1]!, 10);
+          const hi = parseInt(range[2]!, 10);
+          if (lo < 1 || hi > visible.length || lo > hi) { valid = false; break; }
+          for (let n = lo; n <= hi; n++) indices.add(n - 1);
+        } else {
+          const n = parseInt(token, 10);
+          if (isNaN(n) || n < 1 || n > visible.length) { valid = false; break; }
+          indices.add(n - 1);
+        }
+      }
+      if (valid && indices.size > 0) {
+        return [...indices].sort((a, b) => a - b).map((i) => visible[i]!);
+      }
+    }
+
+    // Non-numeric → treat as search
+    if (answer) {
+      const filtered = filterBySearch(sorted, answer);
       if (filtered.length === 0) {
-        console.log(yellow(`  No matches for "${term}" — showing full list.`));
+        console.log(yellow(`  No matches for "${answer}" — showing full list.`));
         visible = sorted;
       } else {
         visible = filtered;
       }
       printList(visible, label, sorted.length);
       continue;
-    }
-    if (answer === 'all') return visible;
-
-    const indices = new Set<number>();
-    let valid = true;
-    for (const token of answer.split(',').map((t) => t.trim())) {
-      const range = token.match(/^(\d+)-(\d+)$/);
-      if (range) {
-        const lo = parseInt(range[1]!, 10);
-        const hi = parseInt(range[2]!, 10);
-        if (lo < 1 || hi > visible.length || lo > hi) { valid = false; break; }
-        for (let n = lo; n <= hi; n++) indices.add(n - 1);
-      } else {
-        const n = parseInt(token, 10);
-        if (isNaN(n) || n < 1 || n > visible.length) { valid = false; break; }
-        indices.add(n - 1);
-      }
-    }
-
-    if (valid && indices.size > 0) {
-      return [...indices].sort((a, b) => a - b).map((i) => visible[i]!);
     }
     console.log(red(`  Invalid. Use numbers 1–${visible.length}, commas, ranges, or "all".`));
   }
@@ -361,7 +365,7 @@ async function main(): Promise<void> {
     if (runNow !== 'n' && runNow !== 'no') {
       console.log(`\n${magenta('🎯 Launching visual tests…')}\n${'─'.repeat(60)}\n`);
       const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      spawn(npm, ['run', 'test:visual'], { stdio: 'inherit' }).on('exit', (code) => {
+      spawn(npm, ['run', 'test:enterprise'], { stdio: 'inherit' }).on('exit', (code) => {
         process.exit(code ?? 0);
       });
     }

@@ -2,10 +2,12 @@ import { expect, test } from '@playwright/test';
 import {
   generateReportEmbedToken,
   getAccessToken,
+  getRefreshHistory,
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,
 } from '../../helper-functions/powerbi-enterprise';
 import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
+import { evaluateRefreshHealth } from '../../helper-functions/refresh-health';
 
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
@@ -102,6 +104,24 @@ test.describe('Report page health', () => {
       // (the video already captures the full render timeline).
       if (result !== 'rendered') {
         await page.waitForTimeout(3_000);
+
+        // Correlate: fetch live refresh history for this dataset and annotate.
+        try {
+          const history = await getRefreshHistory(
+            accessToken, config.workspaceId, config.datasetId, endpoints, 10,
+          );
+          if (history.length > 0) {
+            const health = evaluateRefreshHealth(history, 7, new Date().toISOString());
+            const summary = [
+              `latest: ${health.latestStatus} @ ${health.latestRefreshTime || 'unknown'}`,
+              `failures in window: ${health.failureCount}`,
+              ...(health.lastKnownFailure ? [`last error: ${health.lastKnownFailure.code}`] : []),
+            ].join(' · ');
+            testInfo.annotations.push({ type: 'refresh-health', description: summary });
+          }
+        } catch {
+          // Refresh history is best-effort — do not fail the test if this call fails.
+        }
       }
 
       expect(

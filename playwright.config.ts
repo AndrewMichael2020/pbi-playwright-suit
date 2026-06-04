@@ -22,12 +22,16 @@ export default defineConfig({
   },
   projects: [
     {
-      name: 'metadata',
+      // Dry run: validates suite logic against committed mock fixtures.
+      // No browser, no credentials required. Runs anywhere.
+      name: 'dry-run',
       testMatch: /.*metadata\/.*\.spec\.ts/,
       timeout: 60_000,
     },
     {
-      name: 'visual',
+      // Enterprise run: live Power BI checks — dataset health + visual render.
+      // Requires npm run setup first (writes enterprise.generated.json).
+      name: 'enterprise',
       testMatch: /.*visual\/.*\.spec\.ts/,
       timeout: 180_000,
       use: {

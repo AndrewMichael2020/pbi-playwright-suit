@@ -6,9 +6,8 @@
     "setup": "tsx scripts/setup.ts",
     "install:browsers": "playwright install",
     "typecheck": "tsc --noEmit",
-    "test": "playwright test",
-    "test:metadata": "playwright test --project=metadata",
-    "test:visual": "playwright test --project=visual"
+    "test": "playwright test --project=dry-run",
+    "test:enterprise": "playwright test --project=enterprise"
   },
   "repository": {
     "type": "git",

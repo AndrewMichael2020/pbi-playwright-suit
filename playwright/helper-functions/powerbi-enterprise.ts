@@ -361,3 +361,18 @@ export async function generateReportEmbedToken(args: {
 
   return response.token;
 }
+
+export async function getRefreshHistory(
+  accessToken: string,
+  workspaceId: string,
+  datasetId: string,
+  endpoints: PowerBiEndpoints,
+  top = 10,
+): Promise<import('./types').RefreshHistoryEntry[]> {
+  const response = await restGet<{ value?: unknown[] }>(
+    `/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/refreshes?$top=${top}`,
+    accessToken,
+    endpoints,
+  );
+  return (response.value ?? []) as import('./types').RefreshHistoryEntry[];
+}

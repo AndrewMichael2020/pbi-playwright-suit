@@ -2,45 +2,42 @@
 
 Lightweight Playwright-based Power BI quality suite.
 
-Two test lanes:
+Two run modes:
 
-1. **Metadata lane** — refresh health, schema drift, SQL extraction from M, duplicate heuristics. Runs entirely offline using committed mock fixtures.
-2. **Visual lane** — enterprise Power BI visual smoke test driven by a live discovery CLI.
+1. **Dry run** — validates suite logic against committed mock fixtures. No credentials, no browser, runs anywhere.
+2. **Enterprise run** — connects to live Power BI, picks workspace + reports interactively, then runs visual health checks against published reports.
 
-## Quick start (Windows — Google Chrome already installed)
+## Quick start
 
-```powershell
-git pull              # always pull first to get the latest fixes
-npm install
-npm run setup
-```
-
-The discovery CLI signs you in via browser (device-flow), lets you pick a workspace, reports, and pages, then **offers to run the visual tests immediately** — no separate command needed.
-
-> **Do NOT run `npm run install:browsers` on Windows.**
-> The visual lane uses your existing Chrome installation. Running `install:browsers`
-> will print a harmless DLL warning and is not needed.
-
-## Quick start (metadata only — no browser, no credentials)
+### Enterprise run (live Power BI, Windows — Chrome already installed)
 
 ```powershell
 git pull
 npm install
-npm test              # runs metadata lane + skips visual (no config present)
+npm run setup
 ```
 
-Or metadata only:
+`npm run setup` signs you in via browser (device-flow), lets you pick a workspace, reports, and pages, then **offers to run visual checks immediately** — no separate command needed.
+
+> **Do NOT run `npm run install:browsers` on Windows.**
+> The enterprise run uses your existing Chrome installation.
+
+### Dry run (no credentials, no browser)
 
 ```powershell
-npm run test:metadata
+git pull
+npm install
+npm test
 ```
+
+Runs all fixture-based checks. Visual checks are automatically skipped when no enterprise config is present.
 
 ## Prerequisites
 
 - Node 18+ (Node 20+ recommended)
 - npm
-- **Windows visual lane**: Google Chrome (system-installed). No browser download needed.
-- **Linux / CI visual lane**: run `npm run install:browsers` once to download bundled Chromium.
+- **Enterprise run on Windows**: Google Chrome (system-installed). No browser download needed.
+- **Enterprise run on Linux / CI**: run `npm run install:browsers` once to download bundled Chromium.
 
 ## Install
 
@@ -69,7 +66,7 @@ Playwright Host validation warning: Host system is missing dependencies!
 That warning is produced when Playwright validates its own bundled Chromium on Windows.
 It does not affect your system Chrome.
 
-## Enterprise discovery CLI
+## Connecting to Power BI
 
 ### Interactive (recommended)
 
@@ -77,10 +74,7 @@ It does not affect your system Chrome.
 npm run setup
 ```
 
-Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
-- Type a **number** to select
-- Type **`/term`** to filter by name (e.g. `/sales`)
-- Press **Enter** to expand to the full list
+Shows your workspaces and reports sorted alphabetically (top 20 first). Enter a **number** to select, or **type any text** to search by name:
 
 ```
   Workspaces (3 total)
@@ -88,7 +82,7 @@ Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
     [  2] Analytics-Workspace-B
     [  3] Analytics-Workspace-C
 
-  Enter number: 1
+  type to search · Enter number (1–3): 1
 
   Reports (showing 20 of 47)
     [  1] Quarterly Summary
@@ -96,9 +90,9 @@ Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
     ...
     [ 20] Workforce Overview
 
-  type /term to filter (e.g. /sales) · Enter to show all 47
+  type to search · Enter to show all 47
   Enter number(s) — 1  1,3,5  2-6  all
-  > /regional
+  > regional
 
   Reports (2 total)
     [  1] Regional Metrics
@@ -113,12 +107,12 @@ Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
 
   > 1,5
 
-✅ Discovery complete — 2 test(s) queued
+✅ 2 report page(s) queued
 
 Run tests now? [Y/n]:
 ```
 
-After you answer **Y**, visual tests run immediately.
+After you answer **Y**, enterprise checks run immediately.
 
 ### Non-interactive (CI / env-var driven)
 
@@ -129,12 +123,12 @@ npm run setup
 Requires `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` to be set in `.env`.
 Optional: `PBI_DATASET_NAME`, `PBI_PAGE_NAME`.
 
-### What discovery writes
+### What it writes
 
-Both commands write `playwright/config/enterprise.generated.json` (gitignored).
-No environment variables are written. The file is read automatically by `npm run test:visual`.
+`npm run setup` writes `playwright/config/enterprise.generated.json` (gitignored).
+No environment variables are written. The file is read automatically when running tests.
 
-**First run:** the terminal prints a device-flow sign-in code:
+**First run:** the terminal prints a sign-in code:
 
 ```
 To sign in, use a web browser to open the page https://login.microsoft.com/device
@@ -175,28 +169,24 @@ fires, so charts that partially loaded will be visible.
 
 ```text
 playwright/
-  config/enterprise.generated.json       # written by discovery, gitignored
-  fixtures/snapshots/                     # committed mock fixtures
+  config/enterprise.generated.json       # written by npm run setup, gitignored
+  fixtures/snapshots/                     # committed mock fixtures for dry run
   helper-functions/
-  tests/metadata/
-  tests/visual/
+  tests/metadata/                         # dry-run checks (fixtures only)
+  tests/visual/                           # enterprise checks (live Power BI)
 scripts/
-  setup.ts                                # report selection (interactive & CI)
+  setup.ts                                # Power BI connection setup (interactive & CI)
 ```
 
 ## Troubleshooting
 
 ### ENOENT on `enterprise.generated.json`
 
-Run discovery first:
-
-```powershell
-npm run setup
-```
+Run `npm run setup` first to connect to Power BI and select your report targets.
 
 ---
 
-### Discovery prints a code and then the terminal returns (does not wait)
+### Sign-in code appears and the terminal returns immediately
 
 This is expected. Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
 
