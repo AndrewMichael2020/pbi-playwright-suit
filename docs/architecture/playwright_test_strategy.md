@@ -65,7 +65,7 @@ What not to copy blindly:
 
 The dropped PBIP file confirms the project anchor:
 
-- report path: `UPCC Dashboard.Report`
+- report path: `<Report-Name>.Report`
 
 At the moment, only the `.pbip` manifest is present in the repo, not the report folder contents. That means the current plan can use PBIP as **project context**, but not yet as a full source of page and visual definitions.
 
@@ -663,9 +663,9 @@ That is the right “basic to start with” architecture: broad enough for any r
 
 ---
 
-## 18. Comprehensive UPCC test catalog
+## 18. Comprehensive test catalog
 
-The first implementation is scoped to the **UPCC Dashboard** report only, but the tests should still be written in a way that can later generalize to other reports in the workspace.
+The first implementation targets a single report, but every test is written generically so it can run against any report in any workspace.
 
 ### 18.1 Test lane A: visual smoke
 
@@ -673,11 +673,11 @@ These tests are intentionally thin and generic.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| VS-001 | UPCC discovered enterprise config resolves | Confirm discovery writes a usable report/page target for UPCC | live | implement now |
-| VS-002 | UPCC generated config is structurally valid | Validate the generated UPCC enterprise config before visual execution | live | implement now |
-| VS-003 | UPCC report page renders without known visual error patterns | Detect broken visuals, error banners, permission modals, resource-limit messages, and common Power BI error text | live first | scaffold now, enable later |
-| VS-004 | UPCC report page emits rendered state | Confirm render lifecycle completes for an embedded/opened report page | live first | scaffold now, enable later |
-| VS-005 | UPCC report page has no known field/relationship error text | Catch classic broken-visual failures caused by missing fields or relationship ambiguity | live first | scaffold now, enable later |
+| VS-001 | Discovered enterprise config resolves | Confirm discovery writes a usable report/page target | live | implement now |
+| VS-002 | Generated config is structurally valid | Validate the generated enterprise config before visual execution | live | implement now |
+| VS-003 | Report page renders without known visual error patterns | Detect broken visuals, error banners, permission modals, resource-limit messages, and common Power BI error text | live first | scaffold now, enable later |
+| VS-004 | Report page emits rendered state | Confirm render lifecycle completes for an embedded/opened report page | live first | scaffold now, enable later |
+| VS-005 | Report page has no known field/relationship error text | Catch classic broken-visual failures caused by missing fields or relationship ambiguity | live first | scaffold now, enable later |
 
 ### 18.2 Test lane B: refresh health
 
@@ -692,7 +692,7 @@ These tests are the first high-value metadata checks.
 | RH-005 | Refresh failures are counted correctly | Verify failure count over the inspection window | sandbox + live | implement now |
 | RH-006 | Nested serviceExceptionJson is normalized | Extract stable failure code/message from nested refresh error payloads | sandbox + live | implement now |
 | RH-007 | Last successful refresh timestamp is retained | Preserve operational recovery signal even when there are historical failures | sandbox + live | implement now |
-| RH-008 | Historical failure message remains detectable | Ensure known UPCC failure patterns remain visible after normalization | sandbox + live | implement now |
+| RH-008 | Historical failure message remains detectable | Ensure known failure patterns remain visible after normalization | sandbox + live | implement now |
 
 ### 18.3 Test lane C: schema signature and drift
 
@@ -700,7 +700,7 @@ These tests create the baseline discipline for fragile model changes.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| SD-001 | Baseline model signature fixture is structurally valid | Validate the committed UPCC model signature mock fixture before drift comparison | sandbox | implement now |
+| SD-001 | Baseline model signature fixture is structurally valid | Validate the committed model signature mock fixture before drift comparison | sandbox | implement now |
 | SD-002 | Baseline model signature file is valid | Ensure committed signature JSON is structurally sound | sandbox + live | implement now |
 | SD-003 | Table inventory matches baseline | Detect added/removed tables | sandbox + live | implement now |
 | SD-004 | Column inventory matches baseline | Detect added/removed columns | sandbox + live | implement now |
@@ -721,7 +721,7 @@ These tests protect the most fragile extraction logic inherited from the legacy 
 | SE-002 | Power BI line-feed and tab escapes are normalized | Convert `#(lf)`, `#(tab)`, `#(cr)` into stable SQL text | sandbox | implement now |
 | SE-003 | Double-quoted M escapes are normalized | Convert `\"\"` semantics into stable SQL text | sandbox | implement now |
 | SE-004 | Missing SQL block returns null cleanly | Avoid false positives when M has no native SQL query | sandbox | implement now |
-| SE-005 | SQL normalization is stable for large UPCC partition queries | Prevent whitespace-only drift noise | sandbox + live | implement now |
+| SE-005 | SQL normalization is stable for large partition queries | Prevent whitespace-only drift noise | sandbox + live | implement now |
 
 ### 18.5 Test lane E: duplicate and suspicious-structure checks
 
@@ -742,10 +742,10 @@ These keep the suite maintainable.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| FX-001 | UPCC refresh snapshot matches contract | Prevent malformed refresh fixture files | sandbox + live | implement now |
-| FX-002 | UPCC model signature snapshot matches contract | Prevent malformed schema baseline files | sandbox + live | implement now |
-| FX-003 | UPCC refresh health snapshot matches contract | Prevent malformed refresh-health summary files | sandbox + live | implement now |
-| FX-004 | Generated UPCC enterprise config parses cleanly when present | Keep enterprise discovery output validated | live | implement later |
+| FX-001 | Refresh snapshot matches contract | Prevent malformed refresh fixture files | sandbox + live | implement now |
+| FX-002 | Model signature snapshot matches contract | Prevent malformed schema baseline files | sandbox + live | implement now |
+| FX-003 | Refresh health snapshot matches contract | Prevent malformed refresh-health summary files | sandbox + live | implement now |
+| FX-004 | Generated enterprise config parses cleanly when present | Keep enterprise discovery output validated | live | implement later |
 
 ### 18.7 Execution order for the first build
 
