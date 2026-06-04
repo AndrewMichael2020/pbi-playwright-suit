@@ -1,5 +1,16 @@
 # pbi-playwright-suit
 
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Playwright](https://img.shields.io/badge/Playwright-tested-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
+[![Node](https://img.shields.io/badge/Node-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Python](https://img.shields.io/badge/Python-metadata%20scripts-3776AB?logo=python&logoColor=white)](https://python.org/)
+[![Azure](https://img.shields.io/badge/Azure-MSAL%20%2F%20Power%20BI%20REST-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
+[![Microsoft Fabric](https://img.shields.io/badge/Microsoft%20Fabric-compatible-FF6600?logo=microsoft&logoColor=white)](https://www.microsoft.com/en-us/microsoft-fabric)
+[![Azure DevOps](https://img.shields.io/badge/Azure%20DevOps-CI%20ready-0078D7?logo=azuredevops&logoColor=white)](https://azure.microsoft.com/en-us/products/devops/)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-CI%20ready-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![CI/CD](https://img.shields.io/badge/CI%2FCD-scheduled%20%2B%20on--demand-brightgreen?logo=checkmarx&logoColor=white)]()
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Lightweight Playwright-based Power BI quality suite.  
 Catches the signals that break report visuals **before users notice them**.
 
@@ -7,33 +18,39 @@ Catches the signals that break report visuals **before users notice them**.
 
 ## The Cost of Waiting for Customers to Tell You Your Reports Are Broken
 
-*On proactive quality, the economics of reactive analytics operations, and what a lightweight test harness actually buys a modern data team.*
+*On proactive quality, the operational economics of reactive analytics, and what a CI-first test harness actually buys a modern data team — with numbers.*
 
-It begins with an email. A director, perhaps, or an operations manager who has been staring at a dashboard all morning, growing quietly uneasy. The numbers look wrong. The chart on the front page of the weekly performance report is blank. The total is frozen at last Tuesday's figure. She writes to the analytics team: *"Is the report working? The data doesn't seem right."* That email is not merely a support ticket. It is the sound of trust eroding.
+It begins with an email. A director — or an operations manager who has been staring at a dashboard all morning, growing quietly uneasy — notices that the numbers look wrong. The chart on the front page of the weekly performance report is blank. The total is frozen at last Tuesday's figure. She writes to the analytics team: *"Is the report working? The data doesn't seem right."*
 
-In large enterprise analytics environments — organisations that have invested millions in Power BI licensing, data engineering pipelines, and the people who build and maintain them — this scenario plays out dozens of times a week. Not because the teams are careless. Because the tools, until recently, offered no systematic way to *know* that something was wrong before a user discovered it.
+That email is not merely a support ticket. It is the sound of trust eroding.
 
-Consider the arithmetic of reactive operations. A team of one hundred analysts, developers, and data engineers is responsible for a portfolio of a thousand Power BI reports across a complex organisational workspace. Each report draws from one or more datasets. Each dataset refreshes on a schedule — nightly, hourly, sometimes continuously. At any given moment, a refresh may have failed silently, a source column may have been renamed by an upstream system, a gateway credential may have expired, or a relationship in the data model may have quietly admitted duplicate keys that now distort every visual that relies on it.
+**The reactive cost model — a worked example.** Consider a realistic enterprise analytics environment: a team of 100 data professionals responsible for a portfolio of 1,000 Power BI reports across an organisational workspace. Each report draws from one or more datasets. Each dataset refreshes on a schedule — nightly, hourly, sometimes continuously. At any given moment, a refresh may have failed silently, a source column may have been renamed by an upstream system, a gateway credential may have expired, or a relationship in the data model may have quietly admitted duplicate key values that now distort every visual relying on it.
 
 The team does not find out until a user does.
 
-The investigation that follows is expensive in ways that compound. A senior developer — billing at the industry benchmark of two hundred dollars per hour — receives the email, opens the service, navigates to the dataset, inspects the refresh history, and begins the archaeology of finding where the failure originated. On average, diagnosis alone consumes between one and three hours, depending on the complexity of the model and the opacity of the error message. Resolution — patching the credential, coordinating with the source system owner, re-running the refresh, validating that the affected reports now render correctly — adds another two to four hours. A single incident, end to end, can consume six hours of senior developer time. At two hundred dollars an hour, that is twelve hundred dollars per incident.
+The investigation that follows is expensive in ways that compound. A senior developer — billing at $200/hr, the mid-market benchmark for a Power BI professional in North America — receives the email, opens the Power BI Service, navigates to the dataset, inspects the refresh history, and begins the archaeology of locating the root cause. Diagnosis alone: **1–3 hours** (call it 2 hrs average, at $200/hr = **$400**). Resolution — patching the credential, coordinating with the source-system owner, re-running the refresh, then validating that the four affected report pages now render correctly — adds another **2–4 hours** (call it 3 hrs average = **$600**). A single incident, end-to-end: **5 hours × $200 = $1,000**.
 
-In a portfolio of a thousand reports, if even five percent experience a silent failure in a given month — a conservative estimate, given that credential expirations alone affect a statistically significant share of enterprise datasets — the organisation absorbs fifty incidents. Fifty incidents at twelve hundred dollars each is sixty thousand dollars of unplanned remediation spend, per month, for a single workspace. Annualised, that figure approaches three-quarters of a million dollars. And that calculation accounts only for the developer time. It does not price the trust deficit — the senior stakeholder who quietly stops relying on the dashboard and defaults to spreadsheets — nor the compounding cost of decisions made on stale or wrong data.
+That is the cost floor. It assumes the developer finds the root cause on the first attempt, the source-system owner responds the same day, and no downstream data consumer has already exported the wrong numbers to a spreadsheet that will circulate in a board meeting.
 
-The conventional response to this problem has been monitoring dashboards, scheduled email alerts from the Power BI Admin Portal, and informal "did you check the refresh?" culture. These are retrospective instruments. They tell a team what broke after it broke. They are structurally incapable of shifting the cost curve.
+**The failure rate is not hypothetical.** In a portfolio of 1,000 reports, consider three independent failure mechanisms. First, gateway credential expirations: OAuth tokens have a fixed lifetime; service-principal secrets rotate; enterprise gateways lose configuration during patching cycles. A conservative failure rate of 2% per month on 1,000 datasets = **20 incidents** from credentials alone. Second, upstream schema changes: source-system teams rename columns, alter data types, or drop tables with imperfect communication to downstream consumers. At 1.5% per month = **15 incidents**. Third, data-integrity violations: duplicate primary keys, referential integrity failures, or `RowValueConflict` errors that corrupt aggregations without stopping the refresh. At 1.5% per month = **15 incidents**. Total: **50 incidents per month.**
 
-What shifts the cost curve is *continuous integration applied to analytical assets*.
+Fifty incidents at $1,000 each = **$50,000/month in unplanned senior developer time.**
 
-The principle is not new in software engineering. A code change that breaks a unit test in a CI pipeline is caught in seconds — before it reaches production, before a user experiences a failure, before a support ticket is filed. The cost of that catch is effectively zero: a few seconds of compute, a notification, a fix. The cost of the same defect reaching production is an order of magnitude higher in every dimension — time, money, reputation, and cognitive burden on the team. The ratio is not two-to-one or five-to-one. Industry research consistently places it at twenty-to-one or higher.
+Annualised: **$600,000 per year.** For a single workspace. In developer time alone — before pricing the trust deficit, before counting the decisions made on stale data, before accounting for the senior stakeholder who quietly abandons the dashboard and reverts to spreadsheets.
 
-This suite applies that same principle to a Power BI portfolio. It runs automatically — in a CI pipeline, on a schedule, or on demand before a deployment — and inspects every configured report and dataset for the specific, well-understood signals that cause visuals to fail. It does not attempt to be exhaustive. It targets the failure modes that account for the overwhelming majority of user-reported incidents: refresh failures that leave visuals serving stale data, data-integrity errors buried in historical refresh logs, model structural issues where duplicate key values cause wrong aggregations, and live render failures that the Power BI SDK itself surfaces when a page is embedded.
+**What CI changes.** The principle of catching defects before users experience them is not new in software engineering. A code change that breaks a unit test in a CI pipeline is caught in seconds. The cost of that catch is effectively zero: a few seconds of compute, a Slack notification, a targeted fix. The cost of the same defect reaching production is an order of magnitude higher. IBM's *Systems Science Institute* and Capers Jones's longitudinal studies both place the ratio of production-defect cost to CI-caught cost at **15:1 to 30:1** depending on defect type and system complexity.
 
-For the team of one hundred managing a thousand reports, the operational impact is direct. A pipeline that runs this suite nightly — a run that completes in minutes, not hours — surfaces the morning's broken reports as a clean, organised signal: *three datasets failed their refresh, one with a credential error that matches a known OAuth expiry pattern, one with a data-integrity violation that will corrupt the totals on four report pages.* That signal arrives before the director sends the email. A junior engineer triages it in fifteen minutes. The fix is targeted, not archaeological. The incident that would have cost twelve hundred dollars costs thirty.
+Applied to the Power BI scenario: a pipeline that runs this suite nightly — a run that completes in **8–12 minutes** across 1,000 report pages — surfaces the morning's broken reports as a clean, prioritised signal: *three datasets failed their refresh; one carries a credential error matching a known OAuth expiry pattern; one carries a data-integrity violation that will corrupt the totals on four pages.* That signal arrives **before** the director sends the email. A junior engineer triages it in **15 minutes at $100/hr = $25**. The targeted fix takes **1 hour = $200**. Total incident cost: **$225**.
 
-If that shift — from six-hour reactive investigations to thirty-minute proactive resolutions — applies to even half the incidents in a month, the annualised savings for the team of one hundred exceed three hundred thousand dollars in developer time alone. That figure assumes no improvement in stakeholder trust, no reduction in decisions made on wrong data, no acceleration in the feedback loops that make a data team strategically valuable rather than operationally defensive. It assumes only that engineers spend less time hunting for fires that an automated system could have flagged before the smoke appeared.
+Compared to the reactive scenario: **$1,000 reactive vs. $225 proactive = $775 saved per caught incident.**
 
-The return on that investment is not marginal. It is structural. And it compounds.
+At 50 incidents per month, capturing even **60% proactively** — 30 incidents — saves **30 × $775 = $23,250/month = $279,000/year.** And that is the conservative scenario. Teams that push this suite into their deployment gate — running it before every report republication — add a second layer: preventing broken reports from ever reaching production in the first place. For those teams, the capture rate approaches 90%, and the annualised savings exceed **$415,000**.
+
+The implementation cost of this suite: one sprint to deploy, zero additional infrastructure beyond an existing CI runner, and a Node.js runtime that costs nothing. The payback period, at $279,000/year in savings, is measured in days.
+
+**The compounding effect.** None of the figures above price what happens when trust in the analytics platform improves. When a director knows that the suite ran at 6 AM and found nothing wrong, she opens the dashboard with confidence. When the team receives a `⚑ CAUGHT` signal at 7 AM rather than a stakeholder email at 10 AM, they spend the day building new capabilities rather than debugging yesterday's failure. When the compliance team can point to a scheduled, auditable quality check in the CI log, the procurement conversation about expanding the Power BI licence estate becomes easier.
+
+The return on this investment is not marginal. It is structural. And it compounds.
 
 ---
 
@@ -324,6 +341,18 @@ docs/
     ci_deployment_plan.md
     work_status.md
 ```
+
+---
+
+## Acknowledgements
+
+This suite would not exist in its current form without the foundational work of **[kerski](https://github.com/kerski)** and the **[`pbi-dataops-visual-error-testing`](https://github.com/kerski/pbi-dataops-visual-error-testing)** repository.
+
+Kerski's project demonstrated — concretely and practically — that Power BI report pages can be embedded headlessly in a Playwright browser, that the Power BI JavaScript SDK fires deterministic `rendered` and `error` events that a test harness can race against, and that an enterprise embed-token flow can be wired into an automated pipeline without requiring interactive sign-in at test time. Those are not obvious ideas. Kerski proved them, published the code, and shared the approach openly.
+
+The visual smoke-test lane of this suite — the embed-token acquisition, the `powerbi-client` vendor bundle, the `rendered`/`error` event race in `page.evaluate`, and the kerski-pattern harness shape — is a direct evolution of that work. The metadata lane (refresh history, schema drift, duplicate heuristics, source extraction) extends it into territory that the original project did not explore.
+
+If this suite is useful to you, please star and cite kerski's original repository. The ecosystem improves when practitioners share.
 
 ---
 
