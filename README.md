@@ -3,6 +3,40 @@
 Lightweight Playwright-based Power BI quality suite.  
 Catches the signals that break report visuals **before users notice them**.
 
+---
+
+## The Cost of Waiting for Customers to Tell You Your Reports Are Broken
+
+*On proactive quality, the economics of reactive analytics operations, and what a lightweight test harness actually buys a modern data team.*
+
+It begins with an email. A director, perhaps, or an operations manager who has been staring at a dashboard all morning, growing quietly uneasy. The numbers look wrong. The chart on the front page of the weekly performance report is blank. The total is frozen at last Tuesday's figure. She writes to the analytics team: *"Is the report working? The data doesn't seem right."* That email is not merely a support ticket. It is the sound of trust eroding.
+
+In large enterprise analytics environments — organisations that have invested millions in Power BI licensing, data engineering pipelines, and the people who build and maintain them — this scenario plays out dozens of times a week. Not because the teams are careless. Because the tools, until recently, offered no systematic way to *know* that something was wrong before a user discovered it.
+
+Consider the arithmetic of reactive operations. A team of one hundred analysts, developers, and data engineers is responsible for a portfolio of a thousand Power BI reports across a complex organisational workspace. Each report draws from one or more datasets. Each dataset refreshes on a schedule — nightly, hourly, sometimes continuously. At any given moment, a refresh may have failed silently, a source column may have been renamed by an upstream system, a gateway credential may have expired, or a relationship in the data model may have quietly admitted duplicate keys that now distort every visual that relies on it.
+
+The team does not find out until a user does.
+
+The investigation that follows is expensive in ways that compound. A senior developer — billing at the industry benchmark of two hundred dollars per hour — receives the email, opens the service, navigates to the dataset, inspects the refresh history, and begins the archaeology of finding where the failure originated. On average, diagnosis alone consumes between one and three hours, depending on the complexity of the model and the opacity of the error message. Resolution — patching the credential, coordinating with the source system owner, re-running the refresh, validating that the affected reports now render correctly — adds another two to four hours. A single incident, end to end, can consume six hours of senior developer time. At two hundred dollars an hour, that is twelve hundred dollars per incident.
+
+In a portfolio of a thousand reports, if even five percent experience a silent failure in a given month — a conservative estimate, given that credential expirations alone affect a statistically significant share of enterprise datasets — the organisation absorbs fifty incidents. Fifty incidents at twelve hundred dollars each is sixty thousand dollars of unplanned remediation spend, per month, for a single workspace. Annualised, that figure approaches three-quarters of a million dollars. And that calculation accounts only for the developer time. It does not price the trust deficit — the senior stakeholder who quietly stops relying on the dashboard and defaults to spreadsheets — nor the compounding cost of decisions made on stale or wrong data.
+
+The conventional response to this problem has been monitoring dashboards, scheduled email alerts from the Power BI Admin Portal, and informal "did you check the refresh?" culture. These are retrospective instruments. They tell a team what broke after it broke. They are structurally incapable of shifting the cost curve.
+
+What shifts the cost curve is *continuous integration applied to analytical assets*.
+
+The principle is not new in software engineering. A code change that breaks a unit test in a CI pipeline is caught in seconds — before it reaches production, before a user experiences a failure, before a support ticket is filed. The cost of that catch is effectively zero: a few seconds of compute, a notification, a fix. The cost of the same defect reaching production is an order of magnitude higher in every dimension — time, money, reputation, and cognitive burden on the team. The ratio is not two-to-one or five-to-one. Industry research consistently places it at twenty-to-one or higher.
+
+This suite applies that same principle to a Power BI portfolio. It runs automatically — in a CI pipeline, on a schedule, or on demand before a deployment — and inspects every configured report and dataset for the specific, well-understood signals that cause visuals to fail. It does not attempt to be exhaustive. It targets the failure modes that account for the overwhelming majority of user-reported incidents: refresh failures that leave visuals serving stale data, data-integrity errors buried in historical refresh logs, model structural issues where duplicate key values cause wrong aggregations, and live render failures that the Power BI SDK itself surfaces when a page is embedded.
+
+For the team of one hundred managing a thousand reports, the operational impact is direct. A pipeline that runs this suite nightly — a run that completes in minutes, not hours — surfaces the morning's broken reports as a clean, organised signal: *three datasets failed their refresh, one with a credential error that matches a known OAuth expiry pattern, one with a data-integrity violation that will corrupt the totals on four report pages.* That signal arrives before the director sends the email. A junior engineer triages it in fifteen minutes. The fix is targeted, not archaeological. The incident that would have cost twelve hundred dollars costs thirty.
+
+If that shift — from six-hour reactive investigations to thirty-minute proactive resolutions — applies to even half the incidents in a month, the annualised savings for the team of one hundred exceed three hundred thousand dollars in developer time alone. That figure assumes no improvement in stakeholder trust, no reduction in decisions made on wrong data, no acceleration in the feedback loops that make a data team strategically valuable rather than operationally defensive. It assumes only that engineers spend less time hunting for fires that an automated system could have flagged before the smoke appeared.
+
+The return on that investment is not marginal. It is structural. And it compounds.
+
+---
+
 Two run modes:
 
 | Mode | When to use |
