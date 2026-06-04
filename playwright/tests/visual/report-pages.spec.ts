@@ -73,6 +73,9 @@ test.describe('Report page health', () => {
 
           // Canonical kerski pattern: embed into a full-viewport container, then race
           // 'rendered' vs 'error' DOM events. The SDK fires 'error' the moment any visual breaks.
+          // A 90-second inner timeout guards against pages that fire neither event (e.g. slow
+          // datasets, large models, gateway warm-up). page.evaluate itself is capped by the
+          // project timeout (180s), so 90s inner leaves headroom for the rest of the test.
           const result: string = await page.evaluate(
             async ({ reportId, pageId, embedUrl, embedToken }) => {
               const container = document.createElement('div');
@@ -98,16 +101,18 @@ test.describe('Report page health', () => {
                 viewMode: models.ViewMode.View,
               });
 
-              const once = { once: true };
-              const errorPromise = new Promise<string>((resolve) => {
-                container.addEventListener('error', (e: any) =>
-                  resolve(`error: ${e?.detail?.message ?? 'unknown'}`), once);
-              });
-              const renderedPromise = new Promise<string>((resolve) => {
-                container.addEventListener('rendered', () => resolve('rendered'), once);
-              });
+              return new Promise<string>((resolve) => {
+                const RENDER_TIMEOUT_MS = 90_000;
+                const timer = setTimeout(
+                  () => resolve('error: render timeout — no rendered or error event fired within 90s'),
+                  RENDER_TIMEOUT_MS,
+                );
+                const done = (value: string): void => { clearTimeout(timer); resolve(value); };
 
-              return Promise.race([errorPromise, renderedPromise]);
+                container.addEventListener('error', (e: any) =>
+                  done(`error: ${(e as CustomEvent)?.detail?.message ?? 'unknown'}`), { once: true });
+                container.addEventListener('rendered', () => done('rendered'), { once: true });
+              });
             },
             { reportId: config.reportId, pageId: config.pageId, embedUrl: config.embedUrl, embedToken },
           );
@@ -126,15 +131,41 @@ test.describe('Report page health', () => {
                 ...(health.lastKnownFailure ? [`last error: ${health.lastKnownFailure.code}`] : []),
               ].join(' · ');
               testInfo.annotations.push({ type: 'refresh-health', description: summary });
+
+              // Prominently flag a failed latest refresh as its own annotation so it is
+              // immediately visible in the HTML report without expanding detail.
+              if (health.latestStatus === 'Failed') {
+                const msg = health.lastKnownFailure
+                  ? `${health.lastKnownFailure.code}: ${health.lastKnownFailure.message}`
+                  : 'no error detail available';
+                testInfo.annotations.push({
+                  type: '⚠️ REFRESH FAILED',
+                  description: msg,
+                });
+              }
+            } else {
+              testInfo.annotations.push({
+                type: 'refresh-health',
+                description: 'no refresh history returned by API',
+              });
             }
-          } catch {
-            // Best-effort — do not fail the test if this API call fails.
+          } catch (err: unknown) {
+            // Surface the reason so it appears in the HTML report — not silently swallowed.
+            testInfo.annotations.push({
+              type: 'refresh-health-error',
+              description: `API call failed: ${err instanceof Error ? err.message : String(err)}`,
+            });
           }
 
           // On failure, wait briefly so the screenshot captures a more informative visual state.
           if (result !== 'rendered') {
             await page.waitForTimeout(3_000);
           }
+          // Always capture what the page looked like — pass or fail.
+          await page.screenshot({
+            path: `${testInfo.outputDir}/render-state.png`,
+            fullPage: false,
+          });
 
           expect(
             result,
