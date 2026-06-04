@@ -46,6 +46,14 @@ export interface PowerBiPage {
   order: string;
 }
 
+export interface PowerBiDataSource {
+  datasourceType: string;
+  /** Connection details object — empty means the datasource has no bound connection. */
+  connectionDetails: Record<string, unknown>;
+  datasourceId: string;
+  gatewayId: string;
+}
+
 function getText(value: unknown): string {
   return typeof value === 'string' ? value : '';
 }
@@ -375,4 +383,28 @@ export async function getRefreshHistory(
     endpoints,
   );
   return (response.value ?? []) as import('./types').RefreshHistoryEntry[];
+}
+
+/**
+ * Returns the data sources bound to a dataset.
+ * An empty connectionDetails object signals a datasource with no bound
+ * connection — which causes "unable to access data source" errors at refresh time.
+ */
+export async function getDataSources(
+  accessToken: string,
+  workspaceId: string,
+  datasetId: string,
+  endpoints: PowerBiEndpoints,
+): Promise<PowerBiDataSource[]> {
+  const response = await restGet<{ value?: Array<Record<string, unknown>> }>(
+    `/v1.0/myorg/groups/${workspaceId}/datasets/${datasetId}/datasources`,
+    accessToken,
+    endpoints,
+  );
+  return (response.value ?? []).map((s) => ({
+    datasourceType: getText(s.datasourceType),
+    connectionDetails: (s.connectionDetails as Record<string, unknown> | undefined) ?? {},
+    datasourceId: getText(s.datasourceId),
+    gatewayId: getText(s.gatewayId),
+  }));
 }
