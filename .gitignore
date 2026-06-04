@@ -224,7 +224,3 @@ test-results/
 playwright/config/enterprise.generated.json
 playwright/.auth/
 
-UPCC Dashboard.pbip
-UPCC Dashboard.txt
-legacy_concept_powerbi_meta.md
-legacy_discover_upcc_v14_fixed_v5.py
