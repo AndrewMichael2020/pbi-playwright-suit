@@ -96,8 +96,8 @@ async function pickOne<T extends { name: string }>(
   while (true) {
     const canExpand = sorted.length > visible.length;
     const hint = canExpand
-      ? dim(`  ${cyan('/keyword')} to search · Enter to show all ${sorted.length} · `)
-      : dim('  ');
+      ? dim(`  type ${cyan('/term')} to filter (e.g. ${cyan('/sales')}) · Enter to show all ${sorted.length} · `)
+      : dim(`  type ${cyan('/term')} to filter · `);
     const answer = (await rl.question(`${hint}Enter number (1–${visible.length}): `)).trim();
 
     if (!answer && canExpand) {
@@ -105,10 +105,11 @@ async function pickOne<T extends { name: string }>(
       printList(visible, label);
       continue;
     }
-    if (answer.startsWith('/') && canExpand) {
-      const filtered = filterBySearch(sorted, answer.slice(1));
+    if (answer.startsWith('/')) {
+      const term = answer.slice(1).trim();
+      const filtered = filterBySearch(sorted, term);
       if (filtered.length === 0) {
-        console.log(yellow('  No matches — showing full list.'));
+        console.log(yellow(`  No matches for "${term}" — showing full list.`));
         visible = sorted;
       } else {
         visible = filtered;
@@ -138,8 +139,8 @@ async function pickMany<T extends { name: string }>(
   while (true) {
     const canExpand = sorted.length > visible.length;
     const refineHint = canExpand
-      ? `  ${dim(`${cyan('/keyword')} to search · Enter to show all ${sorted.length}`)}\n`
-      : '';
+      ? `  ${dim(`type ${cyan('/term')} to filter (e.g. ${cyan('/sales')}) · Enter to show all ${sorted.length}`)}\n`
+      : `  ${dim(`type ${cyan('/term')} to filter`)}\n`;
     const answer = (
       await rl.question(
         `${refineHint}  Enter number(s) — ${dim('1')}  ${dim('1,3,5')}  ${dim('2-6')}  ${dim('all')}\n  > `,
@@ -151,10 +152,11 @@ async function pickMany<T extends { name: string }>(
       printList(visible, label);
       continue;
     }
-    if (answer.startsWith('/') && canExpand) {
-      const filtered = filterBySearch(sorted, answer.slice(1));
+    if (answer.startsWith('/')) {
+      const term = answer.slice(1).trim();
+      const filtered = filterBySearch(sorted, term);
       if (filtered.length === 0) {
-        console.log(yellow('  No matches — showing full list.'));
+        console.log(yellow(`  No matches for "${term}" — showing full list.`));
         visible = sorted;
       } else {
         visible = filtered;

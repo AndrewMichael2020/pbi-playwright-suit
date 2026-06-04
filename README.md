@@ -79,7 +79,7 @@ npm run setup
 
 Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
 - Type a **number** to select
-- Type **`/keyword`** to search
+- Type **`/term`** to filter by name (e.g. `/sales`)
 - Press **Enter** to expand to the full list
 
 ```
@@ -96,7 +96,7 @@ Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
     ...
     [ 20] Workforce Overview
 
-  /keyword to search · Enter to show all 47
+  type /term to filter (e.g. /sales) · Enter to show all 47
   Enter number(s) — 1  1,3,5  2-6  all
   > /regional
 
