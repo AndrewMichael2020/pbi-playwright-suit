@@ -370,7 +370,19 @@ async function main(): Promise<void> {
       process.env.PBI_RUN_ID = runId;
       console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
       spawn(npm, ['run', 'test:enterprise'], { stdio: 'inherit' }).on('exit', (code) => {
-        process.exit(code ?? 0);
+        const reportPath = `test-archive/${runId}/html-report`;
+        // Ask user to open the report rather than printing a raw command.
+        const rl2 = readline.createInterface({ input: process.stdin, output: process.stdout });
+        rl2.question(`\n${bold('Open HTML report?')} [Y/n]: `).then((answer) => {
+          rl2.close();
+          if (answer.trim().toLowerCase() !== 'n') {
+            console.log(dim(`  Opening ${reportPath}…`));
+            spawn('npx', ['playwright', 'show-report', reportPath], { stdio: 'inherit', shell: true })
+              .on('exit', () => process.exit(code ?? 0));
+          } else {
+            process.exit(code ?? 0);
+          }
+        }).catch(() => process.exit(code ?? 0));
       });
     }
   } finally {
