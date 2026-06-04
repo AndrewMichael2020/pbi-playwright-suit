@@ -22,7 +22,10 @@ test.describe('Report page health', () => {
 
   for (const [i, config] of (allConfigs ?? []).entries()) {
     const id = `VS-${String(i + 1).padStart(3, '0')}`;
-    test(id, async ({ page }, testInfo) => {
+    const slug = (s: string, len = 14) =>
+      s.replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, len);
+    const title = `${id} ${slug(config.reportName)}/${slug(config.pageDisplayName)}`;
+    test(title, async ({ page }, testInfo) => {
       testInfo.annotations.push(
         { type: 'workspace', description: config.workspaceName ?? '' },
         { type: 'report',    description: config.reportName },
