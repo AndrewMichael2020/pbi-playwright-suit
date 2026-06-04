@@ -29,7 +29,7 @@ export default defineConfig({
     {
       name: 'visual',
       testMatch: /.*visual\/.*\.spec\.ts/,
-      timeout: 90_000,
+      timeout: 180_000,   // auth (~10s) + rendered event (~30s) + post-render data wait (30s) + scan headroom
       use: {
         channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
       },

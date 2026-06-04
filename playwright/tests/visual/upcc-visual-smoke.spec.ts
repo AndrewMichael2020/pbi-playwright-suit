@@ -108,7 +108,9 @@ test.describe('UPCC visual smoke', () => {
 
     expect(embedResult.status, embedResult.message).toBe('rendered');
 
-    await page.waitForTimeout(5_000);
+    // Data-intensive reports can continue loading visual data for up to 30 seconds
+    // after the Power BI SDK fires the 'rendered' event. Wait before scanning for errors.
+    await page.waitForTimeout(30_000);
 
     const frameTexts = await Promise.all(
       page.frames().map(async (frame) => {
