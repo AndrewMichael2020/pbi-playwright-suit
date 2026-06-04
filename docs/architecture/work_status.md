@@ -2,7 +2,7 @@
 
 ## Current objective
 
-Build a lightweight Playwright-based Power BI quality suite, starting with the **UPCC Dashboard** report.
+Build a lightweight Playwright-based Power BI quality suite applicable to any report in any workspace.
 
 The suite is intentionally focused on:
 
@@ -19,7 +19,7 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
 ### Architecture and planning
 
 - Reviewed the current repository artifacts:
-  - UPCC project context
+  - reviewed existing report project context
   - legacy Power BI discovery/auth approach
   - prior metadata/export notes for architectural ideas only
 - Reviewed the reference baseline:
