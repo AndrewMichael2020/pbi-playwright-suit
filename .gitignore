@@ -225,3 +225,4 @@ playwright/config/enterprise.generated.json
 playwright/.auth/
 test-archive/
 
+*.py
