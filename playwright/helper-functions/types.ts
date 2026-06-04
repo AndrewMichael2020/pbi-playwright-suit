@@ -141,6 +141,19 @@ export interface DuplicateIssue {
     | 'duplicate-measure'
     | 'duplicate-relationship'
     | 'duplicate-source-signature'
-    | 'unexpected-inactive-relationship';
+    | 'unexpected-inactive-relationship'
+    | 'cross-table-measure-name'
+    | 'zombie-table';
   message: string;
+}
+
+export interface RefreshPatternResult {
+  /** Number of consecutive failures starting from the most recent refresh. */
+  consecutiveFailureCount: number;
+  /** True when the last successful refresh is older than maxStaleHours. */
+  isStale: boolean;
+  /** Hours since the last successful refresh, or null if no success exists. */
+  hoursSinceLastSuccess: number | null;
+  /** Map of failure error-code → occurrence count. */
+  failuresByCode: Record<string, number>;
 }

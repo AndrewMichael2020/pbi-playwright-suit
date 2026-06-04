@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Lightweight Playwright-based Power BI workspace quality suite",
   "scripts": {
-    "discover:enterprise": "tsx scripts/discover-enterprise.ts",
-    "discover:interactive": "tsx scripts/discover-interactive.ts",
+    "setup": "tsx scripts/setup.ts",
     "install:browsers": "playwright install",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",

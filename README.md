@@ -12,7 +12,7 @@ Two test lanes:
 ```powershell
 git pull              # always pull first to get the latest fixes
 npm install
-npm run discover:interactive
+npm run setup
 ```
 
 The discovery CLI signs you in via browser (device-flow), lets you pick a workspace, reports, and pages, then **offers to run the visual tests immediately** — no separate command needed.
@@ -74,7 +74,7 @@ It does not affect your system Chrome.
 ### Interactive (recommended)
 
 ```powershell
-npm run discover:interactive
+npm run setup
 ```
 
 Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
@@ -123,7 +123,7 @@ After you answer **Y**, visual tests run immediately.
 ### Non-interactive (CI / env-var driven)
 
 ```powershell
-npm run discover:enterprise
+npm run setup
 ```
 
 Requires `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` to be set in `.env`.
@@ -181,8 +181,7 @@ playwright/
   tests/metadata/
   tests/visual/
 scripts/
-  discover-interactive.ts                 # interactive discovery (recommended)
-  discover-enterprise.ts                  # non-interactive / CI
+  setup.ts                                # report selection (interactive & CI)
 ```
 
 ## Troubleshooting
@@ -192,7 +191,7 @@ scripts/
 Run discovery first:
 
 ```powershell
-npm run discover:interactive
+npm run setup
 ```
 
 ---

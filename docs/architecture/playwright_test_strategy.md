@@ -32,7 +32,7 @@ This still uses Playwright as the main automation harness, but the suite must in
 
 ### 3.1 Current repository artifacts
 
-- existing UPCC project context
+- existing project context from enterprise Power BI workspace
 - legacy Power BI discovery/auth approach
 - prior metadata/export notes used for architectural ideas only
 
@@ -156,10 +156,10 @@ package.json
 
 This is deliberately flatter than a large enterprise UI framework.
 
-For the current UPCC-first implementation:
+For the current implementation:
 
 - local runs should use the committed mock fixtures already in the repo
-- enterprise visual setup should be produced by a CLI discovery command, not by manual ID editing
+- enterprise visual setup should be produced by `npm run setup`, not by manual ID editing
 
 ---
 
@@ -258,12 +258,51 @@ This is especially important because the legacy extraction is fragile and should
 Add simple checks for:
 
 - duplicate table names
-- duplicate measure names in unexpected scopes
+- duplicate measure names within the same table
 - duplicate extracted source patterns where one definition appears copied or drifted
 - duplicate relationship patterns
-- excessive auto-date style artifacts or duplicate date logic when detectable
+- unexpected inactive relationships not in an explicit allowlist
 
 These should begin as **warnings/fail-fast rules** only where the signal is clear.
+
+### 7.5 Refresh pattern analysis
+
+Beyond knowing whether a refresh failed, the suite should surface operational patterns:
+
+| Check | Description |
+|---|---|
+| **Consecutive failures** | How many refreshes in a row have failed? ≥ 3 is a critical signal. |
+| **Staleness** | Hours since the last successful refresh. Configurable threshold (e.g. 24 h for daily datasets). |
+| **Failure classification** | Group failures by error code to distinguish transient blips from persistent issues (e.g. 3× OAuth credential failure = service connection broken). |
+
+Common error codes to watch for:
+
+- `ModelRefresh_ShortMessage_ProcessingError` — often a credential or OAuth issue
+- `DM_GWPipeline_Gateway_SpooledOperationFailed` — gateway timeout or overload
+- `ProcessingError` — broad category; inspect `serviceExceptionJson` for detail
+
+Implementation: `analyzeRefreshPatterns(refreshes, maxStaleHours, nowIso)` in `refresh-health.ts`.
+
+### 7.6 Cross-table integrity checks
+
+Power BI models that evolve over time accumulate structural debt. Add checks for:
+
+| Check | Description |
+|---|---|
+| **Cross-table measure names** | Same measure name defined in multiple tables — causes confusion and potential inconsistency. |
+| **Zombie tables** | Hidden tables with no visible columns and no measures — likely orphaned after a model restructure. |
+
+These are warnings, not hard failures. They flag model hygiene issues before they become visible bugs.
+
+### 7.7 Linking refresh failures to visual errors (roadmap)
+
+A future capability: correlate the two lanes.
+
+- When a page fails to render (`QueryUserError`, `Missing_References`, etc.) *and* the dataset
+  had a failed refresh in the same window → the test report should surface both signals together.
+- This avoids chasing visual errors that are really just symptoms of a broken data pipeline.
+- Implementation: add a summary step in global teardown that cross-references
+  `enterprise.generated.json` visual results with the most recent `evaluateRefreshHealth` output.
 
 ---
 
@@ -277,12 +316,12 @@ This is the primary target mode.
 
 Use:
 
-- service principal
-- Power BI REST
+- user device-flow or service principal authentication
+- Power BI REST API
 - XMLA endpoint where allowed
-- a CLI discovery step that resolves the single UPCC workspace/report/page configuration
+- `npm run setup` to resolve workspace/report/page configuration
 
-This matches both the reference repo and your legacy extraction workflow.
+This matches both the reference repo and the legacy extraction workflow.
 
 ## 8.2 Sandbox mode
 
@@ -316,27 +355,25 @@ That is much cheaper and better aligned to the current goal.
 
 The suite should be driven by a few compact artifacts.
 
-### 9.1 Generated UPCC enterprise config
+### 9.1 Generated enterprise config
 
-For the current single-report visual lane, prefer a generated JSON config written by the discovery CLI:
+For the visual lane, a generated JSON config written by `npm run setup`:
 
 ```json
 {
   "workspaceId": "<guid>",
-  "workspaceName": "FHA-ADAR-BI-UAT",
+  "workspaceName": "<workspace>",
   "datasetId": "<guid>",
-  "datasetName": "UPCC Dashboard",
+  "datasetName": "<dataset>",
   "reportId": "<guid>",
-  "reportName": "UPCC Dashboard",
+  "reportName": "<report>",
   "pageId": "ReportSection...",
-  "pageDisplayName": "Summary",
+  "pageDisplayName": "Summary page",
   "embedUrl": "https://app.powerbi.com/reportEmbed?...",
   "reportUrl": "https://app.powerbi.com/groups/.../reports/.../ReportSection...",
   "discoveredAt": "2026-06-03T..."
 }
 ```
-
-This is simpler and less error-prone than a manually edited CSV for the current UPCC-only scope.
 
 The generated file should be:
 
@@ -351,11 +388,11 @@ For metadata checks:
 ```json
 {
   "workspaceId": "<guid>",
-  "workspaceName": "FHA-ADAR-BI-UAT",
+  "workspaceName": "<workspace>",
   "models": [
     {
       "datasetId": "<guid>",
-      "datasetName": "UPCC Dashboard"
+      "datasetName": "<dataset>"
     }
   ]
 }
@@ -389,7 +426,7 @@ Per dataset/model:
 ```json
 {
   "datasetId": "<guid>",
-  "datasetName": "UPCC Dashboard",
+  "datasetName": "<dataset>",
   "tables": [],
   "relationships": [],
   "partitions": [],

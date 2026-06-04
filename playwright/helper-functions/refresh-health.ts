@@ -1,4 +1,4 @@
-import { RefreshHealthResult, RefreshHistoryEntry } from './types';
+import { RefreshHealthResult, RefreshHistoryEntry, RefreshPatternResult } from './types';
 
 function parseErrorPayload(raw?: string): { code?: string; message?: string } {
   if (!raw) {
@@ -113,4 +113,50 @@ export function evaluateRefreshHealth(
     failures: failures.filter((failure) => failure.withinWindow),
     lastKnownFailure: failures[0],
   };
+}
+
+/**
+ * Analyses refresh history for operational patterns that go beyond simple
+ * pass/fail — consecutive failures, data staleness, and error classification.
+ */
+export function analyzeRefreshPatterns(
+  refreshes: RefreshHistoryEntry[],
+  maxStaleHours: number,
+  nowIso: string,
+): RefreshPatternResult {
+  const sorted = [...refreshes].sort((a, b) => {
+    return (
+      new Date(b.endTime ?? b.startTime ?? 0).getTime() -
+      new Date(a.endTime ?? a.startTime ?? 0).getTime()
+    );
+  });
+
+  // Count consecutive failures from the most recent entry.
+  let consecutiveFailureCount = 0;
+  for (const entry of sorted) {
+    if (entry.status === 'Failed') consecutiveFailureCount++;
+    else break;
+  }
+
+  // Staleness: how long since the last successful refresh?
+  const lastSuccess = sorted.find((r) => r.status === 'Completed');
+  let hoursSinceLastSuccess: number | null = null;
+  let isStale = true;
+
+  if (lastSuccess) {
+    const successTime = new Date(lastSuccess.endTime ?? lastSuccess.startTime ?? 0);
+    hoursSinceLastSuccess = (new Date(nowIso).getTime() - successTime.getTime()) / (1000 * 60 * 60);
+    isStale = hoursSinceLastSuccess > maxStaleHours;
+  }
+
+  // Classify each failure by error code.
+  const failuresByCode: Record<string, number> = {};
+  for (const entry of sorted.filter((r) => r.status === 'Failed')) {
+    const { code } = extractFailureInfo([entry]);
+    if (code) {
+      failuresByCode[code] = (failuresByCode[code] ?? 0) + 1;
+    }
+  }
+
+  return { consecutiveFailureCount, isStale, hoursSinceLastSuccess, failuresByCode };
 }

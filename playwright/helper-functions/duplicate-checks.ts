@@ -75,5 +75,38 @@ export function detectDuplicateIssues(signature: ModelSignature): DuplicateIssue
     }
   }
 
+  // Cross-table: the same measure name defined in more than one table.
+  const measureToTables = new Map<string, string[]>();
+  for (const table of signature.tables) {
+    for (const measure of table.measures) {
+      const key = measure.name.toLowerCase();
+      const existing = measureToTables.get(key) ?? [];
+      existing.push(table.name);
+      measureToTables.set(key, existing);
+    }
+  }
+  for (const [measureName, tables] of measureToTables.entries()) {
+    if (tables.length > 1) {
+      issues.push({
+        severity: 'warning',
+        type: 'cross-table-measure-name',
+        message: `Measure "${measureName}" defined in multiple tables: ${tables.join(', ')}`,
+      });
+    }
+  }
+
+  // Zombie tables: hidden AND have no non-hidden columns AND no measures.
+  for (const table of signature.tables) {
+    if (!table.hidden) continue;
+    const visibleColumns = table.columns.filter((col) => !col.hidden);
+    if (visibleColumns.length === 0 && table.measures.length === 0) {
+      issues.push({
+        severity: 'warning',
+        type: 'zombie-table',
+        message: `Hidden table "${table.name}" has no visible columns and no measures`,
+      });
+    }
+  }
+
   return issues;
 }

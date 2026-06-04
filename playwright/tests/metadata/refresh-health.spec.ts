@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readJsonFile } from '../../helper-functions/file-reader';
-import { evaluateRefreshHealth, extractFailureInfo } from '../../helper-functions/refresh-health';
+import { analyzeRefreshPatterns, evaluateRefreshHealth, extractFailureInfo } from '../../helper-functions/refresh-health';
 import { RefreshHealthResult, RefreshHistoryEntry } from '../../helper-functions/types';
 
 test('RH-001 through RH-008 refresh history is normalized and evaluated', async () => {
@@ -40,3 +40,49 @@ test('FX-004 committed refresh health summary stays aligned', async () => {
   expect(summary.failureCount).toBe(1);
   expect(summary.lastKnownFailure?.code).toBe('ModelRefresh_ShortMessage_ProcessingError');
 });
+
+// ── Refresh pattern analysis ────────────────────────────────────────────────
+
+const patternHistory = readJsonFile<RefreshHistoryEntry[]>(
+  'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history-patterns.json',
+);
+
+test('RP-001 consecutive failures are counted from most recent entry', async () => {
+  // Fixture: 3 failures in a row, then 1 old success.
+  const result = analyzeRefreshPatterns(patternHistory, 24, '2026-05-13T20:00:00.000Z');
+  expect(result.consecutiveFailureCount).toBe(3);
+});
+
+test('RP-002 dataset is stale when last success exceeds threshold', async () => {
+  // Last success: May 7. nowIso: May 13. Gap ≈ 144 h. maxStaleHours: 24.
+  const result = analyzeRefreshPatterns(patternHistory, 24, '2026-05-13T20:00:00.000Z');
+  expect(result.isStale).toBe(true);
+  expect(result.hoursSinceLastSuccess).toBeGreaterThan(100);
+});
+
+test('RP-003 dataset is not stale when last success is recent', async () => {
+  // Use the baseline 3-entry fixture where latest status is Completed.
+  const baselineHistory = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  // nowIso only 2 hours after the last Completed refresh.
+  const result = analyzeRefreshPatterns(baselineHistory, 24, '2026-05-10T20:00:00.000Z');
+  expect(result.isStale).toBe(false);
+  expect(result.hoursSinceLastSuccess).toBeLessThan(24);
+});
+
+test('RP-004 failures are grouped and counted by error code', async () => {
+  const result = analyzeRefreshPatterns(patternHistory, 24, '2026-05-13T20:00:00.000Z');
+  // Two OAuth failures and one gateway failure in the fixture.
+  expect(result.failuresByCode['ModelRefresh_ShortMessage_ProcessingError']).toBe(2);
+  expect(result.failuresByCode['DM_GWPipeline_Gateway_SpooledOperationFailed']).toBe(1);
+});
+
+test('RP-005 no consecutive failures reported when latest refresh succeeded', async () => {
+  const baselineHistory = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = analyzeRefreshPatterns(baselineHistory, 24, '2026-05-10T20:00:00.000Z');
+  expect(result.consecutiveFailureCount).toBe(0);
+});
+

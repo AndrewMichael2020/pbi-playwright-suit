@@ -1,19 +1,27 @@
 /**
- * Interactive Power BI discovery — sorted, searchable, multi-select.
+ * Power BI test-suite setup — selects which reports and pages to test.
  *
- * UX flow:
- *   1. Shows top 20 items sorted alphabetically.
- *   2. You can type a number to select, /keyword to search, or Enter to expand to all.
- *   3. For reports, multi-select: single number, comma list (1,3,5), range (2-6), or "all".
- *   4. After saving the config, offers to run visual tests immediately.
+ * Interactive mode (default):
+ *   Run "npm run setup" with no env vars. A coloured menu lets you browse
+ *   workspaces and reports, pick individual pages, then optionally launch
+ *   tests immediately.
  *
- * Each selected report+page becomes one Playwright visual smoke test.
+ * CI / env-driven mode (non-interactive):
+ *   Set PBI_WORKSPACE_NAME + PBI_REPORT_NAME (and optionally PBI_DATASET_NAME,
+ *   PBI_PAGE_NAME) in your .env file.  The script resolves the report without
+ *   prompting and writes the config file, then exits.
+ *
+ * Both modes write playwright/config/enterprise.generated.json which the
+ * visual test suite reads automatically.
  */
 
 import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import {
+  findDatasetByName,
+  findReportByName,
+  findWorkspaceByName,
   getAccessToken,
   getPowerBiEndpoints,
   listDatasets,
@@ -26,6 +34,7 @@ import {
 } from '../playwright/helper-functions/powerbi-enterprise';
 import { loadEnvFile } from '../playwright/helper-functions/env-loader';
 import {
+  saveEnterpriseConfig,
   saveEnterpriseConfigs,
   type EnterpriseReportConfig,
 } from '../playwright/helper-functions/enterprise-config';
@@ -180,11 +189,72 @@ async function pickMany<T extends { name: string }>(
 
 // ── main ─────────────────────────────────────────────────────────────────────
 
-async function main(): Promise<void> {
-  console.log(`\n${bold(magenta('⚡ Power BI Visual Discovery'))}\n`);
+async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFromEnv> & object): Promise<void> {
+  const workspaceName   = process.env.PBI_WORKSPACE_NAME!;
+  const reportName      = process.env.PBI_REPORT_NAME!;
+  const datasetName     = process.env.PBI_DATASET_NAME ?? reportName;
+  const pageDisplayName = process.env.PBI_PAGE_NAME;
 
+  console.log(`\n${bold(magenta('⚡ Power BI Test Setup'))} ${dim('(CI mode)')}\n`);
+
+  const endpoints  = getPowerBiEndpoints(credentials.environment);
+  console.log(dim('Authenticating…'));
+  const accessToken = await getAccessToken(credentials, endpoints);
+  console.log(green('✓ Authenticated\n'));
+
+  const workspace = await findWorkspaceByName(accessToken, workspaceName, endpoints);
+  if (!workspace) throw new Error(`Workspace '${workspaceName}' not found.`);
+
+  const dataset = await findDatasetByName(accessToken, workspace.id, datasetName, endpoints);
+  if (!dataset) throw new Error(`Dataset '${datasetName}' not found in '${workspaceName}'.`);
+
+  const report = await findReportByName(accessToken, workspace.id, reportName, endpoints);
+  if (!report) throw new Error(`Report '${reportName}' not found in '${workspaceName}'.`);
+
+  const pages = await listReportPages(accessToken, workspace.id, report.id, endpoints);
+  if (pages.length === 0) throw new Error(`Report '${reportName}' has no pages.`);
+
+  const page =
+    (pageDisplayName ? pages.find((p) => p.displayName === pageDisplayName) : undefined) ?? pages[0];
+
+  if (pageDisplayName && page!.displayName !== pageDisplayName)
+    throw new Error(`PBI_PAGE_NAME '${pageDisplayName}' not found in '${reportName}'.`);
+
+  saveEnterpriseConfig({
+    workspaceId: workspace.id,
+    workspaceName: workspace.name,
+    datasetId: dataset.id,
+    datasetName: dataset.name,
+    reportId: report.id,
+    reportName: report.name,
+    pageId: page!.name,
+    pageName: page!.name,
+    pageDisplayName: page!.displayName,
+    embedUrl: report.embedUrl ?? '',
+    reportUrl: `${endpoints.webPrefix}/groups/${workspace.id}/reports/${report.id}/${page!.name}`,
+    discoveredAt: new Date().toISOString(),
+  });
+
+  console.log(
+    `${bold(green('✅ Setup complete'))}\n` +
+    `    workspace: ${workspace.name}\n` +
+    `    report:    ${report.name}\n` +
+    `    page:      ${page!.displayName}\n` +
+    `    output:    playwright/config/enterprise.generated.json`,
+  );
+}
+
+async function main(): Promise<void> {
   const credentials = readEnterpriseCredentialsFromEnv();
   if (!credentials) throw new Error('Unable to build enterprise auth settings.');
+
+  // CI short-circuit: if the required env vars are set, skip the interactive menu.
+  if (process.env.PBI_WORKSPACE_NAME && process.env.PBI_REPORT_NAME) {
+    await runCi(credentials);
+    return;
+  }
+
+  console.log(`\n${bold(magenta('⚡ Power BI Test Setup'))}\n`);
 
   const endpoints = getPowerBiEndpoints(credentials.environment);
   console.log(dim('Authenticating…'));

@@ -10,12 +10,12 @@ import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config'
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
 const skipReason = !allConfigs
-  ? 'Run npm run discover:interactive first.'
+  ? 'Run npm run setup first.'
   : !enterpriseCredentials
     ? 'Unable to build enterprise auth settings.'
     : '';
 
-test.describe('Visual smoke', () => {
+test.describe('Report page health', () => {
   test.skip(Boolean(skipReason), skipReason);
 
   for (const config of allConfigs ?? []) {

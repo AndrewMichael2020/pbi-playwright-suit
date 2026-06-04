@@ -1,0 +1,25 @@
+[
+  {
+    "startTime": "2026-05-13T17:30:00.000Z",
+    "endTime":   "2026-05-13T17:45:00.000Z",
+    "status": "Failed",
+    "serviceExceptionJson": "{\"errorCode\":\"ModelRefresh_ShortMessage_ProcessingError\",\"errorDescription\":\"{\\\"error\\\":{\\\"pbi.error\\\":{\\\"details\\\":[{\\\"message\\\":\\\"Refresh failed\\\"},{\\\"detail\\\":{\\\"value\\\":\\\"Failed to get OAuth resource id, please make sure the OAuth is supported\\\"}}]}}}\"}"
+  },
+  {
+    "startTime": "2026-05-12T17:30:00.000Z",
+    "endTime":   "2026-05-12T17:48:00.000Z",
+    "status": "Failed",
+    "serviceExceptionJson": "{\"errorCode\":\"ModelRefresh_ShortMessage_ProcessingError\",\"errorDescription\":\"{\\\"error\\\":{\\\"pbi.error\\\":{\\\"details\\\":[{\\\"message\\\":\\\"Refresh failed\\\"},{\\\"detail\\\":{\\\"value\\\":\\\"Failed to get OAuth resource id, please make sure the OAuth is supported\\\"}}]}}}\"}"
+  },
+  {
+    "startTime": "2026-05-11T17:30:00.000Z",
+    "endTime":   "2026-05-11T17:52:00.000Z",
+    "status": "Failed",
+    "serviceExceptionJson": "{\"errorCode\":\"DM_GWPipeline_Gateway_SpooledOperationFailed\",\"errorDescription\":\"Gateway pipeline timed out\"}"
+  },
+  {
+    "startTime": "2026-05-07T17:30:00.000Z",
+    "endTime":   "2026-05-07T18:06:34.967Z",
+    "status": "Completed"
+  }
+]
