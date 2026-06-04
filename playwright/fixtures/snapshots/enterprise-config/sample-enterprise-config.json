@@ -1,0 +1,16 @@
+[
+  {
+    "workspaceId": "00000000-0000-0000-0000-000000000001",
+    "workspaceName": "Sample Workspace",
+    "datasetId": "00000000-0000-0000-0000-000000000002",
+    "datasetName": "Sample Dataset",
+    "reportId": "00000000-0000-0000-0000-000000000003",
+    "reportName": "Sample Report",
+    "pageId": "ReportSection1",
+    "pageName": "ReportSection1",
+    "pageDisplayName": "Overview",
+    "embedUrl": "https://app.powerbi.com/reportEmbed?reportId=00000000-0000-0000-0000-000000000003",
+    "reportUrl": "https://app.powerbi.com/groups/00000000-0000-0000-0000-000000000001/reports/00000000-0000-0000-0000-000000000003",
+    "discoveredAt": "2026-01-01T00:00:00.000Z"
+  }
+]

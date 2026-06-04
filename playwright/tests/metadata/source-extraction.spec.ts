@@ -14,6 +14,16 @@ in
   expect(sql).toContain('WHERE [B] = "X"');
 });
 
+test('SE-003 double-quoted M string escapes are unescaped in the extracted SQL', async () => {
+  const mCode = `let Source = Sql.Database("srv", "db", [Query="SELECT col FROM t WHERE name = ""Alice"""]) in Source`;
+
+  const sql = extractSqlFromM(mCode);
+
+  expect(sql).not.toBeNull();
+  expect(sql).toContain('"Alice"');
+  expect(sql).not.toContain('""Alice""');
+});
+
 test('SE-004 missing SQL block returns null cleanly', async () => {
   expect(extractSqlFromM('let Source = Table.FromRows({}) in Source')).toBeNull();
 });

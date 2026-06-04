@@ -149,3 +149,177 @@ test('DU-008 hidden table with measures is not a zombie table', async () => {
   expect(issues.filter((i: DuplicateIssue) => i.type === 'zombie-table')).toEqual([]);
 });
 
+// ── Individual DU tests with focused mocks (DU-001 through DU-006) ───────────
+
+test('DU-001 duplicate table names are detected as errors', async () => {
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 2,
+    relationshipCount: 0,
+    roleCount: 0,
+    tables: [
+      { name: 'Sales', hidden: false, columns: [], measures: [], partitions: [] },
+      { name: 'sales', hidden: false, columns: [], measures: [], partitions: [] },
+    ],
+    relationships: [],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: [], inactiveRelationshipKeys: [] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+  const errors = issues.filter((i: DuplicateIssue) => i.type === 'duplicate-table');
+
+  expect(errors.length).toBe(1);
+  expect(errors[0]!.severity).toBe('error');
+  expect(errors[0]!.message.toLowerCase()).toContain('sales');
+});
+
+test('DU-002 duplicate visible measure names within the same table are detected as errors', async () => {
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 1,
+    relationshipCount: 0,
+    roleCount: 0,
+    tables: [
+      {
+        name: 'Sales',
+        hidden: false,
+        columns: [],
+        measures: [
+          { name: 'Total Revenue', expressionHash: 'aaa' },
+          { name: 'Total Revenue', expressionHash: 'bbb' },
+        ],
+        partitions: [],
+      },
+    ],
+    relationships: [],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: [], inactiveRelationshipKeys: [] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+  const errors = issues.filter((i: DuplicateIssue) => i.type === 'duplicate-measure');
+
+  expect(errors.length).toBe(1);
+  expect(errors[0]!.severity).toBe('error');
+});
+
+test('DU-003 duplicate relationship edges are detected as warnings', async () => {
+  const rel = {
+    id: 'r1',
+    fromTable: 'Sales', fromColumn: 'DateId',
+    toTable: 'Date', toColumn: 'Id',
+    active: true, crossFilter: 'Single', securityFilter: 'None', cardinality: 'ManyToOne',
+  };
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 2,
+    relationshipCount: 2,
+    roleCount: 0,
+    tables: [
+      { name: 'Sales', hidden: false, columns: [], measures: [], partitions: [] },
+      { name: 'Date', hidden: false, columns: [], measures: [], partitions: [] },
+    ],
+    relationships: [rel, { ...rel, id: 'r2' }],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: [], inactiveRelationshipKeys: [] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+  const warnings = issues.filter((i: DuplicateIssue) => i.type === 'duplicate-relationship');
+
+  expect(warnings.length).toBe(1);
+  expect(warnings[0]!.severity).toBe('warning');
+});
+
+test('DU-004 tables sharing the same extracted SQL hash are reported as a warning', async () => {
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 2,
+    relationshipCount: 0,
+    roleCount: 0,
+    tables: [
+      {
+        name: 'TableA',
+        hidden: false,
+        columns: [],
+        measures: [],
+        partitions: [{ name: 'p1', mode: 'import', sourceType: 'Query', extractedSqlHash: 'same-hash-xyz' }],
+      },
+      {
+        name: 'TableB',
+        hidden: false,
+        columns: [],
+        measures: [],
+        partitions: [{ name: 'p1', mode: 'import', sourceType: 'Query', extractedSqlHash: 'same-hash-xyz' }],
+      },
+    ],
+    relationships: [],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: [], inactiveRelationshipKeys: [] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+  const warnings = issues.filter((i: DuplicateIssue) => i.type === 'duplicate-source-signature');
+
+  expect(warnings.length).toBe(1);
+  expect(warnings[0]!.severity).toBe('warning');
+});
+
+test('DU-005 hidden support columns on a non-hidden table raise no errors or zombie warnings', async () => {
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 1,
+    relationshipCount: 0,
+    roleCount: 0,
+    tables: [
+      {
+        name: 'Sales',
+        hidden: false,
+        columns: [
+          { name: 'Id', type: 'Int64', hidden: false },
+          { name: 'RowNumber-12345', type: 'Int64', hidden: true },
+        ],
+        measures: [],
+        partitions: [],
+      },
+    ],
+    relationships: [],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: ['RowNumber-'], inactiveRelationshipKeys: [] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+
+  expect(issues.filter((i: DuplicateIssue) => i.severity === 'error')).toHaveLength(0);
+  expect(issues.filter((i: DuplicateIssue) => i.type === 'zombie-table')).toHaveLength(0);
+});
+
+test('DU-006 inactive relationship in the allowlist does not raise unexpected-inactive-relationship', async () => {
+  const rel = {
+    id: 'r1',
+    fromTable: 'Sales', fromColumn: 'CurrencyId',
+    toTable: 'Currency', toColumn: 'Id',
+    active: false, crossFilter: 'None', securityFilter: 'None', cardinality: 'ManyToOne',
+  };
+  const key = 'Sales::CurrencyId::Currency::Id';
+  const sig: ModelSignature = {
+    datasetName: 'Mock',
+    tableCount: 2,
+    relationshipCount: 1,
+    roleCount: 0,
+    tables: [
+      { name: 'Sales', hidden: false, columns: [], measures: [], partitions: [] },
+      { name: 'Currency', hidden: false, columns: [], measures: [], partitions: [] },
+    ],
+    relationships: [rel],
+    roles: [],
+    allowlist: { hiddenSupportColumnPrefixes: [], inactiveRelationshipKeys: [key] },
+  };
+
+  const issues = detectDuplicateIssues(sig);
+  const unexpected = issues.filter((i: DuplicateIssue) => i.type === 'unexpected-inactive-relationship');
+
+  expect(unexpected).toHaveLength(0);
+});
+

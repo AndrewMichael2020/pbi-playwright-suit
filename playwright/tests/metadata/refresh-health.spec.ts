@@ -86,3 +86,83 @@ test('RP-005 no consecutive failures reported when latest refresh succeeded', as
   expect(result.consecutiveFailureCount).toBe(0);
 });
 
+// ── Individual RH tests (RH-001 through RH-008) ─────────────────────────────
+
+test('RH-001 refresh history fixture parses into a normalized result structure', async () => {
+  const history = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(typeof result).toBe('object');
+  expect(typeof result.latestStatus).toBe('string');
+  expect(typeof result.failureCount).toBe('number');
+  expect(Array.isArray(result.failures)).toBe(true);
+});
+
+test('RH-002 latest refresh status is present and non-empty', async () => {
+  const history = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.latestStatus.length).toBeGreaterThan(0);
+});
+
+test('RH-003 latest refresh status of Failed is operationally unacceptable', async () => {
+  const failedHistory: RefreshHistoryEntry[] = [
+    {
+      status: 'Failed',
+      endTime: '2026-05-10T18:00:00.000Z',
+      serviceExceptionJson: JSON.stringify({
+        errorCode: 'DM_ErrorCode_1',
+        errorDescription: 'Simulated refresh failure',
+      }),
+    },
+  ];
+  const result = evaluateRefreshHealth(failedHistory, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.latestStatus).toBe('Failed');
+  expect(result.failureCount).toBeGreaterThan(0);
+  expect(result.lastSuccessTime).toBe('');
+});
+
+test('RH-004 seven-day window excludes failures that fall outside the lookback period', async () => {
+  const history: RefreshHistoryEntry[] = [
+    { status: 'Failed', endTime: '2026-04-01T12:00:00.000Z' },    // 40+ days before now
+    { status: 'Completed', endTime: '2026-05-10T18:00:00.000Z' }, // within window
+  ];
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.failureCount).toBe(0);
+  expect(result.latestStatus).toBe('Completed'); // most recent by endTime, not array order
+});
+
+test('RH-005 failure count matches the number of failed entries within the window', async () => {
+  const history = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.failureCount).toBe(1);
+});
+
+test('RH-007 last successful refresh timestamp is retained even when later failures exist', async () => {
+  const history = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.lastSuccessTime.length).toBeGreaterThan(0);
+});
+
+test('RH-008 historical failure message remains detectable after normalization', async () => {
+  const history = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
+  const result = evaluateRefreshHealth(history, 7, '2026-05-10T19:00:00.000Z');
+
+  expect(result.failures[0]?.message).toBeTruthy();
+  expect(result.failures[0]?.code).toBeTruthy();
+});
+

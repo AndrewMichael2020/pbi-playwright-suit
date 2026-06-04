@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { EnterpriseReportConfig } from '../../helper-functions/enterprise-config';
 import { readJsonFile } from '../../helper-functions/file-reader';
 import { ModelSignature, RefreshHealthResult, RefreshHistoryEntry } from '../../helper-functions/types';
 
@@ -29,4 +30,38 @@ test('FX-004 refresh health summary matches contract', async () => {
 
   expect(refreshSummary.windowDays).toBe(7);
   expect(refreshSummary.latestStatus).not.toBe('');
+});
+
+// ── Enterprise config fixture contracts (VS-001, VS-002) ────────────────────
+
+test('VS-001 sample enterprise config fixture resolves to at least one entry', async () => {
+  const configs = readJsonFile<EnterpriseReportConfig[]>(
+    'playwright/fixtures/snapshots/enterprise-config/sample-enterprise-config.json',
+  );
+
+  expect(Array.isArray(configs)).toBe(true);
+  expect(configs.length).toBeGreaterThan(0);
+  expect(configs[0]!.reportId.length).toBeGreaterThan(0);
+  expect(configs[0]!.pageId.length).toBeGreaterThan(0);
+});
+
+test('VS-002 every entry in the sample enterprise config has all required string fields non-empty', async () => {
+  const configs = readJsonFile<EnterpriseReportConfig[]>(
+    'playwright/fixtures/snapshots/enterprise-config/sample-enterprise-config.json',
+  );
+
+  const requiredFields: (keyof EnterpriseReportConfig)[] = [
+    'workspaceId', 'workspaceName', 'datasetId', 'datasetName',
+    'reportId', 'reportName', 'pageId', 'pageName', 'pageDisplayName',
+    'embedUrl', 'reportUrl', 'discoveredAt',
+  ];
+
+  for (const config of configs) {
+    for (const field of requiredFields) {
+      expect(
+        typeof config[field] === 'string' && config[field].length > 0,
+        `field "${field}" must be a non-empty string`,
+      ).toBe(true);
+    }
+  }
 });
