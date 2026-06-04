@@ -11,8 +11,8 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-scheduled%20%2B%20on--demand-brightgreen?logo=checkmarx&logoColor=white)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Lightweight Playwright-based Power BI quality suite.  
-Catches the signals that break report visuals **before users notice them**.
+Agile Playwright-based Power BI quality suite.  
+Catches the signals that break reports **before users notice them**.
 
 ---
 
