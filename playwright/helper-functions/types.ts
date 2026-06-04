@@ -80,7 +80,7 @@ export interface ParsedRole {
   }>;
 }
 
-export interface ParsedUpccMetadata {
+export interface ParsedModelMetadata {
   workspaceName: string;
   workspaceId: string;
   datasetName: string;
