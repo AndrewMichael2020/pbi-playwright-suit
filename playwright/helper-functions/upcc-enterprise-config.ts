@@ -32,5 +32,6 @@ export function loadUpccEnterpriseConfig(): UpccEnterpriseConfig | null {
 }
 
 export function saveUpccEnterpriseConfig(config: UpccEnterpriseConfig): void {
+  fs.mkdirSync(path.dirname(upccEnterpriseConfigPath), { recursive: true });
   fs.writeFileSync(upccEnterpriseConfigPath, `${JSON.stringify(config, null, 2)}\n`);
 }
