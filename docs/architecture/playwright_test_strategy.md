@@ -131,7 +131,95 @@ The baseline fixture ships with a generic `sample-model-baseline.json` demonstra
 
 ---
 
-## 8. What is deliberately out of scope
+## 8. Planned — Phase 2: Source SQL Server Schema Drift (Lane C)
+
+> **Status: planned, not yet implemented.**  
+> The current suite detects SQL drift *inside the Power BI model* (changes to the M expression) and refresh failures caused by upstream schema breaks.  
+> Lane C closes the gap: detecting SQL Server field changes **before** the next refresh runs.
+
+### The gap Lane C closes
+
+| Scenario | Currently detected? | How |
+|---|---|---|
+| Power BI developer edits the M query (SELECT clause changes) | ✅ yes | `extractedSqlHash` drift, `SD-00x` |
+| Refresh fails because source column was dropped | ✅ yes — after the fact | RH-002 / RH-003 |
+| DBA renames or drops a column; Power BI model not yet updated | ❌ not until next refresh | Lane C will catch this |
+| DBA changes a column type that silently corrupts numerics | ❌ not until visuals show wrong totals | Lane C will catch this |
+
+### Proposed signals
+
+| ID | Signal | Description |
+|---|---|---|
+| **SSD-001** | Column dropped from source table | Column present in committed baseline but absent from live `INFORMATION_SCHEMA.COLUMNS` |
+| **SSD-002** | Column type changed in source table | `DATA_TYPE` / `CHARACTER_MAXIMUM_LENGTH` / `NUMERIC_PRECISION` differs from baseline |
+| **SSD-003** | Source table dropped or renamed | Table referenced in baseline M expression not found in live schema |
+
+### Architecture
+
+```text
+scripts/
+  ingest-sql-schema.ts           # new — connects to SQL Server, snapshots INFORMATION_SCHEMA
+playwright/
+  helper-functions/
+    sql-schema-watcher.ts        # new — queries INFORMATION_SCHEMA, returns SourceColumnMap
+  fixtures/snapshots/
+    source-schema/               # new — committed JSON snapshots, one per data source
+      <server>__<database>.json  # { tables: { [tableName]: { columns: ColumnDef[] } } }
+  tests/
+    metadata/
+      source-schema-drift.spec.ts  # new — dry-run: mock; enterprise: live SQL Server query
+```
+
+### Baseline workflow
+
+1. After running `ingest-model-txt.ts`, run:  
+   `npm run ingest:sql-schema -- --server=<host> --database=<db>`
+2. The script connects with a read-only service account, queries `INFORMATION_SCHEMA.COLUMNS` for every table referenced in any M expression in the model baseline, and writes a committed snapshot JSON.
+3. On subsequent runs (CI/CD), `source-schema-drift.spec.ts` re-queries and diffs against the snapshot. Any SSD-001/002/003 signal is a test failure.
+4. If the change is intentional (e.g. agreed column rename), update the snapshot and commit.
+
+### New environment variables required
+
+```
+PBI_SQL_SERVER=<hostname or IP>
+PBI_SQL_DATABASE=<database name>
+PBI_SQL_USER=<read-only service account>
+PBI_SQL_PASSWORD=<password>
+# or, on Windows domain machines: PBI_SQL_TRUSTED_CONNECTION=true
+```
+
+These are in `.env` (gitignored) and injected via the existing `env-loader.ts`.
+
+### npm package dependency
+
+Add `mssql` (TypeScript-typed SQL Server client):
+
+```bash
+npm install mssql
+npm install --save-dev @types/mssql
+```
+
+### Focus menu integration
+
+Lane C adds one new focus option:
+
+| # | Label | Tests run |
+|---|---|---|
+| 10 | Source schema drift | SSD-001, SSD-002, SSD-003 |
+
+The "All signals" option (focus 1) automatically includes SSD checks when a source-schema snapshot exists.  
+If no snapshot file exists for a dataset, SSD tests auto-skip with `↷ no source-schema baseline committed`.
+
+### Design constraints
+
+- The script connects to SQL Server with **read-only** credentials; it never writes to the source database.
+- One snapshot file per `server__database` pair — not per report — so a single SQL Server database shared across many reports only incurs one connection.
+- Dry-run mode: `source-schema-drift.spec.ts` uses a committed mock snapshot (no SQL Server connection needed) for `npm test`, identical to how `schema-drift.spec.ts` works today.
+- If `PBI_SQL_SERVER` is absent, all SSD tests skip gracefully.
+
+---
+
+## 9. What is deliberately out of scope
 
 - Large Page Object Model hierarchies
 - Deep persona / RLS scenario matrices
@@ -139,6 +227,7 @@ The baseline fixture ships with a generic `sample-model-baseline.json` demonstra
 - Offline Power BI browser simulation
 - XMLA TOM scripting **inside the test runner** — model metadata is imported from an external script output (`.txt → JSON baseline`) via `npm run ingest:model-txt`, not executed in-process
 - Any assertion that requires knowing report-specific visual names or layout
+- Writing to or modifying any source database (Lane C is read-only)
 
 ---
 

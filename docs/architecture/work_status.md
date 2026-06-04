@@ -85,6 +85,7 @@ npm run setup        # interactive enterprise configuration wizard
 - Live XMLA model capture not yet integrated (model baseline must be generated from a Python script export)
 - Schema drift and source extraction checks run against committed mock fixtures only; live REST schema endpoint not available for regular datasets
 - Token cache path is fixed; multi-tenant support not implemented
+- SQL Server source schema changes are not yet directly detectable — only caught indirectly when they cause a refresh failure (RH-002/RH-003); see Phase 2 plan below
 
 ---
 
@@ -95,4 +96,34 @@ npm run setup        # interactive enterprise configuration wizard
 3. Commit `azure-pipelines.yml` or `.github/workflows/pbi-quality.yml` from `docs/architecture/ci_deployment_plan.md` for scheduled CI
 4. For each report with a Python model export: run `npm run ingest:model-txt -- "MyReport.txt"` and commit the baseline JSON to enable MS-001
 5. As the suite proves value, expand the model-baseline set to cover more reports in the workspace
+
+---
+
+## Phase 2 — Source SQL Server Schema Drift (Lane C)
+
+> **Planned, not yet implemented.** See `playwright_test_strategy.md §8` for full architecture.
+
+**Problem:** if a DBA renames or drops an MS SQL column before the Power BI model is updated, the current suite only catches it *after* the next nightly refresh fails.  Lane C would detect it *before* the refresh runs.
+
+**Proposed signals:**
+
+| ID | Signal |
+|---|---|
+| SSD-001 | Column dropped from source table |
+| SSD-002 | Column type changed in source table |
+| SSD-003 | Source table dropped or renamed |
+
+**What needs to be built:**
+
+| Item | Description |
+|---|---|
+| `scripts/ingest-sql-schema.ts` | Connects to SQL Server (read-only), snapshots `INFORMATION_SCHEMA.COLUMNS` for all tables referenced in any committed M expression |
+| `playwright/helper-functions/sql-schema-watcher.ts` | Queries live `INFORMATION_SCHEMA` and returns a typed `SourceColumnMap` |
+| `playwright/fixtures/snapshots/source-schema/<server>__<db>.json` | Committed baseline snapshot |
+| `playwright/tests/metadata/source-schema-drift.spec.ts` | Dry-run (mock) + enterprise (live SQL) drift assertions |
+| Focus menu option 10 | "Source schema drift" |
+| `mssql` npm dependency | `npm install mssql @types/mssql` |
+| Four new env vars | `PBI_SQL_SERVER`, `PBI_SQL_DATABASE`, `PBI_SQL_USER`, `PBI_SQL_PASSWORD` (or `PBI_SQL_TRUSTED_CONNECTION=true`) |
+
+All SSD tests auto-skip if no snapshot file exists or `PBI_SQL_SERVER` is unset — fully backwards compatible with the current setup.
 
