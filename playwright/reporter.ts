@@ -29,6 +29,18 @@ const dim    = (s: string) => a('2',     s);
 const bold   = (s: string) => a('1',     s);
 const cyan   = (s: string) => a('36',    s);
 
+// ── timing helpers ────────────────────────────────────────────────────────────
+
+function wallClock(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function durLabel(ms: number): string {
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
+}
+
 // ── reporter ──────────────────────────────────────────────────────────────────
 
 class PbiReporter implements Reporter {
@@ -41,13 +53,14 @@ class PbiReporter implements Reporter {
   onBegin(_config: FullConfig, suite: Suite): void {
     this.total   = suite.allTests().length;
     this.startMs = Date.now();
-    process.stdout.write(`\n${dim(`Running ${this.total} test(s)`)}\n\n`);
+    process.stdout.write(`\n${dim(`Running ${this.total} test(s)`)}  ${dim('—')}  ${dim(`started ${wallClock()}`)}\n\n`);
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
     const project = test.parent?.project()?.name ?? '';
     const label   = project ? dim(`[${project}] `) : '';
     const title   = test.titlePath().slice(1).join(` ${dim('›')} `);
+    const dur     = dim(durLabel(result.duration));
 
     if (result.status === 'skipped') {
       this.skipped++;
@@ -60,14 +73,14 @@ class PbiReporter implements Reporter {
 
     if (result.status === 'passed') {
       this.passed++;
-      process.stdout.write(`  ${green('✓')}  ${label}${title}\n`);
+      process.stdout.write(`  ${green('✓')}  ${label}${title}  ${dur}\n`);
       return;
     }
 
     // Failed / timed-out — present as a caught signal, not a crash
     this.failed++;
     const msg = this.extractMessage(result);
-    process.stdout.write(`  ${yellow('⚑')}  ${label}${yellow(title)}\n`);
+    process.stdout.write(`  ${yellow('⚑')}  ${label}${yellow(title)}  ${dur}\n`);
     if (msg) {
       process.stdout.write(`       ${dim('↳')} ${msg}\n`);
     }

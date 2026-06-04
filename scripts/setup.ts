@@ -52,6 +52,20 @@ const yellow  = (s: string) => `\x1b[33m${s}\x1b[0m`;
 const red     = (s: string) => `\x1b[31m${s}\x1b[0m`;
 const magenta = (s: string) => `\x1b[35m${s}\x1b[0m`;
 
+// ── timing helpers ────────────────────────────────────────────────────────────
+
+/** Wall-clock timestamp prefix: dim [HH:MM:SS] */
+function ts(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return dim(`[${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}]`);
+}
+
+/** Elapsed since a reference Date.now() snapshot: dim +X.Xs */
+function elapsed(startMs: number): string {
+  return dim(`+${((Date.now() - startMs) / 1000).toFixed(1)}s`);
+}
+
 // ── list helpers ──────────────────────────────────────────────────────────────
 
 const TOP_N = 20;
@@ -246,10 +260,12 @@ async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFro
   console.log(`\n${bold(magenta('⚡ Power BI Test Setup'))} ${dim('(CI mode)')}\n`);
 
   const endpoints  = getPowerBiEndpoints(credentials.environment);
-  console.log(dim('Authenticating…'));
+  let t = Date.now();
+  console.log(`${ts()} ${dim('Authenticating…')}`);
   const accessToken = await getAccessToken(credentials, endpoints);
-  console.log(green('✓ Authenticated\n'));
+  console.log(`${ts()} ${green('✓ Authenticated')} ${elapsed(t)}\n`);
 
+  t = Date.now();
   const workspace = await findWorkspaceByName(accessToken, workspaceName, endpoints);
   if (!workspace) throw new Error(`Workspace '${workspaceName}' not found.`);
 
@@ -261,6 +277,7 @@ async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFro
 
   const pages = await listReportPages(accessToken, workspace.id, report.id, endpoints);
   if (pages.length === 0) throw new Error(`Report '${reportName}' has no pages.`);
+  console.log(`${ts()} ${dim('Resolved workspace / report / dataset / pages')} ${elapsed(t)}`);
 
   const page =
     (pageDisplayName ? pages.find((p) => p.displayName === pageDisplayName) : undefined) ?? pages[0];
@@ -303,24 +320,30 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${bold(magenta('⚡ Power BI Test Setup'))}\n`);
+  const setupStart = Date.now();
 
   const endpoints = getPowerBiEndpoints(credentials.environment);
-  console.log(dim('Authenticating…'));
+  let t = Date.now();
+  console.log(`${ts()} ${dim('Authenticating…')}`);
   const accessToken = await getAccessToken(credentials, endpoints);
-  console.log(green('✓ Authenticated\n'));
+  console.log(`${ts()} ${green('✓ Authenticated')} ${elapsed(t)}\n`);
 
   const rl = readline.createInterface({ input, output });
 
   try {
     // 1. Pick workspace
+    t = Date.now();
     const workspaces = await listWorkspaces(accessToken, endpoints);
     if (workspaces.length === 0) throw new Error('No workspaces found.');
+    console.log(dim(`  ${ts()} Loaded ${workspaces.length} workspace(s) ${elapsed(t)}`));
     const workspace: PowerBiWorkspace = await pickOne(rl, workspaces, 'Workspaces');
     console.log(`\n  ${green('✓')} Workspace: ${bold(workspace.name)}`);
 
     // 2. Pick reports (multi-select)
+    t = Date.now();
     const allReports = await listReports(accessToken, workspace.id, endpoints);
     if (allReports.length === 0) throw new Error(`No reports in workspace "${workspace.name}".`);
+    console.log(dim(`  ${ts()} Loaded ${allReports.length} report(s) ${elapsed(t)}`));
     const selectedReports: PowerBiReport[] = await pickMany(rl, allReports, 'Reports');
     console.log(`\n  ${green('✓')} Selected ${bold(String(selectedReports.length))} report(s).`);
 
@@ -341,7 +364,9 @@ async function main(): Promise<void> {
     }
 
     // 4. Resolve datasets once
+    t = Date.now();
     const datasets = await listDatasets(accessToken, workspace.id, endpoints);
+    console.log(dim(`  ${ts()} Loaded ${datasets.length} dataset(s) ${elapsed(t)}`))
 
     // 5. Build config entries
     const configs: EnterpriseReportConfig[] = [];
@@ -357,11 +382,13 @@ async function main(): Promise<void> {
         continue;
       }
 
+      const tp = Date.now();
       const pages = await listReportPages(accessToken, workspace.id, report.id, endpoints);
       if (pages.length === 0) {
         console.log(yellow(`  ⚠  No pages found for "${report.name}" — skipping.`));
         continue;
       }
+      console.log(dim(`    ${ts()} ${report.name}: ${pages.length} page(s) ${elapsed(tp)}`));
 
       let chosenPages = pages;
       if (pageStrategy === 'first') {
@@ -394,7 +421,7 @@ async function main(): Promise<void> {
 
     saveEnterpriseConfigs(configs);
 
-    console.log(`\n${bold(green('✅ Discovery complete'))} — ${configs.length} test(s) queued:\n`);
+    console.log(`\n${bold(green('✅ Discovery complete'))} — ${configs.length} test(s) queued ${elapsed(setupStart)}:\n`);
     configs.forEach((c) =>
       console.log(`    ${dim('▸')} ${c.reportName} ${dim('›')} ${cyan(c.pageDisplayName)}`),
     );
@@ -411,14 +438,16 @@ async function main(): Promise<void> {
     rl.close();
 
     if (runNow !== 'n' && runNow !== 'no') {
-      console.log(`\n${magenta('🎯 Launching enterprise quality checks…')}\n${'─'.repeat(60)}\n`);
+      console.log(`\n${ts()} ${magenta('🎯 Launching enterprise quality checks…')}\n${'─'.repeat(60)}\n`);
       const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
       // Stamp a run ID so all artifact paths for this run share one folder.
       const runId = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
       process.env.PBI_RUN_ID = runId;
       console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
+      const testStart = Date.now();
       spawn(npm, ['run', 'test:enterprise'], { stdio: 'inherit' }).on('exit', (code) => {
         const reportPath = `test-archive/${runId}/html-report`;
+        console.log(`\n${ts()} ${dim(`Tests finished ${elapsed(testStart)}`)}`);
         // Ask user to open the report rather than printing a raw command.
         const rl2 = readline.createInterface({ input: process.stdin, output: process.stdout });
         rl2.question(`\n${bold('Open HTML report?')} [Y/n]: `).then((answer) => {
