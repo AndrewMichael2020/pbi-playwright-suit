@@ -3,15 +3,25 @@ import { loadEnvFile } from './playwright/helper-functions/env-loader';
 
 loadEnvFile();
 
+// Each run gets its own timestamped folder under test-archive/ so results
+// accumulate rather than overwrite. PBI_RUN_ID can be set externally (CI,
+// setup.ts) for a consistent ID across stages; falls back to current time.
+const runId =
+  process.env.PBI_RUN_ID ??
+  new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+const archiveDir = `test-archive/${runId}`;
+
 export default defineConfig({
   testDir: './playwright/tests',
   timeout: 60_000,
+  outputDir: `${archiveDir}/artifacts`,
   expect: {
     timeout: 10_000,
   },
   reporter: [
-    ['html', { open: 'never' }],
-    ['junit', { outputFile: 'test-results/results.xml' }],
+    ['html', { open: 'never', outputFolder: `${archiveDir}/html-report` }],
+    ['junit', { outputFile: `${archiveDir}/results.xml` }],
+    ['line'],
   ],
   globalSetup: require.resolve('./playwright/global/global-setup'),
   use: {

@@ -223,4 +223,5 @@ playwright-report/
 test-results/
 playwright/config/enterprise.generated.json
 playwright/.auth/
+test-archive/
 
