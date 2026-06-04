@@ -1,4 +1,7 @@
 import { defineConfig } from '@playwright/test';
+import { loadEnvFile } from './playwright/helper-functions/env-loader';
+
+loadEnvFile();
 
 export default defineConfig({
   testDir: './playwright/tests',

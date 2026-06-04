@@ -12,7 +12,7 @@ const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
 const skipReason = !enterpriseConfig
   ? 'Run npm run discover:enterprise-upcc first.'
   : !enterpriseCredentials
-    ? 'Set CLIENT_ID, CLIENT_SECRET, and TENANT_ID before running enterprise visual smoke.'
+    ? 'Set CLIENT_ID in your shell or .env before running enterprise visual smoke.'
     : '';
 
 const knownErrorPatterns = [

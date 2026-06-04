@@ -37,7 +37,6 @@ Do **not** prioritize:
   - `npm run typecheck`
   - `npm test`
 - Default local runs should use the committed mock fixtures already in the repo.
-- Treat `scripts/generate-upcc-fixtures.ts` as a maintenance utility for deliberate baseline refreshes, not part of the normal workflow.
 - Use `scripts/discover-upcc-enterprise.ts` to wire the UPCC enterprise visual configuration.
 - Keep metadata tests runnable in isolated/local environments.
 - Keep visual smoke tests enterprise-oriented and avoid pretending local mocks are equivalent to real Power BI rendering.

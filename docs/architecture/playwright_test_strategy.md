@@ -33,7 +33,6 @@ This still uses Playwright as the main automation harness, but the suite must in
 ### 3.1 Current repository artifacts
 
 - `UPCC Dashboard.pbip`
-- `UPCC Dashboard.txt`
 - `legacy_discover_upcc_v14_fixed_v5.py`
 - `legacy_concept_powerbi_meta.md`
 
@@ -127,10 +126,9 @@ docs/
 
 playwright/
   config/
-    environments/
-      sandbox.json
-      enterprise-uat.json
     upcc-enterprise.generated.json
+  .auth/
+    msal-device-token-cache.json
   fixtures/
     snapshots/
       workspace/
@@ -143,9 +141,6 @@ playwright/
     signatures/
     comparisons/
     logging/
-  test-cases/
-    reports.csv
-    workspace-models.json
   tests/
     visual/
       workspace-visual-smoke.spec.ts
@@ -405,7 +400,7 @@ Per dataset/model:
 
 These files become the transfer-friendly contract between environments.
 
-For the current implementation, the committed mock fixtures are the default local contract. Regeneration is a maintenance action, not part of the routine workflow.
+For the current implementation, the committed mock fixtures are the default local contract.
 
 ---
 
@@ -641,8 +636,8 @@ These tests are intentionally thin and generic.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| VS-001 | UPCC report target resolves | Confirm the configured UPCC report target can be constructed from test case inputs | sandbox + live | implement now |
-| VS-002 | UPCC page case file is valid | Validate report/page test case structure and required fields | sandbox + live | implement now |
+| VS-001 | UPCC discovered enterprise config resolves | Confirm discovery writes a usable report/page target for UPCC | live | implement now |
+| VS-002 | UPCC generated config is structurally valid | Validate the generated UPCC enterprise config before visual execution | live | implement now |
 | VS-003 | UPCC report page renders without known visual error patterns | Detect broken visuals, error banners, permission modals, resource-limit messages, and common Power BI error text | live first | scaffold now, enable later |
 | VS-004 | UPCC report page emits rendered state | Confirm render lifecycle completes for an embedded/opened report page | live first | scaffold now, enable later |
 | VS-005 | UPCC report page has no known field/relationship error text | Catch classic broken-visual failures caused by missing fields or relationship ambiguity | live first | scaffold now, enable later |
@@ -668,7 +663,7 @@ These tests create the baseline discipline for fragile model changes.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| SD-001 | UPCC metadata file parses into model signature | Convert `UPCC Dashboard.txt` into structured signature data | sandbox | implement now |
+| SD-001 | Baseline model signature fixture is structurally valid | Validate the committed UPCC model signature mock fixture before drift comparison | sandbox | implement now |
 | SD-002 | Baseline model signature file is valid | Ensure committed signature JSON is structurally sound | sandbox + live | implement now |
 | SD-003 | Table inventory matches baseline | Detect added/removed tables | sandbox + live | implement now |
 | SD-004 | Column inventory matches baseline | Detect added/removed columns | sandbox + live | implement now |
@@ -710,10 +705,10 @@ These keep the suite maintainable.
 
 | Test ID | Name | Goal | Mode | Initial status |
 |---|---|---|---|---|
-| FX-001 | UPCC report case file is parseable | Prevent broken CSV/JSON test case inputs | sandbox + live | implement now |
-| FX-002 | UPCC refresh snapshot matches contract | Prevent malformed refresh fixture files | sandbox + live | implement now |
-| FX-003 | UPCC model signature snapshot matches contract | Prevent malformed schema baseline files | sandbox + live | implement now |
-| FX-004 | Environment manifest parses cleanly | Keep configuration external and validated | sandbox + live | implement now |
+| FX-001 | UPCC refresh snapshot matches contract | Prevent malformed refresh fixture files | sandbox + live | implement now |
+| FX-002 | UPCC model signature snapshot matches contract | Prevent malformed schema baseline files | sandbox + live | implement now |
+| FX-003 | UPCC refresh health snapshot matches contract | Prevent malformed refresh-health summary files | sandbox + live | implement now |
+| FX-004 | Generated UPCC enterprise config parses cleanly when present | Keep enterprise discovery output validated | live | implement later |
 
 ### 18.7 Execution order for the first build
 

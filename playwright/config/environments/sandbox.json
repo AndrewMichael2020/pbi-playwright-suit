@@ -1,6 +1,0 @@
-{
-  "name": "sandbox",
-  "mode": "sandbox",
-  "baseUrl": "http://localhost/placeholder",
-  "reportTargetSource": "playwright/test-cases/reports.csv"
-}

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Lightweight Playwright-based Power BI workspace quality suite",
   "scripts": {
-    "generate:fixtures": "tsx scripts/generate-upcc-fixtures.ts",
     "discover:enterprise-upcc": "tsx scripts/discover-upcc-enterprise.ts",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
@@ -27,5 +26,8 @@
     "@types/node": "^25.9.1",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^5.2.2"
   }
 }

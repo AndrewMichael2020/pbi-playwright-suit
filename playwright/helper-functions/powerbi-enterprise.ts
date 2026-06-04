@@ -1,3 +1,12 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  PublicClientApplication,
+  type AuthenticationResult,
+  type DeviceCodeRequest,
+  type TokenCacheContext,
+} from '@azure/msal-node';
+
 export interface PowerBiEndpoints {
   apiPrefix: string;
   webPrefix: string;
@@ -7,9 +16,9 @@ export interface PowerBiEndpoints {
 
 export interface EnterpriseCredentials {
   clientId: string;
-  clientSecret: string;
-  tenantId: string;
+  tenantId?: string;
   environment: string;
+  cacheFile: string;
 }
 
 export interface PowerBiWorkspace {
@@ -89,19 +98,21 @@ export function getPowerBiEndpoints(environment = process.env.PBI_ENVIRONMENT ??
 
 export function readEnterpriseCredentialsFromEnv(): EnterpriseCredentials | null {
   const clientId = process.env.CLIENT_ID;
-  const clientSecret = process.env.CLIENT_SECRET;
   const tenantId = process.env.TENANT_ID;
   const environment = process.env.PBI_ENVIRONMENT ?? 'Public';
+  const cacheFile =
+    process.env.PBI_TOKEN_CACHE_FILE ??
+    path.join(process.cwd(), 'playwright', '.auth', 'msal-device-token-cache.json');
 
-  if (!clientId || !clientSecret || !tenantId) {
+  if (!clientId) {
     return null;
   }
 
   return {
     clientId,
-    clientSecret,
-    tenantId,
+    tenantId: tenantId || undefined,
     environment,
+    cacheFile,
   };
 }
 
@@ -115,30 +126,66 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function getAccessToken(credentials: EnterpriseCredentials, endpoints = getPowerBiEndpoints(credentials.environment)): Promise<string> {
-  const body = new URLSearchParams({
-    grant_type: 'client_credentials',
-    client_id: credentials.clientId,
-    client_secret: credentials.clientSecret,
-    scope: `${endpoints.resourceUrl}/.default`,
-  });
+async function beforeCacheAccess(cacheContext: TokenCacheContext, cacheFile: string): Promise<void> {
+  if (fs.existsSync(cacheFile)) {
+    cacheContext.tokenCache.deserialize(fs.readFileSync(cacheFile, 'utf8'));
+  }
+}
 
-  const tokenResponse = await fetchJson<{ access_token?: string }>(
-    `${endpoints.loginUrl}/${credentials.tenantId}/oauth2/v2.0/token`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body,
-    },
-  );
-
-  if (!tokenResponse.access_token) {
-    throw new Error('Access token response did not include access_token.');
+async function afterCacheAccess(cacheContext: TokenCacheContext, cacheFile: string): Promise<void> {
+  if (!cacheContext.cacheHasChanged) {
+    return;
   }
 
-  return tokenResponse.access_token;
+  fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+  fs.writeFileSync(cacheFile, cacheContext.tokenCache.serialize());
+}
+
+export async function getAccessToken(
+  credentials: EnterpriseCredentials,
+  endpoints = getPowerBiEndpoints(credentials.environment),
+): Promise<string> {
+  const authorityTenant = credentials.tenantId ?? 'common';
+  const app = new PublicClientApplication({
+    auth: {
+      clientId: credentials.clientId,
+      authority: `${endpoints.loginUrl}/${authorityTenant}`,
+    },
+    cache: {
+      cachePlugin: {
+        beforeCacheAccess: async (cacheContext) => beforeCacheAccess(cacheContext, credentials.cacheFile),
+        afterCacheAccess: async (cacheContext) => afterCacheAccess(cacheContext, credentials.cacheFile),
+      },
+    },
+  });
+
+  const scopes = [`${endpoints.resourceUrl}/.default`];
+  const accounts = await app.getTokenCache().getAllAccounts();
+  const silentResult = accounts[0]
+    ? await app.acquireTokenSilent({
+        account: accounts[0],
+        scopes,
+      })
+    : null;
+
+  if (silentResult?.accessToken) {
+    return silentResult.accessToken;
+  }
+
+  const request: DeviceCodeRequest = {
+    scopes,
+    deviceCodeCallback: (response) => {
+      console.log(response.message);
+    },
+  };
+
+  const interactiveResult: AuthenticationResult | null = await app.acquireTokenByDeviceCode(request);
+
+  if (!interactiveResult?.accessToken) {
+    throw new Error('Device-flow authentication did not return an access token.');
+  }
+
+  return interactiveResult.accessToken;
 }
 
 async function restGet<T>(path: string, accessToken: string, endpoints: PowerBiEndpoints): Promise<T> {

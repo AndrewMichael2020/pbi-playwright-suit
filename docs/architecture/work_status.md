@@ -19,7 +19,6 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
 ### Architecture and planning
 
 - Reviewed the current repository artifacts:
-  - `UPCC Dashboard.txt`
   - `UPCC Dashboard.pbip`
   - `legacy_discover_upcc_v14_fixed_v5.py`
   - `legacy_concept_powerbi_meta.md`
@@ -59,6 +58,7 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - `scripts/discover-upcc-enterprise.ts`
 - Added generated enterprise config support:
   - `playwright/config/upcc-enterprise.generated.json` (gitignored)
+  - `playwright/.auth/msal-device-token-cache.json` (gitignored)
 
 ### Metadata lane implemented
 
@@ -66,12 +66,9 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - refresh-history normalization
   - nested `serviceExceptionJson` parsing
   - SQL extraction from M expressions
-  - UPCC metadata parsing from `UPCC Dashboard.txt`
   - schema-signature generation
   - signature drift comparison
   - duplicate heuristics with allowlists
-- Added fixture generation:
-  - `scripts/generate-upcc-fixtures.ts`
 - Generated committed UPCC snapshots:
   - `playwright/fixtures/snapshots/model-signatures/upcc-model-signature.json`
   - `playwright/fixtures/snapshots/refresh-history/upcc-refresh-history.json`
@@ -111,7 +108,7 @@ npm test
 ## Recommended next steps
 
 1. Copy the suite into the enterprise-connected environment.
-2. Set enterprise credentials and run:
+2. Set `CLIENT_ID` and optionally `TENANT_ID`, then run:
    - `npm run discover:enterprise-upcc`
 3. Confirm the generated file:
    - `playwright/config/upcc-enterprise.generated.json`
@@ -120,4 +117,4 @@ npm test
 5. Run:
    - `npm run test:metadata`
    - `npm test`
-6. Decide whether to add live refresh/XMLA capture to regenerate snapshots automatically in enterprise.
+6. Decide later whether to add live refresh/XMLA capture in enterprise, without changing the default local fixture-based workflow.

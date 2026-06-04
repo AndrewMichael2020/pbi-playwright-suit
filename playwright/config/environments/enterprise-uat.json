@@ -1,7 +1,0 @@
-{
-  "name": "enterprise-uat",
-  "mode": "live",
-  "baseUrl": "",
-  "workspaceName": "FHA-ADAR-BI-UAT",
-  "reportTargetSource": "playwright/test-cases/reports.csv"
-}

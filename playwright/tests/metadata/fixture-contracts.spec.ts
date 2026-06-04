@@ -1,17 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { readCsv, readJsonFile } from '../../helper-functions/file-reader';
+import { readJsonFile } from '../../helper-functions/file-reader';
 import { ModelSignature, RefreshHealthResult, RefreshHistoryEntry } from '../../helper-functions/types';
-
-test('FX-001 report case file is parseable', async () => {
-  const records = readCsv('playwright/test-cases/reports.csv');
-
-  expect(records).toHaveLength(1);
-  expect(records[0]).toMatchObject({
-    workspace_name: 'FHA-ADAR-BI-UAT',
-    report_name: 'UPCC Dashboard',
-    dataset_name: 'UPCC Dashboard',
-  });
-});
 
 test('FX-002 refresh history fixture matches contract', async () => {
   const refreshHistory = readJsonFile<RefreshHistoryEntry[]>('playwright/fixtures/snapshots/refresh-history/upcc-refresh-history.json');

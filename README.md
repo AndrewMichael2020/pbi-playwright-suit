@@ -28,7 +28,7 @@ playwright/
   tests/metadata/
   tests/visual/
 scripts/
-  generate-upcc-fixtures.ts
+  discover-upcc-enterprise.ts
 ```
 
 ## Prerequisites
@@ -38,12 +38,13 @@ scripts/
 3. For enterprise visual execution: Playwright browser dependencies available in the target environment
 4. For enterprise discovery/visual execution:
    - `CLIENT_ID`
-   - `CLIENT_SECRET`
-   - `TENANT_ID`
+   - optional `TENANT_ID`
    - optional `PBI_ENVIRONMENT` (defaults to `Public`)
-5. For service-principal visual smoke:
-   - the service principal must be a member of the target workspace
-   - the workspace must be on Premium/Fabric capacity for embed-token generation
+   - optional `.env` file in the repository root
+5. Enterprise auth currently follows the legacy pattern:
+   - interactive MSAL device flow
+   - token cache reuse between runs
+   - your own user access, not a service principal
 
 ## Install
 
@@ -52,6 +53,8 @@ npm install
 ```
 
 No Python dependency installation is required for the current implementation.
+
+For enterprise auth, the suite reads normal shell environment variables and will also load a local `.env` file if present.
 
 ## Local / Codespaces workflow
 
@@ -152,7 +155,7 @@ npm run discover:enterprise-upcc
 
 What it does:
 
-- gets an access token using the service principal
+- gets an access token using interactive device flow with token cache reuse
 - lists accessible workspaces
 - finds workspace `FHA-ADAR-BI-UAT`
 - finds report `UPCC Dashboard`
@@ -164,25 +167,31 @@ What it does:
 - writes:
   - `playwright/config/upcc-enterprise.generated.json`
 
-Optional environment variables:
+Required / optional environment variables:
 
+- `CLIENT_ID`
+- `TENANT_ID`
 - `UPCC_WORKSPACE_NAME`
 - `UPCC_REPORT_NAME`
 - `UPCC_DATASET_NAME`
 - `UPCC_PAGE_NAME`
+- `PBI_ENVIRONMENT`
+- `PBI_TOKEN_CACHE_FILE`
 
 Notes:
 
 - `UPCC_PAGE_NAME` is recommended when the report has multiple pages
 - the discovered config file is **generated** and **gitignored**
 - this command is the enterprise replacement for manual ID editing
+- on the first run, device flow will print a sign-in code and URL
+- later runs should reuse the cached token until it expires or is invalidated
 
 ## What to watch for in enterprise
 
 ### Visual lane risks
 
-- discovery cannot find the workspace because the service principal is not a workspace member
-- embed token generation fails because the workspace is not on Premium/Fabric capacity
+- discovery cannot find the workspace because your user account cannot access it
+- cached token may expire or become stale and require a fresh device-flow login
 - authentication or tenant routing issues
 - Power BI permission failures
 - the first discovered page is not the page you actually want to smoke-test
@@ -260,8 +269,8 @@ If a test retained a trace, Playwright will print the trace path in the failure 
 
 1. confirm `playwright/config/upcc-enterprise.generated.json` was created
 2. confirm the discovered page is the one you intended to test
-3. confirm the service principal can list the workspace and access the report
-4. confirm the workspace is on Premium/Fabric capacity
+3. confirm your user account can list the workspace and access the report
+4. if prompted again, complete device-flow sign-in and rerun
 5. confirm the failure is a Power BI report issue, not just a token/discovery/setup problem
 
 ### 6. Common first checks for schema-drift failures
@@ -273,13 +282,13 @@ If a test retained a trace, Playwright will print the trace path in the failure 
 - `playwright/fixtures/snapshots/refresh-history/`
 
 3. only refresh baselines deliberately after confirming the change is intentional
-4. fixture regeneration is a maintenance task, not part of the normal run flow
+4. local metadata tests should continue to use the committed mock fixtures
 
 ## Current limitations
 
-- visual smoke depends on enterprise discovery and service-principal access
+- visual smoke depends on enterprise discovery and interactive user auth
 - live REST/XMLA snapshot refresh is not wired into the normal workflow
-- fixture regeneration exists for maintenance, not routine execution
+- local metadata verification uses the committed mock fixtures only
 - this v1 is intentionally single-report focused
 
 ## Next recommended step
