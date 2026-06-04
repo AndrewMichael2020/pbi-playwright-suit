@@ -1,0 +1,2882 @@
+=== WORKSPACE INFO ===
+[NAME]             FHA-ADAR-BI-UAT
+[WORKSPACE ID]     61912f81-91c2-46af-b6f9-9bbdc78feaf5
+
+=== MODEL / DATASET INFO ===
+[MODEL NAME]       UPCC Dashboard
+[MODEL ID]         cb211aef-4f95-498f-a62c-ea8a83d868de
+[CREATED BY]       andrew.ignatov@fraserhealth.ca
+[LAST REFRESH]     2026-05-10T18:06:34.967Z
+[REFRESH STATUS]   Completed
+[LAST FAILED]      2026-03-11T18:21:51.45Z
+[FAILURE CODE]     ModelRefresh_ShortMessage_ProcessingError
+[FAILURE MESSAGE]  Failed to get OAuth resource id, please make sure the OAuth is supported
+[COMPAT LEVEL]     1567
+[CULTURE]          en-US
+
+=== TABLES ===
+------------------------------------------------------------
+[TABLE]          Facility
+[IS HIDDEN]      False
+[COLUMNS]        6
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       FacilityKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Postal Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       City
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       UPCC
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Facility-c77278ff-10ab-4152-8875-820ac2647200
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    SELECT [FacilityKey]
+          ,[POSCode]
+          ,[POSName]
+          ,[POSPostalCode]
+          ,[POSCity]
+          ,[POSStatus]
+          ,[POSCreated]
+          ,[POSInactivatedDate]
+    	  ,case [POSCode]
+    	   when  'ABBUPCC' then 'Abbotsford'
+    	   when  'MTUPCC' then 'Metrotown'
+    	   when  'NEWUPCC' then 'Newton'
+    	   when  'RMUPCC' then 'Ridge Meadows'
+    	   when  'SUPCC_SUR' then 'Whalley'
+    	   when  'TRIUPCC' then 'Port Moody'
+    	   when 'LNGUPCC' then 'Langley'
+    	   when  'MISUPCC' then 'Mission'
+    	   when 'SDUPCC' then 'South Delta'
+           when 'CDUPCC' then 'Cloverdale'
+    	   when 'SSUPCC' then 'South Surrey'
+    	   else POSCity
+    	   end as UPCCName
+      FROM [FHA_DW].[UPCC].[D_Facility]
+      where [POSCode] like '%UPCC%'
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="SELECT [FacilityKey]#(lf)      ,[POSCode]#(lf)      ,[POSName]#(lf)      ,[POSPostalCode]#(lf)      ,[POSCity]#(lf)      ,[POSStatus]#(lf)      ,[POSCreated]#(lf)      ,[POSInactivatedDate]#(lf)#(tab)  ,case [POSCode]#(lf)#(tab)   when  'ABBUPCC' then 'Abbotsford'#(lf)#(tab)   when  'MTUPCC' then 'Metrotown'#(lf)#(tab)   when  'NEWUPCC' then 'Newton'#(lf)#(tab)   when  'RMUPCC' then 'Ridge Meadows'#(lf)#(tab)   when  'SUPCC_SUR' then 'Whalley'#(lf)#(tab)   when  'TRIUPCC' then 'Port Moody'#(lf)#(tab)   when 'LNGUPCC' then 'Langley'#(lf)#(tab)   when  'MISUPCC' then 'Mission'#(lf)#(tab)   when 'SDUPCC' then 'South Delta'#(lf)       when 'CDUPCC' then 'Cloverdale'#(lf)#(tab)   when 'SSUPCC' then 'South Surrey'#(lf)#(tab)   else POSCity#(lf)#(tab)   end as UPCCName#(lf)  FROM [FHA_DW].[UPCC].[D_Facility]#(lf)  where [POSCode] like '%UPCC%'"]),
+        #"Removed Columns" = Table.RemoveColumns(Source,{"POSName", "POSCreated", "POSStatus", "POSInactivatedDate"}),
+        #"Renamed Columns" = Table.RenameColumns(#"Removed Columns",{{"UPCCName", "UPCC"}, {"POSCity", "City"}, {"POSCode", "Code"}, {"POSPostalCode", "Postal Code"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          Provider
+[IS HIDDEN]      False
+[COLUMNS]        13
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       ProviderKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Provider Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Full Name
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Provider Type
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Specialty Description
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Status
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Clinical Role
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Category
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Job Title
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Role Description
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Referral Category
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       AlliedHealthFlag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      Provider-67c9e59d-066a-40d3-8850-3caa22484659
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    DROP TABLE IF EXISTS #temp;
+    
+        SELECT  
+            [ProviderKey],
+            [ProviderCode],
+            [ProviderFullName],
+            [ProviderType],
+            [ProviderJobTitle],
+            [SpecialtyDescription],
+            [ProviderStatus],
+            [ClinicalRole],
+            [Category],
+    
+            -- Allied Health Flag
+            CASE 
+                WHEN 
+                    SpecialtyDescription IN ('Social Worker', 'Pharmacist', 'Pharmacy', 'Dietitian', 'Occupational Therapist') OR
+                    ProviderJobTitle LIKE '%Social Work%' OR
+                    ProviderJobTitle LIKE 'Pharma%' OR
+                    ProviderJobTitle LIKE '%Dietitian%' OR
+                    ProviderJobTitle = 'Clinical Counsellor' OR
+                    ProviderJobTitle = 'Occupational Therapist' OR
+                    SpecialtyDescription LIKE '%Counsellor%' OR
+                    SpecialtyDescription LIKE '%physio%' OR
+                    ProviderJobTitle LIKE '%physio%' 
+                THEN 1 ELSE 0 
+            END AS AlliedHealthFlag,
+    
+            -- RoleDesc
+            CASE 
+                WHEN SpecialtyDescription IN ('General Practice','Family Practitioner','Residency') THEN 'Doctor'
+                WHEN ProviderJobTitle LIKE '%Doctor%' THEN 'Doctor'
+                WHEN SpecialtyDescription = 'Nurse Practitioner' OR LEFT(ProviderFullName, 3) = 'NP ' OR ProviderJobTitle = 'Nurse Practitioner' THEN 'Nurse Practitioner'
+                WHEN SpecialtyDescription LIKE '%Registered%Nurse%' OR ProviderJobTitle LIKE '%Registered%Nurse%' OR ProviderJobTitle = 'Registered Nurse' THEN 'Registered Nurse'
+                WHEN SpecialtyDescription IN ('Licensed Practical Nurse', 'Practice Nurse') OR ProviderJobTitle LIKE '%LPN%' OR ProviderJobTitle = 'Licensed Practical Nurse' THEN 'Licensed Practical Nurse'
+                WHEN SpecialtyDescription = 'Social Worker' OR ProviderJobTitle LIKE '%Social Work%' THEN 'Social Worker'
+                WHEN SpecialtyDescription IN ('Pharmacist','Pharmacy') OR ProviderJobTitle LIKE 'Pharma%' THEN 'Pharmacist'
+                WHEN SpecialtyDescription = 'Dietitian' OR ProviderJobTitle LIKE '%Dietitian%' THEN 'Dietitian'
+                WHEN SpecialtyDescription LIKE '%Counsellor%' OR ProviderJobTitle = 'Clinical Counsellor' THEN 'Clinical Counsellor' 
+                WHEN SpecialtyDescription LIKE '%physio%' OR ProviderJobTitle LIKE '%physio%' THEN 'Physiotherapist'
+                WHEN ClinicalRole = 'Doctor' THEN 'Doctor'
+                WHEN SpecialtyDescription LIKE '%Nurse%' THEN 'Registered Nurse' 
+                WHEN ProviderCode LIKE 'AA[_]%' OR ProviderCode LIKE '%[+]%' THEN 'Generic Provider'
+                ELSE 'Other'
+            END AS RoleDesc,
+    
+            -- CategoryReferral
+            CASE 
+    			WHEN ProviderKey=-1 THEN 'Unknown'
+    			WHEN ProviderCode IN ('SRP','SRF') THEN 'Self Referral'
+    			WHEN ProviderCode IN ('SRW','SRPH', 'SRC', 'SRO') Then 'Self Referral: Redirected from Community Provider or Services'
+    			WHEN ProviderCode IN ('SRH','SRD') then ProviderFullName 
+    			WHEN ProviderFullName='WorkSafeBC' THEN 'WorkSafeBC'
+                WHEN ProviderFullName = 'BC Emergency Health Services' THEN 'BCEHS'
+                WHEN 
+    			ProviderFullName LIKE '%IMAGING%' OR 
+    			ProviderFullName LIKE '%mri%' OR 
+    			ProviderFullName LIKE '%ultrasound%' OR 
+    			ProviderFullName LIKE '%Radiology%' OR 
+    			ProviderFullName LIKE '%x-ray%' OR 
+    			ProviderFullName LIKE 'Nuclear%' 
+    			or ProviderFullName LIKE '%RADIOLOGICAL%' THEN 'Medical Imaging' 
+                WHEN ProviderFullName LIKE '%Fraser Health Virtual%' THEN 'FHVC'
+                WHEN ProviderFullName LIKE '%Urgent%Primary Care Centre%' OR 
+    			     ProviderCode = 'RMUPCC' OR 
+    				 ProviderFullName IN ('Abbotsford Urgent and Primary Care Clinic', 
+    				 'SEYMOUR URGENT PRIMARY CARE CENTER','Ridge Meadows Urgent Care') 
+    				 THEN 'UPCC'
+                WHEN 
+    			ProviderFullName LIKE '%Emergency%' AND 
+    			ProviderFullName <> 'Lookout Emergency Aid Society' 
+    			THEN 'Emergency Department'
+                WHEN 
+                    (ProviderFullName LIKE '%Hospital%' AND 
+                    ProviderFullName NOT LIKE '%clinic%' AND 
+                    ProviderFullName NOT LIKE '%ambulator%' AND 
+                    ProviderFullName NOT LIKE '%outreach%' AND 
+                    ProviderFullName NOT LIKE '%outpatient%' AND 
+                    ProviderFullName NOT LIKE '%offsite%' AND 
+                    ProviderFullName NOT LIKE '%Cancer%' AND 
+                    ProviderFullName <> 'Eagle Ridge Hospital Lab' AND 
+    				ProviderFullName NOT Like '%Health Records')
+    				OR ProviderFullName='RIDGE MEADOWS HOSP & HLTH CARE CN'
+    				THEN 'Acute'
+                WHEN 
+    			ProviderFullName IN ('LIONS GATE HOSP') OR
+    			ProviderFullName LIKE 'HAIDA GWAII HOSP%' OR
+    			ProviderFullName LIKE 'ABBOTSFORD REGIONAL HOSPITAL% CANCER CENTRE' THEN 'Acute'
+                WHEN ProviderFullName LIKE 'BC Cancer%' OR ProviderFullName LIKE 'BCCA %' THEN 'BC Cancer'
+                WHEN ProviderFullName LIKE '%Home Health%' AND ProviderFullName <> 'VitalAire Home Healthcare - BC' THEN 'Home Health'
+                WHEN ProviderFullName LIKE '%ihart%' THEN 'iHart'
+                WHEN ProviderFullName LIKE 'BCCDC %' 
+    			OR ProviderFullName in ( 'BC Centre for Disease Control','Cdc Result Line') THEN 'BCCDC' 
+                WHEN ProviderFullName LIKE '%London Drugs%' OR ProviderFullName LIKE 'Safeway%' OR 
+    				 ProviderFullName LIKE '%pharmacy%' OR 
+    				 ProviderFullName LIKE 'Pharma%' OR 
+    				 ProviderFullName LIKE '%Shoppers%' OR 
+    				 ProviderFullName LIKE '%Save On%' OR
+    				 ProviderFullName LIKE '%Superstore%' OR
+    				 ProviderFullName LIKE '%Drug Mart%' OR
+    				 ProviderFullName LIKE '%Prescriptions' OR
+    				 ProviderFullName LIKE '%Pharmary%' OR
+    				 ProviderFullName LIKE 'No Frills%' OR
+    				 ProviderFullName LIKE 'Macdonald%Prescriptions'
+    				 THEN 'Pharmacy'
+                WHEN 
+    			ProviderFullName LIKE '%Public Health%' OR 
+    			ProviderFullName LIKE 'Fraser North - Shbbi%' THEN 'Public Health'
+                WHEN ProviderFullName LIKE '%Division of%' and 
+    			ProviderFullName <>'VGH Division of Hematology' THEN 'Division of Family Practice'
+                WHEN 
+    			(
+    			ProviderFullName LIKE '%Primary Care%' 
+    			OR ProviderFullName  in( 'White Rock South Surrey PCAC','New West Community NP Clinic', 'Surrey New Canadian Clinic','Burnaby New Canadian and Global Family Care Centre') 
+    			) and ProviderFullName not in ('New Westminister Primary Care Obstetrical Clinic', 'Primary Care Ob Clinic')
+    			THEN 'Primary Care Clinic'
+                WHEN ProviderFullName LIKE '%Bc Bio%' OR 
+    			ProviderFullName = 'Gateway Medical Lab' THEN 'Laboratory'
+                WHEN ProviderFullName LIKE 'BCCH %' 
+    			and ProviderFullName<> 'BCCH Endocrinology Clinic'THEN 'Acute'
+                WHEN ProviderFullName LIKE '%Blood%'  or ProviderFullName like 'LIFELABS%' THEN 'Laboratory'
+                WHEN ProviderFullName LIKE '%Community Health Center%' OR ProviderFullName LIKE '%HEALTH%care%' THEN 'Primary Care Clinic'
+                WHEN 
+                    SpecialtyDescription IN ('Social Worker', 'Pharmacist', 'Dietitian', 'Occupational Therapist') OR 
+                    ProviderJobTitle IN ('Clinical Counsellor', 'Occupational Therapist') OR 
+                    ProviderJobTitle LIKE '%Social Work%' OR 
+                    ProviderJobTitle LIKE '%Pharma%' OR 
+                    ProviderJobTitle LIKE '%Dietitian%' OR 
+                    ProviderJobTitle LIKE '%Physiotherapist%' THEN 'Allied health'
+    			WHEN (ProviderFullName LIKE '%Laborat%' OR ProviderFullName LIKE '% Lab%'OR SpecialtyDescription = 'Laboratory' or ProviderCode='L0001') and ProviderFullName<>'BC Centre For Excellence in HIVAIDS' THEN 'Laboratory'
+                WHEN ProviderCode IN (
+                    'SERVST','PROGSLE','PROGSLE10314','PROGSLE10315','WFC110430','INTAFHA','INTAFHA10448',
+                    'CLINFHA','22715A','FH28020','28793','35489','38783','38795','38896','FH44175','FH74839',
+                    '77877','84385','94095','109866','110104','114018') THEN 'Outpatient Clinic/Clinic'
+                WHEN 
+                   ( ProviderFullName LIKE '%Abbotsford%' OR 
+                    ProviderFullName LIKE '%Burnaby%' OR 
+                    ProviderFullName LIKE '%FHA %' OR 
+                    ProviderFullName LIKE '%FH %' OR 
+                    ProviderFullName LIKE '%Fraser %' OR 
+                    ProviderFullName LIKE '%Clinic%' OR 
+                    ProviderFullName LIKE '%Offsite%' OR 
+                    ProviderFullName LIKE '%ambulatory%' OR 
+                    ProviderFullName LIKE '%Outpatient%' OR 
+                    ProviderFullName LIKE '%Community%' OR 
+                    ProviderFullName LIKE '%Centre%' OR 
+                    ProviderFullName LIKE '%Society' OR 
+                    ProviderFullName LIKE 'Spirit Of The Children%' OR 
+                    ProviderFullName LIKE '%Senior%' OR 
+                    ProviderFullName LIKE '%ECHO OUTREACH%' OR 
+                    SpecialtyDescription = 'Clinic' OR 
+                    ProviderFullName = 'Health Heart Program - SPH' OR 
+    				ProviderFullName = 'VGH Division of Hematology' OR 
+    				ProviderFullName LIKE '%Maternity%'OR
+    				ProviderFullName='BC Centre For Excellence in HIVAIDS' OR
+    				ProviderFullName LIKE '%MHSU%' OR 
+    				ProviderFullName LIKE '%Addiction%' OR 
+    				ProviderFullName LIKE '%Mental health%' OR 
+    				ProviderFullName LIKE '%Substance%' OR
+    				ProviderFullName LIKE 'Mood Disorders%' OR
+    			    ProviderFullName LIKE '%RESPIRATORY%' OR 
+    				ProviderFullName LIKE '%RESPIROLOGY%' OR 
+    				ProviderFullName LIKE 'Respiratory%' OR 
+    				ProviderFullName  like 'VITALAIRE%' OR
+    				ProviderFullName LIKE '%Sleep%' OR 
+    				ProviderFullName like  'SNORE%' OR
+    				ProviderFullName LIKE '%Cardio%' OR
+    				ProviderFullName LIKE 'Child Youth Serivces%' OR
+                    Category = 'POS' OR 
+                    ProviderFullName IN (
+                        'Langley Family Services','Langley Gardens','Langley Hospice',
+                        'Langley Lodge','Langley Physio','Act Team Rm Assertive Community Treatment Team Maple Ridge Pitt Meadows'
+    					,'ACT Assertive Community Treatment Team','Early Psychosis Intervention Program',
+    					'RCH Department of Psychiatry - Outpatient',
+    					'VGH - University Urology Associates',
+    					'New Westminister Primary Care Obstetrical Clinic', 'Primary Care Ob Clinic',
+    					 'PRESTIGE PHYSIOTHERAPY AND SPORTS MEDICINE' 
+    					) OR
+    				SpecialtyDescription='Community Health')	and 
+    				ProviderFullName not like  '%Health Records'
+    				and ProviderFullName not like '%Police%'
+    				and ProviderFullName not like '%RCMP%'
+    				and ProviderFullName not in ('SHARE Family Community Services','The Salvation Army Of Hope')
+    					THEN 'Outpatient Clinic/Clinic'
+                WHEN SpecialtyDescription IN ('General Practice','Family Practitioner','Residency') AND 
+    			ProviderType = 'Internal' THEN 'Internal GP/NP'
+                WHEN 
+    			SpecialtyDescription = 'Nurse Practitioner' AND 
+    			ProviderType = 'Internal' THEN 'Internal GP/NP'
+                WHEN 
+    			SpecialtyDescription NOT IN ('General Practice','Family Practitioner','Residency') AND 
+    			ProviderType = 'Internal' AND 
+    			(ProviderJobTitle = 'Doctor' OR ProviderFullName LIKE 'Dr.%') AND
+    			SpecialtyDescription <> 'Student' THEN 'Internal Specialist'
+    			WHEN ProviderType = 'External' AND ProviderFullName LIKE '%DR.%' OR SpecialtyDescription IN ('General Practice', 'Family Practitioner', 'Nurse Practitioner', 'Residency') THEN 'External GP/NP'
+                WHEN ProviderType = 'External' AND ProviderFullName LIKE '%NP.%' OR SpecialtyDescription IN ('General Practice', 'Family Practitioner', 'Nurse Practitioner', 'Residency') THEN 'External GP/NP'
+    			WHEN ProviderType = 'External' AND (ProviderFullName LIKE '%DR.%' OR ProviderFullName LIKE '%NP.%') THEN 'External Specialist'
+                ELSE 'Other'
+            END AS CategoryReferral
+    	into #temp
+        FROM [FHA_DW].[UPCC].[D_Provider]
+    	where Coalesce(ProviderJobTitle,'NA') not in ('IMIT','CIT','Profile aEMR Support Team','IMIT- BA') 
+    
+    
+    
+    SELECT * FROM #temp 
+    --where ProviderFullName in
+    --( 'White Rock South Surrey PCAC','New West Community NP Clinic', 'Surrey New Canadian Clinic','Burnaby New Canadian and Global Family Care Centre')
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="DROP TABLE IF EXISTS #temp;#(lf)#(lf)    SELECT  #(lf)        [ProviderKey],#(lf)        [ProviderCode],#(lf)        [ProviderFullName],#(lf)        [ProviderType],#(lf)        [ProviderJobTitle],#(lf)        [SpecialtyDescription],#(lf)        [ProviderStatus],#(lf)        [ClinicalRole],#(lf)        [Category],#(lf)#(lf)        -- Allied Health Flag#(lf)        CASE #(lf)            WHEN #(lf)                SpecialtyDescription IN ('Social Worker', 'Pharmacist', 'Pharmacy', 'Dietitian', 'Occupational Therapist') OR#(lf)                ProviderJobTitle LIKE '%Social Work%' OR#(lf)                ProviderJobTitle LIKE 'Pharma%' OR#(lf)                ProviderJobTitle LIKE '%Dietitian%' OR#(lf)                ProviderJobTitle = 'Clinical Counsellor' OR#(lf)                ProviderJobTitle = 'Occupational Therapist' OR#(lf)                SpecialtyDescription LIKE '%Counsellor%' OR#(lf)                SpecialtyDescription LIKE '%physio%' OR#(lf)                ProviderJobTitle LIKE '%physio%' #(lf)            THEN 1 ELSE 0 #(lf)        END AS AlliedHealthFlag,#(lf)#(lf)        -- RoleDesc#(lf)        CASE #(lf)            WHEN SpecialtyDescription IN ('General Practice','Family Practitioner','Residency') THEN 'Doctor'#(lf)            WHEN ProviderJobTitle LIKE '%Doctor%' THEN 'Doctor'#(lf)            WHEN SpecialtyDescription = 'Nurse Practitioner' OR LEFT(ProviderFullName, 3) = 'NP ' OR ProviderJobTitle = 'Nurse Practitioner' THEN 'Nurse Practitioner'#(lf)            WHEN SpecialtyDescription LIKE '%Registered%Nurse%' OR ProviderJobTitle LIKE '%Registered%Nurse%' OR ProviderJobTitle = 'Registered Nurse' THEN 'Registered Nurse'#(lf)            WHEN SpecialtyDescription IN ('Licensed Practical Nurse', 'Practice Nurse') OR ProviderJobTitle LIKE '%LPN%' OR ProviderJobTitle = 'Licensed Practical Nurse' THEN 'Licensed Practical Nurse'#(lf)            WHEN SpecialtyDescription = 'Social Worker' OR ProviderJobTitle LIKE '%Social Work%' THEN 'Social Worker'#(lf)            WHEN SpecialtyDescription IN ('Pharmacist','Pharmacy') OR ProviderJobTitle LIKE 'Pharma%' THEN 'Pharmacist'#(lf)            WHEN SpecialtyDescription = 'Dietitian' OR ProviderJobTitle LIKE '%Dietitian%' THEN 'Dietitian'#(lf)            WHEN SpecialtyDescription LIKE '%Counsellor%' OR ProviderJobTitle = 'Clinical Counsellor' THEN 'Clinical Counsellor' #(lf)            WHEN SpecialtyDescription LIKE '%physio%' OR ProviderJobTitle LIKE '%physio%' THEN 'Physiotherapist'#(lf)            WHEN ClinicalRole = 'Doctor' THEN 'Doctor'#(lf)            WHEN SpecialtyDescription LIKE '%Nurse%' THEN 'Registered Nurse' #(lf)            WHEN ProviderCode LIKE 'AA[_]%' OR ProviderCode LIKE '%[+]%' THEN 'Generic Provider'#(lf)            ELSE 'Other'#(lf)        END AS RoleDesc,#(lf)#(lf)        -- CategoryReferral#(lf)        CASE #(lf)#(tab)#(tab)#(tab)WHEN ProviderKey=-1 THEN 'Unknown'#(lf)#(tab)#(tab)#(tab)WHEN ProviderCode IN ('SRP','SRF') THEN 'Self Referral'#(lf)#(tab)#(tab)#(tab)WHEN ProviderCode IN ('SRW','SRPH', 'SRC', 'SRO') Then 'Self Referral: Redirected from Community Provider or Services'#(lf)#(tab)#(tab)#(tab)WHEN ProviderCode IN ('SRH','SRD') then ProviderFullName #(lf)#(tab)#(tab)#(tab)WHEN ProviderFullName='WorkSafeBC' THEN 'WorkSafeBC'#(lf)            WHEN ProviderFullName = 'BC Emergency Health Services' THEN 'BCEHS'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%IMAGING%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%mri%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%ultrasound%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Radiology%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%x-ray%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE 'Nuclear%' #(lf)#(tab)#(tab)#(tab)or ProviderFullName LIKE '%RADIOLOGICAL%' THEN 'Medical Imaging' #(lf)            WHEN ProviderFullName LIKE '%Fraser Health Virtual%' THEN 'FHVC'#(lf)            WHEN ProviderFullName LIKE '%Urgent%Primary Care Centre%' OR #(lf)#(tab)#(tab)#(tab)     ProviderCode = 'RMUPCC' OR #(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName IN ('Abbotsford Urgent and Primary Care Clinic', #(lf)#(tab)#(tab)#(tab)#(tab) 'SEYMOUR URGENT PRIMARY CARE CENTER','Ridge Meadows Urgent Care') #(lf)#(tab)#(tab)#(tab)#(tab) THEN 'UPCC'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Emergency%' AND #(lf)#(tab)#(tab)#(tab)ProviderFullName <> 'Lookout Emergency Aid Society' #(lf)#(tab)#(tab)#(tab)THEN 'Emergency Department'#(lf)            WHEN #(lf)                (ProviderFullName LIKE '%Hospital%' AND #(lf)                ProviderFullName NOT LIKE '%clinic%' AND #(lf)                ProviderFullName NOT LIKE '%ambulator%' AND #(lf)                ProviderFullName NOT LIKE '%outreach%' AND #(lf)                ProviderFullName NOT LIKE '%outpatient%' AND #(lf)                ProviderFullName NOT LIKE '%offsite%' AND #(lf)                ProviderFullName NOT LIKE '%Cancer%' AND #(lf)                ProviderFullName <> 'Eagle Ridge Hospital Lab' AND #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName NOT Like '%Health Records')#(lf)#(tab)#(tab)#(tab)#(tab)OR ProviderFullName='RIDGE MEADOWS HOSP & HLTH CARE CN'#(lf)#(tab)#(tab)#(tab)#(tab)THEN 'Acute'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)ProviderFullName IN ('LIONS GATE HOSP') OR#(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE 'HAIDA GWAII HOSP%' OR#(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE 'ABBOTSFORD REGIONAL HOSPITAL% CANCER CENTRE' THEN 'Acute'#(lf)            WHEN ProviderFullName LIKE 'BC Cancer%' OR ProviderFullName LIKE 'BCCA %' THEN 'BC Cancer'#(lf)            WHEN ProviderFullName LIKE '%Home Health%' AND ProviderFullName <> 'VitalAire Home Healthcare - BC' THEN 'Home Health'#(lf)            WHEN ProviderFullName LIKE '%ihart%' THEN 'iHart'#(lf)            WHEN ProviderFullName LIKE 'BCCDC %' #(lf)#(tab)#(tab)#(tab)OR ProviderFullName in ( 'BC Centre for Disease Control','Cdc Result Line') THEN 'BCCDC' #(lf)            WHEN ProviderFullName LIKE '%London Drugs%' OR ProviderFullName LIKE 'Safeway%' OR #(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%pharmacy%' OR #(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE 'Pharma%' OR #(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Shoppers%' OR #(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Save On%' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Superstore%' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Drug Mart%' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Prescriptions' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE '%Pharmary%' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE 'No Frills%' OR#(lf)#(tab)#(tab)#(tab)#(tab) ProviderFullName LIKE 'Macdonald%Prescriptions'#(lf)#(tab)#(tab)#(tab)#(tab) THEN 'Pharmacy'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Public Health%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE 'Fraser North - Shbbi%' THEN 'Public Health'#(lf)            WHEN ProviderFullName LIKE '%Division of%' and #(lf)#(tab)#(tab)#(tab)ProviderFullName <>'VGH Division of Hematology' THEN 'Division of Family Practice'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)(#(lf)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Primary Care%' #(lf)#(tab)#(tab)#(tab)OR ProviderFullName  in( 'White Rock South Surrey PCAC','New West Community NP Clinic', 'Surrey New Canadian Clinic','Burnaby New Canadian and Global Family Care Centre') #(lf)#(tab)#(tab)#(tab)) and ProviderFullName not in ('New Westminister Primary Care Obstetrical Clinic', 'Primary Care Ob Clinic')#(lf)#(tab)#(tab)#(tab)THEN 'Primary Care Clinic'#(lf)            WHEN ProviderFullName LIKE '%Bc Bio%' OR #(lf)#(tab)#(tab)#(tab)ProviderFullName = 'Gateway Medical Lab' THEN 'Laboratory'#(lf)            WHEN ProviderFullName LIKE 'BCCH %' #(lf)#(tab)#(tab)#(tab)and ProviderFullName<> 'BCCH Endocrinology Clinic'THEN 'Acute'#(lf)            WHEN ProviderFullName LIKE '%Blood%'  or ProviderFullName like 'LIFELABS%' THEN 'Laboratory'#(lf)            WHEN ProviderFullName LIKE '%Community Health Center%' OR ProviderFullName LIKE '%HEALTH%care%' THEN 'Primary Care Clinic'#(lf)            WHEN #(lf)                SpecialtyDescription IN ('Social Worker', 'Pharmacist', 'Dietitian', 'Occupational Therapist') OR #(lf)                ProviderJobTitle IN ('Clinical Counsellor', 'Occupational Therapist') OR #(lf)                ProviderJobTitle LIKE '%Social Work%' OR #(lf)                ProviderJobTitle LIKE '%Pharma%' OR #(lf)                ProviderJobTitle LIKE '%Dietitian%' OR #(lf)                ProviderJobTitle LIKE '%Physiotherapist%' THEN 'Allied health'#(lf)#(tab)#(tab)#(tab)WHEN (ProviderFullName LIKE '%Laborat%' OR ProviderFullName LIKE '% Lab%'OR SpecialtyDescription = 'Laboratory' or ProviderCode='L0001') and ProviderFullName<>'BC Centre For Excellence in HIVAIDS' THEN 'Laboratory'#(lf)            WHEN ProviderCode IN (#(lf)                'SERVST','PROGSLE','PROGSLE10314','PROGSLE10315','WFC110430','INTAFHA','INTAFHA10448',#(lf)                'CLINFHA','22715A','FH28020','28793','35489','38783','38795','38896','FH44175','FH74839',#(lf)                '77877','84385','94095','109866','110104','114018') THEN 'Outpatient Clinic/Clinic'#(lf)            WHEN #(lf)               ( ProviderFullName LIKE '%Abbotsford%' OR #(lf)                ProviderFullName LIKE '%Burnaby%' OR #(lf)                ProviderFullName LIKE '%FHA %' OR #(lf)                ProviderFullName LIKE '%FH %' OR #(lf)                ProviderFullName LIKE '%Fraser %' OR #(lf)                ProviderFullName LIKE '%Clinic%' OR #(lf)                ProviderFullName LIKE '%Offsite%' OR #(lf)                ProviderFullName LIKE '%ambulatory%' OR #(lf)                ProviderFullName LIKE '%Outpatient%' OR #(lf)                ProviderFullName LIKE '%Community%' OR #(lf)                ProviderFullName LIKE '%Centre%' OR #(lf)                ProviderFullName LIKE '%Society' OR #(lf)                ProviderFullName LIKE 'Spirit Of The Children%' OR #(lf)                ProviderFullName LIKE '%Senior%' OR #(lf)                ProviderFullName LIKE '%ECHO OUTREACH%' OR #(lf)                SpecialtyDescription = 'Clinic' OR #(lf)                ProviderFullName = 'Health Heart Program - SPH' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName = 'VGH Division of Hematology' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Maternity%'OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName='BC Centre For Excellence in HIVAIDS' OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%MHSU%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Addiction%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Mental health%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Substance%' OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE 'Mood Disorders%' OR#(lf)#(tab)#(tab)#(tab)    ProviderFullName LIKE '%RESPIRATORY%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%RESPIROLOGY%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE 'Respiratory%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName  like 'VITALAIRE%' OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Sleep%' OR #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName like  'SNORE%' OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE '%Cardio%' OR#(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName LIKE 'Child Youth Serivces%' OR#(lf)                Category = 'POS' OR #(lf)                ProviderFullName IN (#(lf)                    'Langley Family Services','Langley Gardens','Langley Hospice',#(lf)                    'Langley Lodge','Langley Physio','Act Team Rm Assertive Community Treatment Team Maple Ridge Pitt Meadows'#(lf)#(tab)#(tab)#(tab)#(tab)#(tab),'ACT Assertive Community Treatment Team','Early Psychosis Intervention Program',#(lf)#(tab)#(tab)#(tab)#(tab)#(tab)'RCH Department of Psychiatry - Outpatient',#(lf)#(tab)#(tab)#(tab)#(tab)#(tab)'VGH - University Urology Associates',#(lf)#(tab)#(tab)#(tab)#(tab)#(tab)'New Westminister Primary Care Obstetrical Clinic', 'Primary Care Ob Clinic',#(lf)#(tab)#(tab)#(tab)#(tab)#(tab) 'PRESTIGE PHYSIOTHERAPY AND SPORTS MEDICINE' #(lf)#(tab)#(tab)#(tab)#(tab)#(tab)) OR#(lf)#(tab)#(tab)#(tab)#(tab)SpecialtyDescription='Community Health')#(tab)and #(lf)#(tab)#(tab)#(tab)#(tab)ProviderFullName not like  '%Health Records'#(lf)#(tab)#(tab)#(tab)#(tab)and ProviderFullName not like '%Police%'#(lf)#(tab)#(tab)#(tab)#(tab)and ProviderFullName not like '%RCMP%'#(lf)#(tab)#(tab)#(tab)#(tab)and ProviderFullName not in ('SHARE Family Community Services','The Salvation Army Of Hope')#(lf)#(tab)#(tab)#(tab)#(tab)#(tab)THEN 'Outpatient Clinic/Clinic'#(lf)            WHEN SpecialtyDescription IN ('General Practice','Family Practitioner','Residency') AND #(lf)#(tab)#(tab)#(tab)ProviderType = 'Internal' THEN 'Internal GP/NP'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)SpecialtyDescription = 'Nurse Practitioner' AND #(lf)#(tab)#(tab)#(tab)ProviderType = 'Internal' THEN 'Internal GP/NP'#(lf)            WHEN #(lf)#(tab)#(tab)#(tab)SpecialtyDescription NOT IN ('General Practice','Family Practitioner','Residency') AND #(lf)#(tab)#(tab)#(tab)ProviderType = 'Internal' AND #(lf)#(tab)#(tab)#(tab)(ProviderJobTitle = 'Doctor' OR ProviderFullName LIKE 'Dr.%') AND#(lf)#(tab)#(tab)#(tab)SpecialtyDescription <> 'Student' THEN 'Internal Specialist'#(lf)#(tab)#(tab)#(tab)WHEN ProviderType = 'External' AND ProviderFullName LIKE '%DR.%' OR SpecialtyDescription IN ('General Practice', 'Family Practitioner', 'Nurse Practitioner', 'Residency') THEN 'External GP/NP'#(lf)            WHEN ProviderType = 'External' AND ProviderFullName LIKE '%NP.%' OR SpecialtyDescription IN ('General Practice', 'Family Practitioner', 'Nurse Practitioner', 'Residency') THEN 'External GP/NP'#(lf)#(tab)#(tab)#(tab)WHEN ProviderType = 'External' AND (ProviderFullName LIKE '%DR.%' OR ProviderFullName LIKE '%NP.%') THEN 'External Specialist'#(lf)            ELSE 'Other'#(lf)        END AS CategoryReferral#(lf)#(tab)into #temp#(lf)    FROM [FHA_DW].[UPCC].[D_Provider]#(lf)#(tab)where Coalesce(ProviderJobTitle,'NA') not in ('IMIT','CIT','Profile aEMR Support Team','IMIT- BA') #(lf)#(lf)#(lf)#(lf)SELECT * FROM #temp #(lf)--where ProviderFullName in#(lf)--( 'White Rock South Surrey PCAC','New West Community NP Clinic', 'Surrey New Canadian Clinic','Burnaby New Canadian and Global Family Care Centre')#(lf)#(lf)#(lf)"]),
+        #"Renamed Columns" = Table.RenameColumns(Source,{{"CategoryReferral", "Referral Category"}, {"ClinicalRole", "Clinical Role"}, {"ProviderCode", "Provider Code"}, {"ProviderFullName", "Full Name"}, {"ProviderJobTitle", "Job Title"}, {"ProviderStatus", "Status"}, {"ProviderType", "Provider Type"}, {"RoleDesc", "Role Description"}, {"SpecialtyDescription", "Specialty Description"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          Patient
+[IS HIDDEN]      False
+[COLUMNS]        10
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       PatientKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       PatientFileNum
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       DoB
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       General Date
+
+  [COLUMN]       DoD
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       General Date
+
+  [COLUMN]       PHN
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Sex
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Addressline1
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       City
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Province
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Patient-34b3c338-ec0f-4b0e-b26c-0f0a91d26d5c
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    SELECT [PatientKey]
+          ,[PatientFileNum]
+          ,[DoB]
+          ,[DoD]
+          --,[PHNSystem]
+          ,[PHN]
+          ,[Sex]
+          --,[PatientLastName]
+          --,[PaientFirstName]
+          ,[Addressline1]
+          ,[City]
+          ,[Province]
+          ,[PostalCode]
+          ,[Ethnicity_1]
+          --,[CellPhone]
+          --,[HomePhone]
+          --,[IsCurrentVersion]
+      FROM [FHA_DW].[UPCC].[D_Patient]
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="SELECT [PatientKey]#(lf)      ,[PatientFileNum]#(lf)      ,[DoB]#(lf)      ,[DoD]#(lf)      --,[PHNSystem]#(lf)      ,[PHN]#(lf)      ,[Sex]#(lf)      --,[PatientLastName]#(lf)      --,[PaientFirstName]#(lf)      ,[Addressline1]#(lf)      ,[City]#(lf)      ,[Province]#(lf)      ,[PostalCode]#(lf)      ,[Ethnicity_1]#(lf)      --,[CellPhone]#(lf)      --,[HomePhone]#(lf)      --,[IsCurrentVersion]#(lf)  FROM [FHA_DW].[UPCC].[D_Patient]"]),
+        #"Renamed Columns" = Table.RenameColumns(Source,{{"PostalCode", "Postal Code"}}),
+        #"Removed Columns" = Table.RemoveColumns(#"Renamed Columns",{"Postal Code", "Ethnicity_1"})
+    in
+        #"Removed Columns"
+
+------------------------------------------------------------
+[TABLE]          Appointments
+[IS HIDDEN]      False
+[COLUMNS]        41
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       AppointmentKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       ServiceKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       FacilityKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       ProviderKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       PatientKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Type Code Description
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Status
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Seen Time
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       Long Time
+
+  [COLUMN]       Exclusion Flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       VirtualInPersonFlag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Longitudinal/Urgent
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Patient age at appointment booking
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       PatientFileNum
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Arrival Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd/mm/yyyy
+
+  [COLUMN]       Seen Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd/mm/yyyy
+
+  [COLUMN]       LastVisitOfDayFlag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       AppointmentID
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Encounter Flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       First visit of the day flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Only one appointment /day flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Attachment
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       VirtualFlagChanged
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Book Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd/mm/yyyy
+
+  [COLUMN]       Type Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       VisitAlliedHealthFlag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       VisitProviderOnlyflag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       LPN Provider flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Allied Health Provider Flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       ProviderOnlyflag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Triage Flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Registered Nurse provider flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       VisitTriageFlag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Seen Hour
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Weekday
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       WeekdayNo
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Virtual/In Person
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       TimeDateHoliday
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Provider Only Visits
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Business Hours/After Hours
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Age Groups
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Appointments-70c7a40e-a753-4332-9208-4b39339f7be5
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    SET DATEFIRST 1;
+    drop table if exists #Provider;
+    
+    select 
+    ProviderCode, 
+    ProviderKey,
+    AlliedHealthFlag,
+    case when RoleDesc='Registered Nurse' and ProviderType='Internal' then 1 else 0 end as RegisteredNurseflag,
+    case when RoleDesc='Licensed Practical Nurse' and ProviderType='Internal' then 1 else 0 end as LPNflag,
+    case when RoleDesc in ('Doctor','Nurse Practitioner') and ProviderType='Internal' then 1 else 0 end as ProviderOnlyflag
+    
+    into #Provider
+    from
+    (
+    SELECT  
+           [ProviderKey]
+          ,[ProviderCode]
+          ,[ProviderFullName]
+          ,[ProviderType]
+          ,[ProviderJobTitle]
+          ,[SpecialtyDescription]
+          ,[ProviderStatus]
+    	  ,[ClinicalRole]
+          ,[Category]
+    	  ,case when 
+    	   ([SpecialtyDescription] in ('Social Worker') or ProviderJobTitle like '%Social Work%' 
+    	   or SpecialtyDescription in ('Pharmacist','Pharmacy') or ProviderJobTitle like 'Pharma%'
+    	   or SpecialtyDescription='Dietitian' or ProviderJobTitle like '%Dietitian%' 
+    	   or SpecialtyDescription like '%Counsellor%' or ProviderJobTitle='Clinical Counsellor'
+    	   or SpecialtyDescription like '%physio%' or ProviderJobTitle like '%physio%')
+    	   and ProviderType='Internal'
+    	   then  1 else 0 end as AlliedHealthFlag
+    	  ,case 
+    	   when [SpecialtyDescription]  in ('General Practice','Family Practitioner','Residency')  then 'Doctor'
+    	   when  ProviderJobTitle like '%Doctor%' then 'Doctor'
+    	   when [SpecialtyDescription] in ('Nurse Practitioner')  then 'Nurse Practitioner'
+    	   when  Left([ProviderFullName],3)='NP ' then 'Nurse Practitioner'
+    	   when ProviderJobTitle='Nurse Practitioner' then 'Nurse Practitioner'
+    	   when SpecialtyDescription like '%Registered%Nurse%' 
+    	   or ProviderJobTitle like '%Registered%Nurse%'
+    	   or ProviderJobTitle='Registered Nurse'
+    	    then 'Registered Nurse'
+    	   when SpecialtyDescription in ('Licensed Practical Nurse','Practice Nurse') or ProviderJobTitle like '%LPN%' or ProviderJobTitle='Licensed Practical Nurse' then 'Licensed Practical Nurse'
+    	   when [SpecialtyDescription] in ('Social Worker') or ProviderJobTitle like '%Social Work%'  then 'Social Worker'
+    	   when SpecialtyDescription in ('Pharmacist','Pharmacy') or ProviderJobTitle like 'Pharma%' then 'Pharmacist'
+    	   when SpecialtyDescription='Dietitian' or ProviderJobTitle like '%Dietitian%' then 'Dietitian'
+    	   when SpecialtyDescription like '%Counsellor%' or ProviderJobTitle='Clinical Counsellor' then 'Clinical Counsellor' 
+    	   when SpecialtyDescription like '%physio%' or ProviderJobTitle like '%physio%'
+    	   then 'Physiotherapist'
+    	   when ClinicalRole='Doctor' then 'Doctor'
+    	   when SpecialtyDescription like '%Nurse%' then 'Registered Nurse' 
+    	   else 'Other'
+    	   end as RoleDesc
+      FROM [FHA_DW].[UPCC].[D_Provider]
+      ) I where I.ProviderType='Internal'
+    
+    
+      DROP TABLE IF EXISTS #Appointments;
+    
+    SELECT [AppointmentKey]
+          ,[AppointmentTypeKey]
+          ,[FacilityKey]
+          ,a.[ProviderKey]
+          ,[PatientKey]	 
+          ,[AppointmentID]
+    	  ,ApptSeenDate
+    	  ,ApptSeenDateTime
+          ,[EncounterFlag]
+          ,[VirtualInPersonFlag]
+    	  ,iif(ApptTypeCode in ('TRV','TRW','DFD','PRECAUTIONS_U'),1,0) as TriageFlag
+    	  ,p.AlliedHealthFlag
+    	  ,p.LPNflag
+    	  ,p.RegisteredNurseflag
+    	  ,p.ProviderOnlyflag
+    	  into #Appointments
+      FROM [FHA_DW].[UPCC].[F_Appointment] a
+      left join #Provider p on p.ProviderKey=a.ProviderKey
+      where [ExclusionFlag]=0
+    
+    CREATE NONCLUSTERED INDEX IX_app
+    ON #Appointments (patientkey , ApptSeenDateTime ASC,ProviderKey );
+    
+    drop table if exists #AppointmentsEnhanced;
+    
+    select * 
+    ,ROW_NUMBER()over(Partition by a.patientkey,[ProviderKey],[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime ) as EncounterFlagC
+    ,ROW_NUMBER()over(Partition by a.patientkey,[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime desc) as LastVisitOfDayFlag
+    ,ROW_NUMBER()over(Partition by a.patientkey,[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime ) as FirstVisitOfDayFlag
+    ,MAX([VirtualInPersonFlag])over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitVirtualFlag 
+    ,MAX(AlliedHealthFlag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate) as VisitAlliedHealthFlag
+    ,MAX(LPNflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitLPNFlag
+    ,MAX(RegisteredNurseflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitRNFlag
+    ,MAX(ProviderOnlyflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitProviderOnlyflag
+    into #AppointmentsEnhanced
+    from #Appointments a
+    
+    select * , 
+    MAX(TriageFlag)over(Partition by PatientKey,ApptSeenDate) as VisitTriageFlag,
+        case when OnlyOneAppt=1 
+                 and ProviderOnlyflag=1 then 'Provider Only'
+            when OnlyOneAppt=1
+    		     and RegisteredNurseflag=1 then 'RN Only'
+    		else 'Other' end as 'Provider Only',
+    	case when WeekdayNo in (6,7) then 'After Hours'
+    		 when SeenTime>=17 then 'After Hours'
+    		 when TimeDateHoliday=1 then 'After Hours'
+    		 else 'Business Hours' end as 'Business Hours/After Hours',
+    	case when AgeAtAppt >=0  and  AgeAtAppt<=18 then  '0-18'
+    	     when AgeAtAppt >=19  and  AgeAtAppt<=44 then  '19-44'
+    		 when AgeAtAppt >=45  and  AgeAtAppt<=64 then  '45-64'
+    		 when AgeAtAppt >=65  and  AgeAtAppt<=84 then  '65-84'
+    		 else '85+'
+    		 end as 'Age Groups'
+       
+    
+    from(
+      select 
+         a.[AppointmentKey]
+          ,a.[AppointmentTypeKey]
+          ,a.[ServiceKey]
+          ,a.[FacilityKey]
+          ,a.[ProviderKey]
+          ,a.[PatientKey]
+    	   ,DATEDIFF(year,p.DoB,a.ApptCreatedDate) as AgeAtAppt
+    	  ,p.PHN
+    	  ,p.PatientFileNum	 
+          ,a.[AppointmentID]
+          ,a.[ApptTypeCode]
+          ,a.[ApptTypeCodeDesc]
+          ,a.[ManualReasonForVisitID]
+          ,a.[ReasonForVisitCode]
+          ,a.[ApptReasonDescription]
+          ,a.[ApptBookedDurationInMinute]
+          ,a.[ApptActualDurationInMinute]
+          ,a.[ApptStatus]
+          ,a.[ApptComment]
+    	  ,a.ApptCreatedDate
+          ,a.[ApptCreatedTime]
+    	  ,a.ApptBookDate
+          ,a.[ApptBookTime]
+    	  ,a.ApptArrivalDate
+          ,a.[ApptArrivalTime]
+    	   ,a.ApptSeenDate
+          ,a.[ApptSeenTime]
+    	  ,DATEPART(hour,a.[ApptSeenTime]) as SeenTime
+    	  ,DATENAME(WEEKDAY, a.ApptSeenDate) as 'Weekday'
+    	  ,DATEPART(WEEKDAY, a.ApptSeenDate) AS WeekdayNo
+    	  ,a.ApptSeenDateTime
+          ,a.[ApptClosedTime]
+          ,a.[ExclusionFlag]
+          --,a.[EncounterFlag]
+          ,a.[VirtualInPersonFlag]
+    	  ,case when a.[VirtualInPersonFlag]=1 then 'Virtual' else 'In Person' end as 'Virtual/In Person'
+          ,a.[AppointmentTypeFlag]
+    	   ,case when 
+    	Exists
+    	(
+    	select 
+    	1
+    	from [FHA_DW].[UPCC].[F_CareTeam] f
+    	where f.PatientKey=a.PatientKey and
+    	a.ApptBookDate between f.CareTeamOpenedDate and f.CareTeamClosedDate
+    	and F.FacilityKey=a.FacilityKey
+    	and  f.AttachmentType='Attachment with providers at UPCC clinics'
+    	)
+     then 'Attached to UPCC' 
+     when  Exists
+    	(
+    	select 
+    	1
+    	from [FHA_DW].[UPCC].[F_CareTeam] f
+    	where f.PatientKey=a.PatientKey and
+    	a.ApptBookDate between f.CareTeamOpenedDate and f.CareTeamClosedDate
+    	and  f.AttachmentType <>'Attachment with providers at UPCC clinics'
+    	) then 'Attached but not to the UPCC'
+     else 'Not Attached'
+     end as Attachment
+      ,coalesce(iif(a1.EncounterFlagC=1,1,0),0) as EncounterFlagC
+      ,coalesce(iif(a1.LastVisitOfDayFlag=1,1,0),0) as LastVisitOfDayFlag
+      ,coalesce(iif(a1.FirstVisitOfDayFlag=1,1,0),0) as FirstVisitOfDayFlag
+      ,coalesce(iif(a1.lastVisitOfDayFlag=1 and a1.VisitVirtualFlag=1,1,a1.[VirtualInPersonFlag]),0) as VirtualFlagChanged
+      ,coalesce(iif(a1.FirstVisitOfDayFlag=a1.lastVisitOfDayFlag and a1.lastVisitOfDayFlag=1,1,0),0) as OnlyOneAppt 
+      --,coalesce(a1.TriageFlag,0) as TriageFlag
+      ,coalesce(a1.VisitAlliedHealthFlag,0) as VisitAlliedHealthFlag
+      --,coalesce(a1.VisitRNFlag,0) as VisitRNFlag
+      --,coalesce(a1.VisitLPNFlag,0) as VisitLPNFlag
+      ,coalesce(a1.VisitProviderOnlyflag,0) as VisitProviderOnlyflag
+      ,coalesce(a1.RegisteredNurseflag,0) as RegisteredNurseflag
+      ,coalesce(a1.LPNflag,0) as LPNflag
+      ,coalesce(a1.AlliedHealthFlag,0) as AlliedHealthFlag
+      ,coalesce(a1.ProviderOnlyflag,0) as ProviderOnlyflag
+      ,case when coalesce(a1.TriageFlag,0)=1 then 1
+            when a1.FirstVisitOfDayFlag=1 and coalesce(a1.RegisteredNurseflag,0)=1 then 1
+    		else 0 end as TriageFlag
+      ,Coalesce(d.TimeDateHoliday,0) as TimeDateHoliday
+      FROM [FHA_DW].[UPCC].[F_Appointment] a
+      left join  #AppointmentsEnhanced a1
+      on a1.[AppointmentID]=a.[AppointmentID]
+      left join [FHA_DW].UPCC.D_Patient p
+      on p.PatientKey=a.PatientKey
+      left join FHA_ANALYTICS.fha.D_FHATimeDates d
+      on cast(d.TimeDate as date)=a.ApptSeenDate
+      )I
+    
+    drop table #Appointments
+    drop table #AppointmentsEnhanced
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="SET DATEFIRST 1;#(lf)drop table if exists #Provider;#(lf)#(lf)select #(lf)ProviderCode, #(lf)ProviderKey,#(lf)AlliedHealthFlag,#(lf)case when RoleDesc='Registered Nurse' and ProviderType='Internal' then 1 else 0 end as RegisteredNurseflag,#(lf)case when RoleDesc='Licensed Practical Nurse' and ProviderType='Internal' then 1 else 0 end as LPNflag,#(lf)case when RoleDesc in ('Doctor','Nurse Practitioner') and ProviderType='Internal' then 1 else 0 end as ProviderOnlyflag#(lf)#(lf)into #Provider#(lf)from#(lf)(#(lf)SELECT  #(lf)       [ProviderKey]#(lf)      ,[ProviderCode]#(lf)      ,[ProviderFullName]#(lf)      ,[ProviderType]#(lf)      ,[ProviderJobTitle]#(lf)      ,[SpecialtyDescription]#(lf)      ,[ProviderStatus]#(lf)#(tab)  ,[ClinicalRole]#(lf)      ,[Category]#(lf)#(tab)  ,case when #(lf)#(tab)   ([SpecialtyDescription] in ('Social Worker') or ProviderJobTitle like '%Social Work%' #(lf)#(tab)   or SpecialtyDescription in ('Pharmacist','Pharmacy') or ProviderJobTitle like 'Pharma%'#(lf)#(tab)   or SpecialtyDescription='Dietitian' or ProviderJobTitle like '%Dietitian%' #(lf)#(tab)   or SpecialtyDescription like '%Counsellor%' or ProviderJobTitle='Clinical Counsellor'#(lf)#(tab)   or SpecialtyDescription like '%physio%' or ProviderJobTitle like '%physio%')#(lf)#(tab)   and ProviderType='Internal'#(lf)#(tab)   then  1 else 0 end as AlliedHealthFlag#(lf)#(tab)  ,case #(lf)#(tab)   when [SpecialtyDescription]  in ('General Practice','Family Practitioner','Residency')  then 'Doctor'#(lf)#(tab)   when  ProviderJobTitle like '%Doctor%' then 'Doctor'#(lf)#(tab)   when [SpecialtyDescription] in ('Nurse Practitioner')  then 'Nurse Practitioner'#(lf)#(tab)   when  Left([ProviderFullName],3)='NP ' then 'Nurse Practitioner'#(lf)#(tab)   when ProviderJobTitle='Nurse Practitioner' then 'Nurse Practitioner'#(lf)#(tab)   when SpecialtyDescription like '%Registered%Nurse%' #(lf)#(tab)   or ProviderJobTitle like '%Registered%Nurse%'#(lf)#(tab)   or ProviderJobTitle='Registered Nurse'#(lf)#(tab)    then 'Registered Nurse'#(lf)#(tab)   when SpecialtyDescription in ('Licensed Practical Nurse','Practice Nurse') or ProviderJobTitle like '%LPN%' or ProviderJobTitle='Licensed Practical Nurse' then 'Licensed Practical Nurse'#(lf)#(tab)   when [SpecialtyDescription] in ('Social Worker') or ProviderJobTitle like '%Social Work%'  then 'Social Worker'#(lf)#(tab)   when SpecialtyDescription in ('Pharmacist','Pharmacy') or ProviderJobTitle like 'Pharma%' then 'Pharmacist'#(lf)#(tab)   when SpecialtyDescription='Dietitian' or ProviderJobTitle like '%Dietitian%' then 'Dietitian'#(lf)#(tab)   when SpecialtyDescription like '%Counsellor%' or ProviderJobTitle='Clinical Counsellor' then 'Clinical Counsellor' #(lf)#(tab)   when SpecialtyDescription like '%physio%' or ProviderJobTitle like '%physio%'#(lf)#(tab)   then 'Physiotherapist'#(lf)#(tab)   when ClinicalRole='Doctor' then 'Doctor'#(lf)#(tab)   when SpecialtyDescription like '%Nurse%' then 'Registered Nurse' #(lf)#(tab)   else 'Other'#(lf)#(tab)   end as RoleDesc#(lf)  FROM [FHA_DW].[UPCC].[D_Provider]#(lf)  ) I where I.ProviderType='Internal'#(lf)#(lf)#(lf)  DROP TABLE IF EXISTS #Appointments;#(lf)#(lf)SELECT [AppointmentKey]#(lf)      ,[AppointmentTypeKey]#(lf)      ,[FacilityKey]#(lf)      ,a.[ProviderKey]#(lf)      ,[PatientKey]#(tab) #(lf)      ,[AppointmentID]#(lf)#(tab)  ,ApptSeenDate#(lf)#(tab)  ,ApptSeenDateTime#(lf)      ,[EncounterFlag]#(lf)      ,[VirtualInPersonFlag]#(lf)#(tab)  ,iif(ApptTypeCode in ('TRV','TRW','DFD','PRECAUTIONS_U'),1,0) as TriageFlag#(lf)#(tab)  ,p.AlliedHealthFlag#(lf)#(tab)  ,p.LPNflag#(lf)#(tab)  ,p.RegisteredNurseflag#(lf)#(tab)  ,p.ProviderOnlyflag#(lf)#(tab)  into #Appointments#(lf)  FROM [FHA_DW].[UPCC].[F_Appointment] a#(lf)  left join #Provider p on p.ProviderKey=a.ProviderKey#(lf)  where [ExclusionFlag]=0#(lf)#(lf)CREATE NONCLUSTERED INDEX IX_app#(lf)ON #Appointments (patientkey , ApptSeenDateTime ASC,ProviderKey );#(lf)#(lf)drop table if exists #AppointmentsEnhanced;#(lf)#(lf)select * #(lf),ROW_NUMBER()over(Partition by a.patientkey,[ProviderKey],[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime ) as EncounterFlagC#(lf),ROW_NUMBER()over(Partition by a.patientkey,[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime desc) as LastVisitOfDayFlag#(lf),ROW_NUMBER()over(Partition by a.patientkey,[FacilityKey], a.ApptSeenDate order by ApptSeenDatetime ) as FirstVisitOfDayFlag#(lf),MAX([VirtualInPersonFlag])over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitVirtualFlag #(lf),MAX(AlliedHealthFlag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate) as VisitAlliedHealthFlag#(lf),MAX(LPNflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitLPNFlag#(lf),MAX(RegisteredNurseflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitRNFlag#(lf),MAX(ProviderOnlyflag)over(Partition by a.PatientKey,[FacilityKey],ApptSeenDate ) as VisitProviderOnlyflag#(lf)into #AppointmentsEnhanced#(lf)from #Appointments a#(lf)#(lf)select * , #(lf)MAX(TriageFlag)over(Partition by PatientKey,ApptSeenDate) as VisitTriageFlag,#(lf)    case when OnlyOneAppt=1 #(lf)             and ProviderOnlyflag=1 then 'Provider Only'#(lf)        when OnlyOneAppt=1#(lf)#(tab)#(tab)     and RegisteredNurseflag=1 then 'RN Only'#(lf)#(tab)#(tab)else 'Other' end as 'Provider Only',#(lf)#(tab)case when WeekdayNo in (6,7) then 'After Hours'#(lf)#(tab)#(tab) when SeenTime>=17 then 'After Hours'#(lf)#(tab)#(tab) when TimeDateHoliday=1 then 'After Hours'#(lf)#(tab)#(tab) else 'Business Hours' end as 'Business Hours/After Hours',#(lf)#(tab)case when AgeAtAppt >=0  and  AgeAtAppt<=18 then  '0-18'#(lf)#(tab)     when AgeAtAppt >=19  and  AgeAtAppt<=44 then  '19-44'#(lf)#(tab)#(tab) when AgeAtAppt >=45  and  AgeAtAppt<=64 then  '45-64'#(lf)#(tab)#(tab) when AgeAtAppt >=65  and  AgeAtAppt<=84 then  '65-84'#(lf)#(tab)#(tab) else '85+'#(lf)#(tab)#(tab) end as 'Age Groups'#(lf)   #(lf)#(lf)from(#(lf)  select #(lf)     a.[AppointmentKey]#(lf)      ,a.[AppointmentTypeKey]#(lf)      ,a.[ServiceKey]#(lf)      ,a.[FacilityKey]#(lf)      ,a.[ProviderKey]#(lf)      ,a.[PatientKey]#(lf)#(tab)   ,DATEDIFF(year,p.DoB,a.ApptCreatedDate) as AgeAtAppt#(lf)#(tab)  ,p.PHN#(lf)#(tab)  ,p.PatientFileNum#(tab) #(lf)      ,a.[AppointmentID]#(lf)      ,a.[ApptTypeCode]#(lf)      ,a.[ApptTypeCodeDesc]#(lf)      ,a.[ManualReasonForVisitID]#(lf)      ,a.[ReasonForVisitCode]#(lf)      ,a.[ApptReasonDescription]#(lf)      ,a.[ApptBookedDurationInMinute]#(lf)      ,a.[ApptActualDurationInMinute]#(lf)      ,a.[ApptStatus]#(lf)      ,a.[ApptComment]#(lf)#(tab)  ,a.ApptCreatedDate#(lf)      ,a.[ApptCreatedTime]#(lf)#(tab)  ,a.ApptBookDate#(lf)      ,a.[ApptBookTime]#(lf)#(tab)  ,a.ApptArrivalDate#(lf)      ,a.[ApptArrivalTime]#(lf)#(tab)   ,a.ApptSeenDate#(lf)      ,a.[ApptSeenTime]#(lf)#(tab)  ,DATEPART(hour,a.[ApptSeenTime]) as SeenTime#(lf)#(tab)  ,DATENAME(WEEKDAY, a.ApptSeenDate) as 'Weekday'#(lf)#(tab)  ,DATEPART(WEEKDAY, a.ApptSeenDate) AS WeekdayNo#(lf)#(tab)  ,a.ApptSeenDateTime#(lf)      ,a.[ApptClosedTime]#(lf)      ,a.[ExclusionFlag]#(lf)      --,a.[EncounterFlag]#(lf)      ,a.[VirtualInPersonFlag]#(lf)#(tab)  ,case when a.[VirtualInPersonFlag]=1 then 'Virtual' else 'In Person' end as 'Virtual/In Person'#(lf)      ,a.[AppointmentTypeFlag]#(lf)#(tab)   ,case when #(lf)#(tab)Exists#(lf)#(tab)(#(lf)#(tab)select #(lf)#(tab)1#(lf)#(tab)from [FHA_DW].[UPCC].[F_CareTeam] f#(lf)#(tab)where f.PatientKey=a.PatientKey and#(lf)#(tab)a.ApptBookDate between f.CareTeamOpenedDate and f.CareTeamClosedDate#(lf)#(tab)and F.FacilityKey=a.FacilityKey#(lf)#(tab)and  f.AttachmentType='Attachment with providers at UPCC clinics'#(lf)#(tab))#(lf) then 'Attached to UPCC' #(lf) when  Exists#(lf)#(tab)(#(lf)#(tab)select #(lf)#(tab)1#(lf)#(tab)from [FHA_DW].[UPCC].[F_CareTeam] f#(lf)#(tab)where f.PatientKey=a.PatientKey and#(lf)#(tab)a.ApptBookDate between f.CareTeamOpenedDate and f.CareTeamClosedDate#(lf)#(tab)and  f.AttachmentType <>'Attachment with providers at UPCC clinics'#(lf)#(tab)) then 'Attached but not to the UPCC'#(lf) else 'Not Attached'#(lf) end as Attachment#(lf)  ,coalesce(iif(a1.EncounterFlagC=1,1,0),0) as EncounterFlagC#(lf)  ,coalesce(iif(a1.LastVisitOfDayFlag=1,1,0),0) as LastVisitOfDayFlag#(lf)  ,coalesce(iif(a1.FirstVisitOfDayFlag=1,1,0),0) as FirstVisitOfDayFlag#(lf)  ,coalesce(iif(a1.lastVisitOfDayFlag=1 and a1.VisitVirtualFlag=1,1,a1.[VirtualInPersonFlag]),0) as VirtualFlagChanged#(lf)  ,coalesce(iif(a1.FirstVisitOfDayFlag=a1.lastVisitOfDayFlag and a1.lastVisitOfDayFlag=1,1,0),0) as OnlyOneAppt #(lf)  --,coalesce(a1.TriageFlag,0) as TriageFlag#(lf)  ,coalesce(a1.VisitAlliedHealthFlag,0) as VisitAlliedHealthFlag#(lf)  --,coalesce(a1.VisitRNFlag,0) as VisitRNFlag#(lf)  --,coalesce(a1.VisitLPNFlag,0) as VisitLPNFlag#(lf)  ,coalesce(a1.VisitProviderOnlyflag,0) as VisitProviderOnlyflag#(lf)  ,coalesce(a1.RegisteredNurseflag,0) as RegisteredNurseflag#(lf)  ,coalesce(a1.LPNflag,0) as LPNflag#(lf)  ,coalesce(a1.AlliedHealthFlag,0) as AlliedHealthFlag#(lf)  ,coalesce(a1.ProviderOnlyflag,0) as ProviderOnlyflag#(lf)  ,case when coalesce(a1.TriageFlag,0)=1 then 1#(lf)        when a1.FirstVisitOfDayFlag=1 and coalesce(a1.RegisteredNurseflag,0)=1 then 1#(lf)#(tab)#(tab)else 0 end as TriageFlag#(lf)  ,Coalesce(d.TimeDateHoliday,0) as TimeDateHoliday#(lf)  FROM [FHA_DW].[UPCC].[F_Appointment] a#(lf)  left join  #AppointmentsEnhanced a1#(lf)  on a1.[AppointmentID]=a.[AppointmentID]#(lf)  left join [FHA_DW].UPCC.D_Patient p#(lf)  on p.PatientKey=a.PatientKey#(lf)  left join FHA_ANALYTICS.fha.D_FHATimeDates d#(lf)  on cast(d.TimeDate as date)=a.ApptSeenDate#(lf)  )I#(lf)#(lf)drop table #Appointments#(lf)drop table #AppointmentsEnhanced#(lf)#(lf)#(lf)"]),
+        #"Changed Type" = Table.TransformColumnTypes(Source,{{"ApptCreatedDate", type date}, {"ApptBookDate", type date}, {"ApptSeenDate", type date}}),
+        #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"AppointmentTypeFlag", "Longitudinal/Urgent"}}),
+        #"Removed Columns" = Table.RemoveColumns(#"Renamed Columns",{ "ApptSeenDateTime", "AppointmentTypeKey"}),
+        #"Renamed Columns1" = Table.RenameColumns(#"Removed Columns",{{"OnlyOneAppt", "Only one appointment"}}),
+        #"Removed Columns1" = Table.RemoveColumns(#"Renamed Columns1",{"ManualReasonForVisitID", "ApptComment", "ApptActualDurationInMinute", "ApptBookedDurationInMinute", "ReasonForVisitCode", "ApptCreatedTime", "ApptBookTime", "ApptArrivalTime", "ApptClosedTime", "ApptCreatedDate", "PHN", "ApptReasonDescription"}),
+        #"Renamed Columns2" = Table.RenameColumns(#"Removed Columns1",{{"SeenTime", "Seen Hour"}, {"AgeAtAppt", "Patient age at appointment booking"}, {"AlliedHealthFlag", "Allied Health Provider Flag"}, {"ApptArrivalDate", "Arrival Date"}, {"ApptBookDate", "Book Date"}, {"ApptSeenDate", "Seen Date"}, {"ApptSeenTime", "Seen Time"}, {"EncounterFlagC", "Encounter Flag"}, {"ExclusionFlag", "Exclusion Flag"}, {"FirstVisitOfDayFlag", "First visit of the day flag"}, {"LPNflag", "LPN Provider flag"}, {"Only one appointment", "Only one appointment /day flag"}, {"Provider Only", "Provider Only Visits"}, {"RegisteredNurseflag", "Registered Nurse provider flag"}, {"TriageFlag", "Triage Flag"}, {"ApptStatus", "Status"}, {"ApptTypeCode", "Type Code"}, {"ApptTypeCodeDesc", "Type Code Description"}})
+    in
+        #"Renamed Columns2"
+
+------------------------------------------------------------
+[TABLE]          Care Teams
+[IS HIDDEN]      False
+[COLUMNS]        16
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       PatientKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       CareTeamKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       FacilityKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       ProviderKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       CareTeamID
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Care Open Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd-mmm-yyyy
+
+  [COLUMN]       Care Closed Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd-mmm-yyyy
+
+  [COLUMN]       Care Status
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Net New Attachment Flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       NetNewAttachmentFlagDesc
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Generic Provider flag
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Patient Age at Care Open date
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       TeamRoleCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       AttachmentType
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       TeamRoleDesc
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Care Teams-ac41dd8f-d026-4846-9c62-8c63c067e336
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    SELECT [CareTeamKey]
+          ,[FacilityKey]
+          ,bt.[ProviderKey]
+          ,bt.[PatientKey]
+          ,[CareTeamID]
+          ,[CareTeamOpenedDate]
+          ,[CareTeamClosedDate]
+          ,[CareTeamStatus]
+          ,[NetNewAttachmentFlag]
+          ,[NetNewAttachmentFlagDesc]
+    	  ,iif(left([TeamRoleCode],2)='UP','UP',[TeamRoleCode]) as [TeamRoleCode]
+    	  ,DATEDIFF(year,pat.DoB,bt.[CareTeamOpenedDate]) as AgeAtCareTeamOpenedDate
+          ,[AttachmentType]
+          ,[TeamRoleDesc]
+    	  ,iif(left(J1.ProviderCode,3) = 'AA_',1,0) as GenericProvider
+      FROM [FHA_DW].[UPCC].[F_CareTeam]bt
+      join [FHA_DW].[UPCC].[D_Provider] j1
+      on bt.ProviderKey=j1.ProviderKey
+      left join [FHA_DW].[UPCC].D_Patient pat
+      on pat.PatientKey=bt.PatientKey
+      where AttachmentType='attachment with providers at UPCC clinics'
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="SELECT [CareTeamKey]#(lf)      ,[FacilityKey]#(lf)      ,bt.[ProviderKey]#(lf)      ,bt.[PatientKey]#(lf)      ,[CareTeamID]#(lf)      ,[CareTeamOpenedDate]#(lf)      ,[CareTeamClosedDate]#(lf)      ,[CareTeamStatus]#(lf)      ,[NetNewAttachmentFlag]#(lf)      ,[NetNewAttachmentFlagDesc]#(lf)#(tab)  ,iif(left([TeamRoleCode],2)='UP','UP',[TeamRoleCode]) as [TeamRoleCode]#(lf)#(tab)  ,DATEDIFF(year,pat.DoB,bt.[CareTeamOpenedDate]) as AgeAtCareTeamOpenedDate#(lf)      ,[AttachmentType]#(lf)      ,[TeamRoleDesc]#(lf)#(tab)  ,iif(left(J1.ProviderCode,3) = 'AA_',1,0) as GenericProvider#(lf)  FROM [FHA_DW].[UPCC].[F_CareTeam]bt#(lf)  join [FHA_DW].[UPCC].[D_Provider] j1#(lf)  on bt.ProviderKey=j1.ProviderKey#(lf)  left join [FHA_DW].[UPCC].D_Patient pat#(lf)  on pat.PatientKey=bt.PatientKey#(lf)  where AttachmentType='attachment with providers at UPCC clinics'#(lf)#(lf)"]),
+        #"Renamed Columns" = Table.RenameColumns(Source,{{"AgeAtCareTeamOpenedDate", "Patient Age at Care Open date"}, {"CareTeamClosedDate", "Care Closed Date"}, {"CareTeamOpenedDate", "Care Open Date"}, {"CareTeamStatus", "Care Status"}, {"GenericProvider", "Generic Provider flag"}, {"NetNewAttachmentFlag", "Net New Attachment Flag"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          Fiscal and Calendar Periods Bridge
+[IS HIDDEN]      False
+[COLUMNS]        10
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Period
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       timedate
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    True
+  [FORMAT]       Short Date
+
+  [COLUMN]       timedateid
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Value
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       Sort
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       ID
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       TimeDateHoliday
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       SortAsc
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       PeriodKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      Fiscal and Calendar Periods Bridge-f5bee65b-b488-4764-8442-1f53f7aa8988
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    DROP TABLE IF EXISTS #DAY
+      select 'Day' as 'Name', timedate, timedateid, format(TimeDate, 'dd-MMM-yyyy') as 'Value'--, timedatesequencenumber as 'Sort'
+      into #day
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #WEEK
+      select 'Calendar Week' as 'Name', a.TimeDate, a.timedateid, format(b.TimePeriodWeekMonSunDateend, 'dd-MMM-yy') as 'Value'--, timedatesequencenumber as 'Sort'
+      into #week
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a
+      inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsWeekMonSun as b 
+      on a.TimePeriodWeekMonSunID = b.TimePeriodWeekMonSunID
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #MONTH
+      select 'Calendar Month' as 'Name', timedate, timedateid, format(timedate,'MMM yyyy') as 'Value'--, timedatesequencenumber as 'Sort'
+      into #MONTH
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #YEAR
+      select 'Calendar Year' as 'Name', timedate, timedateid, format(timedate,'yyyy')  as 'Value'--, timedatesequencenumber as 'Sort'
+      into #YEAR
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #FiscalYear
+      select 'Fiscal Year' as 'Name', timedate, timedateid, cast(concat(left(TimePeriodFiscalCalQuarterDateIDStart,2),left(b.TimePeriodFiscalCalQuarterDpl,5)) as nvarchar(15)) as 'Value'--, timedatesequencenumber as 'Sort'
+      into #FiscalYear
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a
+       inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsFiscalCalQuarter as b 
+      on a.TimePeriodFiscalCalQuarterID = b.TimePeriodFiscalCalQuarterID
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #FiscalPeriod
+      select 'Fiscal Period' as 'Name', timedate, timedateid, b.TimePeriodBCMHDpl as 'Value'--, timedatesequencenumber as 'Sort'
+     into #FiscalPeriod
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a
+       inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsBCMH as b 
+      on a.TimePeriodBCMHID = b.TimePeriodBCMHID
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+      DROP TABLE IF EXISTS #FiscalQuarter
+      select 'Fiscal Quarter' as 'Name', timedate, timedateid, TimePeriodFiscalCalQuarterDpl as 'Value'--, timedatesequencenumber as 'Sort'
+      into #FiscalQuarter
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a
+       inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsFiscalCalQuarter as b 
+      on a.TimePeriodFiscalCalQuarterID = b.TimePeriodFiscalCalQuarterID
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+        DROP TABLE IF EXISTS #CalendarQuarter
+      select 'Calendar Quarter' as 'Name', timedate, timedateid, TimePeriodCalQuarterDpl as 'Value'--, timedatesequencenumber as 'Sort'
+      into #CalendarQuarter
+      from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a
+       inner join  fha_analytics.fha.D_FHATimePeriodsCalQuarter as b 
+      on a.TimePeriodCalQuarterID = b.TimePeriodCalQuarterID
+      where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()
+    
+    
+      DROP TABLE IF EXISTS #SortOrder
+      SELECT * INTO #SortOrder FROM (
+      
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY MonthID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY MonthID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY MonthID ) as ID
+    ,'Calendar Month' AS Period
+    FROM (
+    SELECT DISTINCT cast(concat(year(timedate),'-',format(month(timedate),'00'),'-01') as date) as MonthID
+    ,format(timedate,'MMM yyyy') as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimeDates
+    WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY Week desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY Week ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY Week ) as ID
+    ,'Calendar Week' AS Period
+    FROM (
+    SELECT DISTINCT CAST(TimePeriodWeekMonSunDateEnd AS date) as Week
+    ,format(TimePeriodWeekMonSunDateend, 'dd-MMM-yy') as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsWeekMonSun
+    WHERE TimePeriodWeekMonSunDateEnd>='2017-04-01'  AND TimePeriodWeekMonSunDateStart<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY YearID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY YearID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY YearID ) as ID
+    ,'Calendar Year' AS Period
+    FROM (
+    SELECT DISTINCT cast(concat(year(timedate),'-01-01') as date) as YearID
+    ,format(timedate,'yyyy') as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimeDates
+    WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY FiscalPeriodID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY FiscalPeriodID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY FiscalPeriodID ) as ID
+    ,'Fiscal Period' AS Period
+    FROM (
+    SELECT DISTINCT CAST(TimePeriodBCMHDateStart AS date) as FiscalPeriodID
+    ,TimePeriodBCMHDpl as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsBCMH
+    WHERE TimePeriodBCMHDateStart>='2017-04-01'  AND TimePeriodBCMHDateStart<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY FiscalYearID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY FiscalYearID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY FiscalYearID ) as ID
+    ,'Fiscal Year' AS Period
+    FROM (
+    SELECT DISTINCT CAST(CONCAT(LEFT(TimePeriodBCMHYearDpl,4),'-04-01') AS date) as FiscalYearID
+    ,TimePeriodBCMHYearDpl as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsBCMH
+    WHERE TimePeriodBCMHDateStart>='2017-04-01' AND TimePeriodBCMHDateStart<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY DayID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY DayID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY DayID ) as ID
+    ,'Day' AS Period
+    FROM (
+    SELECT DISTINCT cast(timedate as date) as DayID
+    ,format(TimeDate, 'dd-MMM-yyyy') as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimeDates
+    WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T
+    
+     union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY FiscalQuarterID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY FiscalQuarterID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY FiscalQuarterID ) as ID
+    ,'Fiscal Quarter' AS Period
+    FROM (
+    SELECT DISTINCT CAST(TimePeriodFiscalCalQuarterDateStart AS date) as FiscalQuarterID
+    ,TimePeriodFiscalCalQuarterDpl as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsFiscalCalQuarter
+    WHERE TimePeriodFiscalCalQuarterDateStart>='2017-04-01'  AND TimePeriodFiscalCalQuarterDateStart<GETDATE()) T
+    
+    union all
+    
+    SELECT *
+    ,ROW_NUMBER() OVER (ORDER BY CalendarQuarterID desc) as Sort
+    ,ROW_NUMBER() OVER (ORDER BY CalendarQuarterID ) as SortAsc
+    ,ROW_NUMBER() OVER (ORDER BY CalendarQuarterID ) as ID
+    ,'Calendar Quarter' AS Period
+    FROM (
+    SELECT DISTINCT CAST(TimePeriodCalQuarterDateStart AS date) as CalendarQuarterID
+    ,TimePeriodCalQuarterDpl as 'Value'
+    FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsCalQuarter
+    WHERE TimePeriodCalQuarterDateStart>='2017-04-01'  AND TimePeriodCalQuarterDateStart<GETDATE()) T
+    ) AS builder
+    
+    
+      select t.*,s.Sort,s.ID,d.TimeDateHoliday,s.SortAsc,
+      case  [Name]
+             
+     when'Day' then 1
+    when'Calendar Week' then 2
+    when'Calendar Month' then 3
+    when'Calendar Quarter' then 4
+    when'Calendar Year' then 5
+    when'Fiscal Quarter' then 6
+    when'Fiscal Period' then 7
+    when 'Fiscal Year' then 8
+    end as PeriodKey
+      
+      from  (
+    
+      select * from #day
+      union all
+      select * from #week
+      union all
+      select * from #month
+      union all
+      select * from #year
+      union all
+      select * from #fiscalyear
+      union all
+      select * from #fiscalperiod
+      union all
+      select * from #fiscalquarter
+      union all
+      select * from #calendarquarter) t
+      left join #SortOrder s
+      on t.Value=s.Value and t.Name=s.Period
+    left join FHA_ANALYTICS.fha.D_FHATimeDates d
+    on d.TimeDateID=t.TimeDateID
+    where d.TimeDateID>=20181101
+    order by TimeDate
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="#(lf)  DROP TABLE IF EXISTS #DAY#(lf)  select 'Day' as 'Name', timedate, timedateid, format(TimeDate, 'dd-MMM-yyyy') as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #day#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #WEEK#(lf)  select 'Calendar Week' as 'Name', a.TimeDate, a.timedateid, format(b.TimePeriodWeekMonSunDateend, 'dd-MMM-yy') as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #week#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a#(lf)  inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsWeekMonSun as b #(lf)  on a.TimePeriodWeekMonSunID = b.TimePeriodWeekMonSunID#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #MONTH#(lf)  select 'Calendar Month' as 'Name', timedate, timedateid, format(timedate,'MMM yyyy') as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #MONTH#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #YEAR#(lf)  select 'Calendar Year' as 'Name', timedate, timedateid, format(timedate,'yyyy')  as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #YEAR#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates]#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #FiscalYear#(lf)  select 'Fiscal Year' as 'Name', timedate, timedateid, cast(concat(left(TimePeriodFiscalCalQuarterDateIDStart,2),left(b.TimePeriodFiscalCalQuarterDpl,5)) as nvarchar(15)) as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #FiscalYear#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a#(lf)   inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsFiscalCalQuarter as b #(lf)  on a.TimePeriodFiscalCalQuarterID = b.TimePeriodFiscalCalQuarterID#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #FiscalPeriod#(lf)  select 'Fiscal Period' as 'Name', timedate, timedateid, b.TimePeriodBCMHDpl as 'Value'--, timedatesequencenumber as 'Sort'#(lf) into #FiscalPeriod#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a#(lf)   inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsBCMH as b #(lf)  on a.TimePeriodBCMHID = b.TimePeriodBCMHID#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)  DROP TABLE IF EXISTS #FiscalQuarter#(lf)  select 'Fiscal Quarter' as 'Name', timedate, timedateid, TimePeriodFiscalCalQuarterDpl as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #FiscalQuarter#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a#(lf)   inner join  [FHA_ANALYTICS].fha.D_FHATimePeriodsFiscalCalQuarter as b #(lf)  on a.TimePeriodFiscalCalQuarterID = b.TimePeriodFiscalCalQuarterID#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)    DROP TABLE IF EXISTS #CalendarQuarter#(lf)  select 'Calendar Quarter' as 'Name', timedate, timedateid, TimePeriodCalQuarterDpl as 'Value'--, timedatesequencenumber as 'Sort'#(lf)  into #CalendarQuarter#(lf)  from [FHA_ANALYTICS].[FHA].[D_FHATimeDates] as a#(lf)   inner join  fha_analytics.fha.D_FHATimePeriodsCalQuarter as b #(lf)  on a.TimePeriodCalQuarterID = b.TimePeriodCalQuarterID#(lf)  where timedate >= cast('2017-04-01' as datetime) and timedate <= getdate()#(lf)#(lf)#(lf)  DROP TABLE IF EXISTS #SortOrder#(lf)  SELECT * INTO #SortOrder FROM (#(lf)  #(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY MonthID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY MonthID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY MonthID ) as ID#(lf),'Calendar Month' AS Period#(lf)FROM (#(lf)SELECT DISTINCT cast(concat(year(timedate),'-',format(month(timedate),'00'),'-01') as date) as MonthID#(lf),format(timedate,'MMM yyyy') as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimeDates#(lf)WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY Week desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY Week ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY Week ) as ID#(lf),'Calendar Week' AS Period#(lf)FROM (#(lf)SELECT DISTINCT CAST(TimePeriodWeekMonSunDateEnd AS date) as Week#(lf),format(TimePeriodWeekMonSunDateend, 'dd-MMM-yy') as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsWeekMonSun#(lf)WHERE TimePeriodWeekMonSunDateEnd>='2017-04-01'  AND TimePeriodWeekMonSunDateStart<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY YearID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY YearID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY YearID ) as ID#(lf),'Calendar Year' AS Period#(lf)FROM (#(lf)SELECT DISTINCT cast(concat(year(timedate),'-01-01') as date) as YearID#(lf),format(timedate,'yyyy') as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimeDates#(lf)WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY FiscalPeriodID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY FiscalPeriodID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY FiscalPeriodID ) as ID#(lf),'Fiscal Period' AS Period#(lf)FROM (#(lf)SELECT DISTINCT CAST(TimePeriodBCMHDateStart AS date) as FiscalPeriodID#(lf),TimePeriodBCMHDpl as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsBCMH#(lf)WHERE TimePeriodBCMHDateStart>='2017-04-01'  AND TimePeriodBCMHDateStart<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY FiscalYearID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY FiscalYearID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY FiscalYearID ) as ID#(lf),'Fiscal Year' AS Period#(lf)FROM (#(lf)SELECT DISTINCT CAST(CONCAT(LEFT(TimePeriodBCMHYearDpl,4),'-04-01') AS date) as FiscalYearID#(lf),TimePeriodBCMHYearDpl as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsBCMH#(lf)WHERE TimePeriodBCMHDateStart>='2017-04-01' AND TimePeriodBCMHDateStart<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY DayID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY DayID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY DayID ) as ID#(lf),'Day' AS Period#(lf)FROM (#(lf)SELECT DISTINCT cast(timedate as date) as DayID#(lf),format(TimeDate, 'dd-MMM-yyyy') as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimeDates#(lf)WHERE TimeDate>='2017-04-01' AND TimeDate<GETDATE()) T#(lf)#(lf) union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY FiscalQuarterID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY FiscalQuarterID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY FiscalQuarterID ) as ID#(lf),'Fiscal Quarter' AS Period#(lf)FROM (#(lf)SELECT DISTINCT CAST(TimePeriodFiscalCalQuarterDateStart AS date) as FiscalQuarterID#(lf),TimePeriodFiscalCalQuarterDpl as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsFiscalCalQuarter#(lf)WHERE TimePeriodFiscalCalQuarterDateStart>='2017-04-01'  AND TimePeriodFiscalCalQuarterDateStart<GETDATE()) T#(lf)#(lf)union all#(lf)#(lf)SELECT *#(lf),ROW_NUMBER() OVER (ORDER BY CalendarQuarterID desc) as Sort#(lf),ROW_NUMBER() OVER (ORDER BY CalendarQuarterID ) as SortAsc#(lf),ROW_NUMBER() OVER (ORDER BY CalendarQuarterID ) as ID#(lf),'Calendar Quarter' AS Period#(lf)FROM (#(lf)SELECT DISTINCT CAST(TimePeriodCalQuarterDateStart AS date) as CalendarQuarterID#(lf),TimePeriodCalQuarterDpl as 'Value'#(lf)FROM FHA_ANALYTICS.FHA.D_FHATimePeriodsCalQuarter#(lf)WHERE TimePeriodCalQuarterDateStart>='2017-04-01'  AND TimePeriodCalQuarterDateStart<GETDATE()) T#(lf)) AS builder#(lf)#(lf)#(lf)  select t.*,s.Sort,s.ID,d.TimeDateHoliday,s.SortAsc,#(lf)  case  [Name]#(lf)         #(lf) when'Day' then 1#(lf)when'Calendar Week' then 2#(lf)when'Calendar Month' then 3#(lf)when'Calendar Quarter' then 4#(lf)when'Calendar Year' then 5#(lf)when'Fiscal Quarter' then 6#(lf)when'Fiscal Period' then 7#(lf)when 'Fiscal Year' then 8#(lf)end as PeriodKey#(lf)  #(lf)  from  (#(lf)#(lf)  select * from #day#(lf)  union all#(lf)  select * from #week#(lf)  union all#(lf)  select * from #month#(lf)  union all#(lf)  select * from #year#(lf)  union all#(lf)  select * from #fiscalyear#(lf)  union all#(lf)  select * from #fiscalperiod#(lf)  union all#(lf)  select * from #fiscalquarter#(lf)  union all#(lf)  select * from #calendarquarter) t#(lf)  left join #SortOrder s#(lf)  on t.Value=s.Value and t.Name=s.Period#(lf)left join FHA_ANALYTICS.fha.D_FHATimeDates d#(lf)on d.TimeDateID=t.TimeDateID#(lf)where d.TimeDateID>=20181101#(lf)order by TimeDate#(lf)#(lf)#(lf)"]),
+        #"Renamed Columns" = Table.RenameColumns(Source,{{"Value", "Value"}, {"Name", "Period"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          _DimMeasure
+[IS HIDDEN]      False
+[COLUMNS]        1
+[MEASURES]       60
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === MEASURES ===
+  [MEASURE]     Patients
+  [EXPRESSION]  COUNTAX(VALUES(Appointments[PatientFileNum]),DISTINCTCOUNT(Appointments[PatientFileNum]))+0
+
+  [MEASURE]     Cancelled and did not attend meetings
+  [EXPRESSION]  CALCULATE(COUNTROWS(Appointments),ALL(Appointments[Exclusion Flag]),Appointments[Status] in {"CANCELLED","DID NOT ATTENDED"})
+
+  [MEASURE]     Min Visits/Encounters/Appointments
+  [EXPRESSION]  
+ MINX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Visits/Encounters/Appointments]
+)
+
+  [MEASURE]     Max Visits/Encounters/Appointments
+  [EXPRESSION]  
+ MAXX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Visits/Encounters/Appointments]
+)
+
+  [MEASURE]     Avg Visits/Encounters/Appointments
+  [EXPRESSION]  
+ AVERAGEX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Visits/Encounters/Appointments]
+)
+
+  [MEASURE]     Selected Metric
+  [EXPRESSION]  SELECTEDVALUE('Reporting group: Visit, Encounters, Appointments'[Measure]) 
+
+  [MEASURE]     Title 1
+  [EXPRESSION]  
+[Selected Metric] &
+" by " &
+LOWER(SELECTEDVALUE('Fiscal and Calendar Periods Bridge'[Period]))
+
+  [MEASURE]     Title 2
+  [EXPRESSION]  
+[Selected Metric] &
+" by job role" 
+
+  [MEASURE]     Count By Category
+  [EXPRESSION]  "not used anymore"
+/*var cat=SELECTEDVALUE(dimCategory[Value])
+return
+SWITCH(
+   cat,
+"Virtual",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[Virtual/In Person]="Virtual" )),
+"In Person",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[Virtual/In Person]="In Person" )),
+"Urgent",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[Longitudinal/Urgent]="Urgent")),
+"Longitudinal",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[Longitudinal/Urgent]="Longitudinal")),
+"Attached",CALCULATE(COUNTROWS(FactAppointment),FILTER(FactAppointment,[Attachement]="Attached" )),
+"Not Attached",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[Attachement]="Not Attached" )),
+"After Hours",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[After Hours]=1)),
+"Business Hours",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[After Hours]=0 )),
+/*"ABBUPCC",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=1 )),
+"MTUPCC",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=49)),
+"NEWUPCC",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=51 )),
+"RMUPCC",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=65 )),
+"SUPCC_SUR",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=76 )),
+"TRIUPCC",CALCULATE(COUNTROWS(FactAppointment),filter(FactAppointment,[FacilityKey]=80 )),*/
+CALCULATE(COUNTROWS(FactAppointment))
+)*/
+
+  [MEASURE]     Visits/Encounters/Appointments
+  [EXPRESSION]  
+
+ SWITCH(
+     TRUE(),
+     SELECTEDVALUE('Reporting group: Visit, Encounters, Appointments'[Measure])="Encounters",[Encounters],
+     SELECTEDVALUE('Reporting group: Visit, Encounters, Appointments'[Measure])="Visits",[Visits],
+     [Appointments]
+    )+0
+
+  [MEASURE]     CountRowsCareTeam
+  [EXPRESSION]  CALCULATE(COUNTROWS('Care Teams'))
+
+  [MEASURE]     Selected Attachment Type
+  [EXPRESSION]  SELECTEDVALUE(dimAttachment[Type])
+
+  [MEASURE]     Attachment
+  [EXPRESSION]  
+SWITCH(
+    TRUE(),
+    SELECTEDVALUE(dimAttachment[Type])="Net New Attachments", [Net New Attachments],
+    SELECTEDVALUE(dimAttachment[Type])="Open Attachments", [Open Attachments (at the end of period)],
+   BLANK()  
+)+0
+
+  [MEASURE]     Open Attachments (at the end of period)
+  [EXPRESSION]  
+VAR EndOfPeriod = MAX('Fiscal and Calendar Periods Bridge'[TimeDate])
+RETURN
+CALCULATE(
+    DISTINCTCOUNT('Care Teams'[PatientKey]),
+    REMOVEFILTERS('Fiscal and Calendar Periods Bridge'),
+    Provider[Provider Code]<>"*STFUP",
+    'Care Teams'[Care Open Date] <= EndOfPeriod,
+    'Care Teams'[Care Closed Date] > EndOfPeriod
+)
+
+  [MEASURE]     Net New Attachments
+  [EXPRESSION]  
+CALCULATE(
+    DISTINCTCOUNT('Care Teams'[PatientKey]),
+    'Care Teams'[Net New Attachment Flag]=1 ,
+    Provider[Provider Code]<>"*STFUP",
+    USERELATIONSHIP('Care Teams'[Care Open Date],'Calendar Dates'[Date])
+    )
+
+  [MEASURE]     Min Attachments
+  [EXPRESSION]  
+MINX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Attachment]
+)
+
+  [MEASURE]     Max Attachments
+  [EXPRESSION]  
+MAXX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Attachment]
+)
+
+  [MEASURE]     Avg Attachments
+  [EXPRESSION]  
+AVERAGEX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Attachment]
+)
+
+  [MEASURE]     Current Open Attachments
+  [EXPRESSION]  
+CALCULATE(
+    DISTINCTCOUNT('Care Teams'[PatientKey]),
+    REMOVEFILTERS('Fiscal and Calendar Periods Bridge'),
+  'Care Teams'[Care Status]="Open"
+)
+
+  [MEASURE]     Closed Attachments
+  [EXPRESSION]  
+var _filUP=
+FILTER
+('Care Teams',
+ 'Care Teams'[Care Status]="Closed"
+)
+return
+CALCULATE([CountRowsCareTeam],_filUP, USERELATIONSHIP('Care Teams'[Care Closed Date],'Calendar Dates'[Date]))
+
+  [MEASURE]     Referrals
+  [EXPRESSION]  CALCULATE(DISTINCTCOUNT(Referrals[ReferralKey]))
+
+  [MEASURE]     Min Referrals
+  [EXPRESSION]  
+ MINX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Referrals]
+)
+
+  [MEASURE]     Max Referrals
+  [EXPRESSION]  
+ MAXX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Referrals]
+)
+
+  [MEASURE]     Average Referrals
+  [EXPRESSION]  
+ AVERAGEX(
+    VALUES('Fiscal and Calendar Periods Bridge'[Value]),
+    [Referrals]
+)
+
+  [MEASURE]     Open Referrals
+  [EXPRESSION]  
+CALCULATE([Referrals],Referrals[ReferralStatus]="Open")
+
+  [MEASURE]     Referral Type
+  [EXPRESSION]  SELECTEDVALUE(Referrals[ReferralType])
+
+  [MEASURE]     Title Referrals 4
+  [EXPRESSION]  
+var msg1=" Referrals from UPCC"
+var msg2=" Referrals to UPCC"
+return
+if(
+    [Referral Type] ="Outward",
+    [Referral Type] & msg1,
+    [Referral Type] & msg2
+)
+
+
+
+  [MEASURE]     Title Referrals 3
+  [EXPRESSION]  
+[Referral Type] & 
+" Referrals to External Provider"
+
+  [MEASURE]     Title Referrals 2
+  [EXPRESSION]  
+[Referral Type] & 
+" Referrals by Decision"
+
+  [MEASURE]     Title Referrals 1
+  [EXPRESSION]  
+"Referrals by " &
+SELECTEDVALUE('Fiscal and Calendar Periods Bridge'[Period])
+
+  [MEASURE]     Title Attachments 1
+  [EXPRESSION]  
+[Selected Attachment Type] &
+" by " &
+SELECTEDVALUE('Fiscal and Calendar Periods Bridge'[Period])
+
+  [MEASURE]     Title Attachments 2
+  [EXPRESSION]  
+[Selected Attachment Type] &
+" by Job Role" 
+
+  [MEASURE]     Title Referrals 5
+  [EXPRESSION]  
+var  selRefType=SELECTEDVALUE(Referrals[ReferralType])
+return
+if(
+selRefType="Inward",
+" Referred by:",
+" Referred To:"
+)
+
+  [MEASURE]     Title Attachments 3
+  [EXPRESSION]  
+var maxDate=Max('Fiscal and Calendar Periods Bridge'[timedate])
+var OnlyOpenAtt=" (As of -" & maxDate & ")"
+return
+[Selected Attachment Type] &
+" by UPCC" &
+if(SELECTEDVALUE(dimAttachment[Type])="Open Attachments",OnlyOpenAtt,"")
+
+
+
+
+  [MEASURE]     Last day of Period
+  [EXPRESSION]  
+ MAX('Fiscal and Calendar Periods Bridge'[timedate])
+
+  [MEASURE]     Distinct patients since opening
+  [EXPRESSION]  
+var maxDate=max('Fiscal and Calendar Periods Bridge'[timedate])
+
+return
+CALCULATE(
+    DISTINCTCOUNT(Appointments[PatientFileNum]),
+    filter(all('Fiscal and Calendar Periods Bridge'),'Fiscal and Calendar Periods Bridge'[timedate]<=maxDate),
+    REMOVEFILTERS(Appointments[Business Hours/After Hours],'Appointments'[Virtual/In Person],'Appointments'[Longitudinal/Urgent],Appointments[Attachment],Appointments[Provider Only Visits])
+    )
+
+  [MEASURE]     M Info
+  [EXPRESSION]  UNICHAR(9432)
+
+  [MEASURE]     Title 3
+  [EXPRESSION]  
+[Selected Metric] &
+" by UPCC"
+
+  [MEASURE]     Title 4
+  [EXPRESSION]  
+[Selected Metric] &
+" by day of the week and seen hour"
+
+  [MEASURE]     User
+  [EXPRESSION]  USERPRINCIPALNAME()
+
+  [MEASURE]     RLS Flag
+  [EXPRESSION]  
+VAR selectedUPCC = SELECTEDVALUE(Facility[UPCC])
+var rowsInUsers=
+COUNTROWS(
+    filter(  'User Access Drill Down',  'User Access Drill Down'[Code] =selectedUPCC  ) -- &&   'User Access Drill Down'[email]=[User]
+    )
+VAR rowsInUsersALL=
+COUNTROWS(
+    filter(  'User Access Drill Down',  'User Access Drill Down'[Code] ="All" ) 
+    )
+RETURN
+IF(rowsInUsersALL>=1,1,rowsInUsers)
+
+  [MEASURE]     Encounters
+  [EXPRESSION]  CALCULATE(sum(Appointments[Encounter Flag]))
+
+  [MEASURE]     Visits
+  [EXPRESSION]  CALCULATE(sum(Appointments[LastVisitOfDayFlag]))
+
+  [MEASURE]     % of provider encounters that are virtual
+  [EXPRESSION]  
+VAR NumVirtualEncounters =
+    CALCULATE(
+        [Encounters],
+        Appointments[VirtualInPersonFlag] = 1,
+        FILTER(
+            RELATEDTABLE(Provider),
+            Provider[Role Description] IN { "Doctor", "Nurse Practitioner" }
+        )
+    )
+VAR DenomVirtualEncounters =
+    CALCULATE(
+        [Encounters],
+        FILTER(
+            RELATEDTABLE(Provider),
+            Provider[Role Description] IN { "Doctor", "Nurse Practitioner" }
+        )
+    )
+
+RETURN
+    DIVIDE(NumVirtualEncounters, DenomVirtualEncounters)
+
+  [MEASURE]     % of encounters after hour
+  [EXPRESSION]  
+var num=CALCULATE([Encounters],Appointments[Business Hours/After Hours]="After Hours")
+return
+divide(num,[Encounters])
+
+  [MEASURE]     % of visits with pediatric patients
+  [EXPRESSION]  
+var num=CALCULATE([Visits],Appointments[Patient age at appointment booking]<17)
+return
+divide(num,[Visits])
+
+  [MEASURE]     Avg Encounters/Visits
+  [EXPRESSION]  
+DIVIDE([Encounters],[Visits])
+
+  [MEASURE]     % visits that are triage only
+  [EXPRESSION]  
+var num=CALCULATE(COUNTROWS(Appointments),
+ Appointments[Triage Flag]=1 && Appointments[Only one appointment /day flag]=1
+ )
+return
+divide(num,[Visits])
+
+  [MEASURE]     % of triage appointments that are virtual
+  [EXPRESSION]  
+var denom=CALCULATE(COUNTROWS(Appointments),
+ Appointments[Triage Flag]=1,Appointments[First visit of the day flag]=1
+ )
+ var num=CALCULATE(COUNTROWS(Appointments),
+ Appointments[Triage Flag]=1, Appointments[VirtualInPersonFlag]=1,Appointments[First visit of the day flag]=1 -- didin't make any change ?
+ )
+ -- combine triage appt type with 1st app of day
+return
+divide(num,denom)
+
+  [MEASURE]     % provider only
+  [EXPRESSION]  
+var num = CALCULATE(SUM(Appointments[Only one appointment /day flag]),Appointments[Provider Only Visits]="Provider Only")
+var denom= [Visits]
+return
+divide(num,denom)
+
+  [MEASURE]     % of total encounters that are longitudinal
+  [EXPRESSION]  
+var longitudinal= CALCULATE([Encounters], 'Appointments'[Longitudinal/Urgent]="Longitudinal")
+return
+divide (longitudinal,[Encounters])
+
+  [MEASURE]     % of total visits that are longitudinal
+  [EXPRESSION]  
+var longitudinal= CALCULATE([Visits], 'Appointments'[Longitudinal/Urgent]="Longitudinal")
+return
+divide (longitudinal,[Visits])
+
+  [MEASURE]     % of visits that include an allied health appt
+  [EXPRESSION]  
+var num = CALCULATE(SUM(Appointments[Allied Health Provider Flag]))
+return
+DIVIDE(num,[Visits])
+
+  [MEASURE]     % of visits that only include RN/LPN appts​
+  [EXPRESSION]  
+var num = CALCULATE(SUM(Appointments[Only one appointment /day flag]),Provider[Role Description] in {"Registered Nurse","Licensed Practical Nurse"})
+var denom= [Visits]
+return
+divide(num,denom)
+
+  [MEASURE]     Msg Open Attachments details
+  [EXPRESSION]  
+if( SELECTEDVALUE(dimAttachment[Type])="Open Attachments" ,
+"Due to certain limitations in Power BI and the underlying data model, the details for Open Attachments cannot be accurately displayed at this time.",
+""
+)
+
+  [MEASURE]     Appointments
+  [EXPRESSION]  COUNTROWS(Appointments)
+
+  [MEASURE]     Booked Appointments
+  [EXPRESSION]  CALCULATE( COUNTROWS(Appointments),USERELATIONSHIP(Appointments[Book Date],'Calendar Dates'[Date]))
+
+  [MEASURE]     Distinct patients MOH
+  [EXPRESSION]  
+VAR MaxDate = MAX('Fiscal and Calendar Periods Bridge'[timedate])
+VAR MinDate = MIN('Fiscal and Calendar Periods Bridge'[timedate])
+
+VAR PatientsUpToEndOfPeriod =
+    CALCULATETABLE(
+        DISTINCT(Appointments[PatientFileNum]),
+        ALLSELECTED('Fiscal and Calendar Periods Bridge'),
+        'Fiscal and Calendar Periods Bridge'[timedate] <= MaxDate
+    )
+VAR PatientsUpToStartOfPeriod =
+    CALCULATETABLE(
+        DISTINCT(Appointments[PatientFileNum]),
+        ALLSELECTED('Fiscal and Calendar Periods Bridge'),
+        'Fiscal and Calendar Periods Bridge'[timedate] < MinDate
+    )
+VAR NewPatients = EXCEPT(PatientsUpToEndOfPeriod, PatientsUpToStartOfPeriod)
+
+RETURN 
+COUNTROWS(NewPatients)
+
+
+  [MEASURE]     Display Category Referral
+  [EXPRESSION]  
+if(ISBLANK(SELECTEDVALUE(Provider[Referral Category])),"UNK")
+
+  [MEASURE]     ToolTip Summary Page
+  [EXPRESSION]  "  "
+
+  === PARTITIONS ===
+  [PARTITION]      _DimMeasure-3b5dd2e8-d2a3-45cd-b68d-6b46db5df9d7
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Column1 = _t]),
+        #"Changed Type" = Table.TransformColumnTypes(Source,{{"Column1", type text}}),
+        #"Removed Columns" = Table.RemoveColumns(#"Changed Type",{"Column1"})
+    in
+        #"Removed Columns"
+
+------------------------------------------------------------
+[TABLE]          Reporting group: Visit, Encounters, Appointments
+[IS HIDDEN]      True
+[COLUMNS]        3
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Measure
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Sort
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      Reporting group: Visit, Encounters, Appointments
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WCsssziwpVtJRMlKK1YlWcs1Lzi/NK0ktAgkZgoUcCwryM/NKclPzwOqMlWJjAQ==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Measure = _t, Sort = _t]),
+        #"Changed Type" = Table.TransformColumnTypes(Source,{{"Measure", type text}, {"Sort", Int64.Type}})
+    in
+        #"Changed Type"
+
+------------------------------------------------------------
+[TABLE]          dimAttachment
+[IS HIDDEN]      True
+[COLUMNS]        3
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Type
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Sort
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      dimAttachment
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45W8kstUfBLLVdwLClJTM7ITc0rKVbSUTJUitWJVvIvSM1DkzBSio0FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Type = _t, Sort = _t]),
+        #"Changed Type" = Table.TransformColumnTypes(Source,{{"Type", type text}, {"Sort", Int64.Type}})
+    in
+        #"Changed Type"
+
+------------------------------------------------------------
+[TABLE]          Referrals
+[IS HIDDEN]      False
+[COLUMNS]        24
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       ReferralKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       ReferredByFacilityCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       ReferredToFacilityCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       AppointmentKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       ReferralType
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       ReferralStatus
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       ReferralCreatedOnDate
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd-mmm-yyyy
+
+  [COLUMN]       ReferralReferredOnDate
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd/mm/yyyy
+
+  [COLUMN]       ReferredToPOSID
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Decision
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       ReferredToExternalProviderCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       ReferredBYExternalProviderCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       PatientFileNum
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       AgeAtRef
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Longitudinal/Urgent
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       FacilityCode
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       ReferralCreatedOnTIME
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       Long Time
+
+  [COLUMN]       rn
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       DiagnosisDescription
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       ExternalAppBookedDate
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       General Date
+
+  [COLUMN]       ReferralDecisionReasonDescription
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       TreatmentDescription
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  [COLUMN]       ExternalProviderKey
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      Referrals
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    select * , ROW_NUMBER()over(Partition by PatientFileNum, [ReferralType], FacilityCode, [ReferralReferredOnDate],ExternalProviderKey order by [ReferralKey] desc ) as rn 
+    
+    from
+    (
+    SELECT [ReferralKey]
+    	  ,ReferredByFacility.POSCode as ReferredByFacilityCode
+          ,ReferredtoFacility.POSCode as ReferredToFacilityCode
+          ,[AppointmentKey]
+          ,[ReferralType]
+          ,[ReferralStatus]
+    	  ,[ReferralCreatedOnTIME]
+          ,[ReferralCreatedOnDate]
+          ,[ReferralReferredOnDate]
+          ,[ReferredToPOSID]
+          ,[DiagnosisDescription]
+          ,[Decision]
+          ,[ExternalAppBookedDate]
+          ,[ReferralDecisionReasonDescription]
+          ,[TreatmentDescription]
+    	  ,DATEDIFF(year,pat.DoB,r.[ReferralReferredOnDate]) as AgeAtRef
+    	  ,case when [ReferralType]='Inward' then ReferredtoFacility.POSCode
+    	        when [ReferralType]='Outward' then ReferredByFacility.POSCode
+    	        else 'UNK'
+    			end as FacilityCode
+    	  ,case when [ReferralType]='Inward' then  ReferredBYExternalProvider.ProviderKey
+    	        when [ReferralType]='Outward' then ReferredToExternalProvider.ProviderKey
+    	        else 'UNK'
+    			end as ExternalProviderKey
+    	  , case when [ReferralType]='Outward' then 'NA'
+    	         when TreatmentDescription='Longitudinal Visit' then  'Longitudinal Visit'
+    			 when TreatmentDescription='Urgent Visit' then  'Urgent Visit'
+    			 when TreatmentDescription='Short Term Follow-up Visit' then  'Short Term Follow-up Visit'
+    			 else 'Other' end as [Longitudinal/Urgent]
+    	  ,pat.PatientFileNum
+    	  ,ReferredToExternalProvider.ProviderFullName as ReferredToExternalProviderCode
+    	  ,ReferredBYExternalProvider.ProviderFullName  as ReferredBYExternalProviderCode
+      FROM [FHA_DW].[UPCC].[F_Referral] r
+      left join [FHA_DW].[UPCC].D_Facility ReferredByFacility
+      on r.[ReferredByFacilityKey]=ReferredByFacility.FacilityKey
+      left join [FHA_DW].[UPCC].D_Facility ReferredToFacility
+      on r.[ReferredToFacilityKey]=ReferredToFacility.FacilityKey
+      left join [FHA_DW].[UPCC].D_Patient pat
+      on pat.PatientKey=r.PatientKey
+      left join [FHA_DW].[UPCC].[D_Provider] ReferredToExternalProvider
+      on  r.[ReferredToExternalProviderKey]=ReferredToExternalProvider.ProviderKey
+      left join [FHA_DW].[UPCC].[D_Provider] ReferredBYExternalProvider
+      on  r.ReferredBYExternalProviderKey=ReferredBYExternalProvider.ProviderKey
+      )I
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="#(lf)select * , ROW_NUMBER()over(Partition by PatientFileNum, [ReferralType], FacilityCode, [ReferralReferredOnDate],ExternalProviderKey order by [ReferralKey] desc ) as rn #(lf)#(lf)from#(lf)(#(lf)SELECT [ReferralKey]#(lf)#(tab)  ,ReferredByFacility.POSCode as ReferredByFacilityCode#(lf)      ,ReferredtoFacility.POSCode as ReferredToFacilityCode#(lf)      ,[AppointmentKey]#(lf)      ,[ReferralType]#(lf)      ,[ReferralStatus]#(lf)#(tab)  ,[ReferralCreatedOnTIME]#(lf)      ,[ReferralCreatedOnDate]#(lf)      ,[ReferralReferredOnDate]#(lf)      ,[ReferredToPOSID]#(lf)      ,[DiagnosisDescription]#(lf)      ,[Decision]#(lf)      ,[ExternalAppBookedDate]#(lf)      ,[ReferralDecisionReasonDescription]#(lf)      ,[TreatmentDescription]#(lf)#(tab)  ,DATEDIFF(year,pat.DoB,r.[ReferralReferredOnDate]) as AgeAtRef#(lf)#(tab)  ,case when [ReferralType]='Inward' then ReferredtoFacility.POSCode#(lf)#(tab)        when [ReferralType]='Outward' then ReferredByFacility.POSCode#(lf)#(tab)        else 'UNK'#(lf)#(tab)#(tab)#(tab)end as FacilityCode#(lf)#(tab)  ,case when [ReferralType]='Inward' then  ReferredBYExternalProvider.ProviderKey#(lf)#(tab)        when [ReferralType]='Outward' then ReferredToExternalProvider.ProviderKey#(lf)#(tab)        else 'UNK'#(lf)#(tab)#(tab)#(tab)end as ExternalProviderKey#(lf)#(tab)  , case when [ReferralType]='Outward' then 'NA'#(lf)#(tab)         when TreatmentDescription='Longitudinal Visit' then  'Longitudinal Visit'#(lf)#(tab)#(tab)#(tab) when TreatmentDescription='Urgent Visit' then  'Urgent Visit'#(lf)#(tab)#(tab)#(tab) when TreatmentDescription='Short Term Follow-up Visit' then  'Short Term Follow-up Visit'#(lf)#(tab)#(tab)#(tab) else 'Other' end as [Longitudinal/Urgent]#(lf)#(tab)  ,pat.PatientFileNum#(lf)#(tab)  ,ReferredToExternalProvider.ProviderFullName as ReferredToExternalProviderCode#(lf)#(tab)  ,ReferredBYExternalProvider.ProviderFullName  as ReferredBYExternalProviderCode#(lf)  FROM [FHA_DW].[UPCC].[F_Referral] r#(lf)  left join [FHA_DW].[UPCC].D_Facility ReferredByFacility#(lf)  on r.[ReferredByFacilityKey]=ReferredByFacility.FacilityKey#(lf)  left join [FHA_DW].[UPCC].D_Facility ReferredToFacility#(lf)  on r.[ReferredToFacilityKey]=ReferredToFacility.FacilityKey#(lf)  left join [FHA_DW].[UPCC].D_Patient pat#(lf)  on pat.PatientKey=r.PatientKey#(lf)  left join [FHA_DW].[UPCC].[D_Provider] ReferredToExternalProvider#(lf)  on  r.[ReferredToExternalProviderKey]=ReferredToExternalProvider.ProviderKey#(lf)  left join [FHA_DW].[UPCC].[D_Provider] ReferredBYExternalProvider#(lf)  on  r.ReferredBYExternalProviderKey=ReferredBYExternalProvider.ProviderKey#(lf)  )I#(lf)#(lf)#(lf)#(lf)#(lf)#(lf)#(lf)#(lf)#(lf)"]),
+        #"Filtered Rows" = Table.SelectRows(Source, each ([rn] = 1))
+    in
+        #"Filtered Rows"
+
+------------------------------------------------------------
+[TABLE]          Appointment Reporting Categories
+[IS HIDDEN]      True
+[COLUMNS]        4
+[MEASURES]       3
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Appointment Categories
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Appointment Categories Fields
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Appointment Categories Order
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  === MEASURES ===
+  [MEASURE]     Coming soon (Hidden)
+  [EXPRESSION]  "Coming soon"
+
+  [MEASURE]     From Date (Hidden)
+  [EXPRESSION]  min ('Fiscal and Calendar Periods Bridge'[timedate])
+
+  [MEASURE]     To Date (Hidden)
+  [EXPRESSION]  MAX( 'Fiscal and Calendar Periods Bridge'[timedate])
+
+  === PARTITIONS ===
+  [PARTITION]      Appointment Reporting Categories
+  [MODE]           Import
+  [SOURCE TYPE]    CalculatedPartitionSource
+  [M EXPRESSION]
+    {
+        ("Longitudinal/Urgent", NAMEOF('Appointments'[Longitudinal/Urgent]), 1),
+        ("Virtual/In Person", NAMEOF('Appointments'[Virtual/In Person]), 2),
+        ("UPCC", NAMEOF('Facility'[UPCC]), 7),
+        ("Business Hours/After Hours", NAMEOF('Appointments'[Business Hours/After Hours]), 3),
+        ("Attachment", NAMEOF('Appointments'[Attachment]), 4),
+        ("Provider only", NAMEOF('Appointments'[Provider Only Visits]), 5),
+        ("None", "None", 0)
+    }
+
+------------------------------------------------------------
+[TABLE]          Referrals Reporting Categories
+[IS HIDDEN]      True
+[COLUMNS]        4
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Referrals Reporting Categories
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Referrals Reporting Categories Fields
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Referrals Reporting Categories Order
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  === PARTITIONS ===
+  [PARTITION]      Referrals Reporting Categories
+  [MODE]           Import
+  [SOURCE TYPE]    CalculatedPartitionSource
+  [M EXPRESSION]
+    {
+        ("Referral Status", NAMEOF('Referrals'[ReferralStatus]), 2),
+        ("Decision", NAMEOF('Referrals'[Decision]), 1),
+        ("None", "None", 0),
+        ("Longitudinal/Urgent", NAMEOF(Referrals[Longitudinal/Urgent]),3)
+    }
+
+------------------------------------------------------------
+[TABLE]          Notes
+[IS HIDDEN]      True
+[COLUMNS]        5
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Note Id
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       short desc
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Note
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Page
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Notes
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = Excel.Workbook(File.Contents("\\fraserhealth.org\dfs\GlobalApps\HBA\Service and Product Requests\DevOps90379_UPCC Executive Dashboard Re-build\02 Working Files\UPCC Executive metrics definition.xlsx"), null, true),
+        Notes_Sheet = Source{[Item="Notes",Kind="Sheet"]}[Data],
+        #"Promoted Headers" = Table.PromoteHeaders(Notes_Sheet, [PromoteAllScalars=true]),
+        #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Note Id", Int64.Type}, {"short desc", type text}, {"Note", type text}})
+    in
+        #"Changed Type"
+
+------------------------------------------------------------
+[TABLE]          Metrics Definition
+[IS HIDDEN]      True
+[COLUMNS]        6
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Metric Id
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  [COLUMN]       Metric Name
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Definition 
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Inclusions
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Exclusions
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Metrics Definition
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = Excel.Workbook(File.Contents("\\fraserhealth.org\dfs\GlobalApps\HBA\Service and Product Requests\DevOps90379_UPCC Executive Dashboard Re-build\02 Working Files\UPCC Executive metrics definition.xlsx"), null, true),
+        Metrics_Sheet = Source{[Item="Metrics",Kind="Sheet"]}[Data],
+        #"Promoted Headers" = Table.PromoteHeaders(Metrics_Sheet, [PromoteAllScalars=true]),
+        #"Changed Type" = Table.TransformColumnTypes(#"Promoted Headers",{{"Metric Id", Int64.Type}, {"Metric Name", type text}, {"Definition ", type text}, {"Inclusions", type any}, {"Exclusions", type any}})
+    in
+        #"Changed Type"
+
+------------------------------------------------------------
+[TABLE]          LastUpdate
+[IS HIDDEN]      False
+[COLUMNS]        2
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       LastUpdate
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       General Date
+
+  === PARTITIONS ===
+  [PARTITION]      LastUpdate
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    SELECT  distinct
+    	getdate()
+    
+    from FHA_ANALYTICS.fha.D_FHATimeDates
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="SELECT  distinct#(lf)#(tab)getdate()#(lf)#(lf)from FHA_ANALYTICS.fha.D_FHATimeDates"]),
+        #"Renamed Columns" = Table.RenameColumns(Source,{{"", "LastUpdate"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          Age
+[IS HIDDEN]      True
+[COLUMNS]        2
+[MEASURES]       1
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Age
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       0
+
+  === MEASURES ===
+  [MEASURE]     Check Interval
+  [EXPRESSION]  
+var cod=SELECTEDVALUE('Care Teams'[Care Open Date])
+var ccd=SELECTEDVALUE('Care Teams'[Care Closed Date])
+var sd= min('Calendar Dates'[Date])
+var cd= max('Calendar Dates'[Date])
+return 
+
+if(AND(ccd>=sd, cd>=cod),1,0)
+
+
+
+  === PARTITIONS ===
+  [PARTITION]      Age
+  [MODE]           Import
+  [SOURCE TYPE]    CalculatedPartitionSource
+  [M EXPRESSION]
+    GENERATESERIES(0,125,1)
+
+------------------------------------------------------------
+[TABLE]          Calendar Dates
+[IS HIDDEN]      False
+[COLUMNS]        6
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       TimeDateID
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Day of the week
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    False
+  [FORMAT]       0
+
+  [COLUMN]       Date
+  [DATA TYPE]    DateTime
+  [IS HIDDEN]    False
+  [FORMAT]       dd/mm/yyyy
+
+  [COLUMN]       Holiday
+  [DATA TYPE]    Boolean
+  [IS HIDDEN]    False
+  [FORMAT]       "TRUE";"TRUE";"FALSE"
+
+  [COLUMN]       Day of the week name
+  [DATA TYPE]    String
+  [IS HIDDEN]    False
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      Calendar Dates
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [SQL QUERY]
+    select 
+    TimeDateID,
+    cast(TimeDate as Date) as TimeDate,
+    TimeDateDayOfWeek,
+    TimeDateDayOfWeekDpl,
+    TimeDateHoliday 
+    from FHA_ANALYTICS.fha.D_FHATimeDates
+     where TimeDateID>=20181101
+
+  [M EXPRESSION]
+    let
+        Source = Sql.Database("SPDBSCL028AG01.fraserhealth.org", "FHA_ANALYTICS", [Query="select #(lf)TimeDateID,#(lf)cast(TimeDate as Date) as TimeDate,#(lf)TimeDateDayOfWeek,#(lf)TimeDateDayOfWeekDpl,#(lf)TimeDateHoliday #(lf)from FHA_ANALYTICS.fha.D_FHATimeDates#(lf) where TimeDateID>=20181101"]),
+        #"Changed Type" = Table.TransformColumnTypes(Source,{{"TimeDate", type date}}),
+        #"Renamed Columns" = Table.RenameColumns(#"Changed Type",{{"TimeDate", "Date"}, {"TimeDateHoliday", "Holiday"}, {"TimeDateDayOfWeek", "Day of the week"}, {"TimeDateDayOfWeekDpl", "Day of the week name"}})
+    in
+        #"Renamed Columns"
+
+------------------------------------------------------------
+[TABLE]          User Access
+[IS HIDDEN]      True
+[COLUMNS]        4
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Email
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Parameter
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      User Access
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = CommonDataService.Database("fhprod.crm3.dynamics.com"),
+        dbo_soappdev_crd_authorizeduser = Source{[Schema="dbo",Item="soappdev_crd_authorizeduser"]}[Data],
+        #"Filtered Rows" = Table.SelectRows(dbo_soappdev_crd_authorizeduser, each ([soappdev_crd_productname] = "UPCC Executive Dashboard")),
+        #"Removed Other Columns" = Table.SelectColumns(#"Filtered Rows",{"soappdev_email", "soappdev_crd_authorizeduseraccessparameter"}),
+        #"Expanded soappdev_crd_authorizeduseraccessparameter" = Table.ExpandTableColumn(#"Removed Other Columns", "soappdev_crd_authorizeduseraccessparameter", {"soappdev_parametervalue", "soappdev_accessparametername"}, {"soappdev_crd_authorizeduseraccessparameter.soappdev_parametervalue", "soappdev_crd_authorizeduseraccessparameter.soappdev_accessparametername"}),
+        #"Renamed Columns" = Table.RenameColumns(#"Expanded soappdev_crd_authorizeduseraccessparameter",{{"soappdev_crd_authorizeduseraccessparameter.soappdev_accessparametername", "Parameter"}, {"soappdev_crd_authorizeduseraccessparameter.soappdev_parametervalue", "Code"}, {"soappdev_email", "email"}}),
+        #"Reordered Columns" = Table.ReorderColumns(#"Renamed Columns",{"email", "Parameter", "Code"})
+    in
+        #"Reordered Columns"
+
+------------------------------------------------------------
+[TABLE]          User Access Facility
+[IS HIDDEN]      True
+[COLUMNS]        3
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       email
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Facility Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      User Access Facility
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let 
+        Source = #"User Access",
+    
+        // Replace the Facility reference with a static list of values
+        SourceB = #table(
+            {"Code"},
+            {
+                {"ABBUPCC"},
+                {"MTUPCC"},
+                {"NEWUPCC"},
+                {"RMUPCC"},
+                {"SUPCC_SUR"},
+                {"TRIUPCC"},
+                {"MISUPCC"},
+                {"LNGUPCC"},
+                {"CHUPCC"},
+                {"SDUPCC"},
+                {"CDUPCC"},
+                {"PCUPCC"},
+                {"SSUPCC"}
+            }
+        ),
+    
+        // Only keep rows where Parameter = "Facility"
+        FilteredRows = Table.SelectRows(Source, each [Parameter] = "Facility"),
+    
+        // Conditional crossjoin: if Code = "ALL", expand to all facilities, otherwise keep as-is
+        AddFacilityTable = Table.AddColumn(
+            FilteredRows,
+            "FacilityTable",
+            each
+                if Text.Upper([Code]) = "ALL" then
+                    SourceB
+                else
+                    #table({"Code"}, {{[Code]}})
+        ),
+    
+        // Expand the resulting nested tables
+        Expanded = Table.ExpandTableColumn(AddFacilityTable, "FacilityTable", {"Code"}, {"Facility Code"}),
+    
+        #"Removed Columns" = Table.RemoveColumns(Expanded,{"Code", "Parameter"})
+    in
+        #"Removed Columns"
+
+------------------------------------------------------------
+[TABLE]          User Access Drill Down
+[IS HIDDEN]      True
+[COLUMNS]        3
+[MEASURES]       0
+
+  === COLUMNS ===
+  [COLUMN]       RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61
+  [DATA TYPE]    Int64
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       email
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  [COLUMN]       Code
+  [DATA TYPE]    String
+  [IS HIDDEN]    True
+  [FORMAT]       
+
+  === PARTITIONS ===
+  [PARTITION]      User Access Drill Down
+  [MODE]           Import
+  [SOURCE TYPE]    MPartitionSource
+  [M EXPRESSION]
+    let
+        Source = #"User Access",
+        #"Filtered Rows" = Table.SelectRows(Source, each ([Parameter] = "Drill down")),
+        #"Removed Columns" = Table.RemoveColumns(#"Filtered Rows",{"Parameter"})
+        
+    in
+        #"Removed Columns"
+
+------------------------------------------------------------
+=== RELATIONSHIPS ===
+------------------------------------------------------------
+[RELATIONSHIP]   b45b509e-27b1-4670-a123-6bc221a52319
+[FROM TABLE]     Appointments
+[FROM COLUMN]    PatientKey
+[TO TABLE]       Patient
+[TO COLUMN]      PatientKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   92e8e997-1308-4512-b717-7f9cb7aa48dc
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    PatientKey
+[TO TABLE]       Patient
+[TO COLUMN]      PatientKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   09708d6e-60cf-4e04-a42b-ff3dc014803e
+[FROM TABLE]     Appointments
+[FROM COLUMN]    FacilityKey
+[TO TABLE]       Facility
+[TO COLUMN]      FacilityKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   b8c8d78f-f336-4ef2-a832-8a26101640c5
+[FROM TABLE]     Appointments
+[FROM COLUMN]    ProviderKey
+[TO TABLE]       Provider
+[TO COLUMN]      ProviderKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   3ca7e135-e059-4c8c-b226-5d3ad13e6924
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    ProviderKey
+[TO TABLE]       Provider
+[TO COLUMN]      ProviderKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   aeda68ea-b750-4553-9524-ad40b734e3d2
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    FacilityKey
+[TO TABLE]       Facility
+[TO COLUMN]      FacilityKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   ec5005d3-afb7-4adf-851b-a85716831e63
+[FROM TABLE]     Referrals
+[FROM COLUMN]    PatientFileNum
+[TO TABLE]       Patient
+[TO COLUMN]      PatientFileNum
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   7de1dd62-c321-4d37-84ea-dfe55e5625ce
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    Patient Age at Care Open date
+[TO TABLE]       Age
+[TO COLUMN]      Age
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   54f00509-087a-4dd5-91b2-52923a81c084
+[FROM TABLE]     Appointments
+[FROM COLUMN]    Patient age at appointment booking
+[TO TABLE]       Age
+[TO COLUMN]      Age
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   46aa77be-79fd-4b2f-b894-077a917a532c
+[FROM TABLE]     Referrals
+[FROM COLUMN]    AgeAtRef
+[TO TABLE]       Age
+[TO COLUMN]      Age
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   e30518a7-257b-4339-ba22-daf494b53bdf
+[FROM TABLE]     Appointments
+[FROM COLUMN]    Seen Date
+[TO TABLE]       Calendar Dates
+[TO COLUMN]      Date
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   f15cc5e8-7080-4c88-80c6-4f25a954d723
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    Care Open Date
+[TO TABLE]       Calendar Dates
+[TO COLUMN]      Date
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   abf7e0a6-bfd4-a796-ee66-e2c80c496fc0
+[FROM TABLE]     Referrals
+[FROM COLUMN]    FacilityCode
+[TO TABLE]       Facility
+[TO COLUMN]      Code
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   30b72aa0-f3ae-5064-7094-defff90ddeaf
+[FROM TABLE]     Care Teams
+[FROM COLUMN]    Care Closed Date
+[TO TABLE]       Calendar Dates
+[TO COLUMN]      Date
+[ACTIVE]         False
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   8f0dd34e-ae2a-7529-27f0-b58e6675b2d0
+[FROM TABLE]     Referrals
+[FROM COLUMN]    ReferralReferredOnDate
+[TO TABLE]       Calendar Dates
+[TO COLUMN]      Date
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   d87c990c-e7a4-1f13-dfb5-01654b0760a1
+[FROM TABLE]     Appointments
+[FROM COLUMN]    Book Date
+[TO TABLE]       Calendar Dates
+[TO COLUMN]      Date
+[ACTIVE]         False
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   3d8ee994-0fc1-3be7-2fdc-be61d827107f
+[FROM TABLE]     Referrals
+[FROM COLUMN]    ExternalProviderKey
+[TO TABLE]       Provider
+[TO COLUMN]      ProviderKey
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> One
+
+------------------------------------------------------------
+[RELATIONSHIP]   db02abad-3bce-3143-1632-4d2f9221c78c
+[FROM TABLE]     Calendar Dates
+[FROM COLUMN]    TimeDateID
+[TO TABLE]       Fiscal and Calendar Periods Bridge
+[TO COLUMN]      timedateid
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> Many
+
+------------------------------------------------------------
+[RELATIONSHIP]   3d4aabfd-d219-0104-14a1-fcaf9d1f6460
+[FROM TABLE]     Facility
+[FROM COLUMN]    Code
+[TO TABLE]       User Access Facility
+[TO COLUMN]      Facility Code
+[ACTIVE]         True
+[CROSS FILTER]   OneDirection
+[SECURITY FLTR]  OneDirection
+[CARDINALITY]    Many -> Many
+
+=== ROLES (RLS + OLS) ===
+------------------------------------------------------------
+[ROLE]           Restricted
+  [MEMBERS]      1
+    - obj:ead67846-3eeb-4994-b2f6-03ec11b7fb29@31f660a5-192a-4db3-92ba-ca424f1b259e
+  [RLS]          User Access Facility: 'User Access Facility'[email]=USERPRINCIPALNAME()
+  [RLS]          User Access Drill Down: 'User Access Drill Down'[email]=USERPRINCIPALNAME()
+
+================================================================================
+   VERTIPAQ STORAGE (Top Tables)
+================================================================================
+Appointments                                       |       2,312,564 rows | Dict: 66,543,743 bytes | Data: 86,451,360 bytes
+Patient                                            |         707,633 rows | Dict: 71,918,622 bytes | Data: 29,794,896 bytes
+Referrals                                          |         631,510 rows | Dict: 48,824,851 bytes | Data: 23,943,296 bytes
+Provider                                           |          28,321 rows | Dict:  2,820,027 bytes | Data:  1,195,504 bytes
+Care Teams                                         |          17,864 rows | Dict:    547,828 bytes | Data:    504,616 bytes
+Fiscal and Calendar Periods Bridge                 |          21,984 rows | Dict:    135,655 bytes | Data:    259,912 bytes
+Calendar Dates                                     |           3,076 rows | Dict:    183,176 bytes | Data:     51,136 bytes
+User Access Facility                               |             975 rows | Dict:     39,658 bytes | Data:      2,048 bytes
+Notes                                              |              40 rows | Dict:     72,215 bytes | Data:      1,688 bytes
+Facility                                           |              16 rows | Dict:     71,034 bytes | Data:      1,512 bytes
+User Access                                        |             109 rows | Dict:     56,778 bytes | Data:      1,488 bytes
+Age                                                |             129 rows | Dict:      2,968 bytes | Data:      1,432 bytes
+Metrics Definition                                 |              27 rows | Dict:     76,850 bytes | Data:      1,288 bytes
+User Access Drill Down                             |              36 rows | Dict:     36,794 bytes | Data:        872 bytes
+Appointment Reporting Categories                   |              10 rows | Dict:     35,142 bytes | Data:        776 bytes
+Referrals Reporting Categories                     |               7 rows | Dict:     34,772 bytes | Data:        736 bytes
+dimAttachment                                      |               5 rows | Dict:     17,450 bytes | Data:        520 bytes
+Reporting group: Visit, Encounters, Appointments   |               6 rows | Dict:     17,446 bytes | Data:        496 bytes
+LastUpdate                                         |               4 rows | Dict:        288 bytes | Data:        296 bytes
+_DimMeasure                                        |               0 rows | Dict:        336 bytes | Data:        136 bytes
+
+================================================================================
+   VERTIPAQ TOP HEAVY COLUMNS (Size > 1MB)
+================================================================================
+Appointments.Seen Time                                          : 44.46 MB
+Referrals.ReferralCreatedOnTIME                              : 22.58 MB
+Patient.PatientKey                                         : 20.50 MB
+Patient.PHN                                                : 19.49 MB
+Patient.Addressline1                                       : 18.23 MB
+Appointments.PatientFileNum                                     : 17.76 MB
+Patient.PatientFileNum                                     : 17.20 MB
+Appointments.PatientKey                                         : 14.71 MB
+Referrals.DiagnosisDescription                               : 13.79 MB
+Referrals.PatientFileNum                                     : 13.28 MB
+Appointments.AppointmentID                                      : 8.82 MB
+Appointments.AppointmentKey                                     : 8.82 MB
+Appointments.AppointmentID                                      : 8.82 MB
+Appointments.AppointmentKey                                     : 8.55 MB
+Appointments.Seen Time                                          : 3.88 MB
+Appointments.Seen Time                                          : 3.88 MB
+Appointments.Book Date                                          : 3.63 MB
+Appointments.Arrival Date                                       : 2.78 MB
+Appointments.Seen Date                                          : 2.71 MB
+Patient.PatientKey                                         : 2.70 MB
+Patient.PatientKey                                         : 2.70 MB
+Patient.PatientFileNum                                     : 2.70 MB
+Patient.PatientFileNum                                     : 2.70 MB
+Patient.PHN                                                : 2.68 MB
+Patient.PHN                                                : 2.68 MB
+Appointments.ProviderKey                                        : 2.65 MB
+Referrals.ReferralKey                                        : 2.41 MB
+Referrals.ReferralCreatedOnTIME                              : 2.31 MB
+Referrals.ReferralCreatedOnTIME                              : 2.31 MB
+Appointments.PatientKey                                         : 1.87 MB
+Appointments.PatientKey                                         : 1.87 MB
+Appointments.PatientFileNum                                     : 1.87 MB
+Appointments.PatientFileNum                                     : 1.87 MB
+Patient.Addressline1                                       : 1.71 MB
+Patient.Addressline1                                       : 1.71 MB
+Referrals.ReferralKey                                        : 1.61 MB
+Appointments.Patient age at appointment booking                 : 1.58 MB
+Referrals.AppointmentKey                                     : 1.41 MB
+Referrals.AppointmentKey                                     : 1.41 MB
+Referrals.PatientFileNum                                     : 1.40 MB
+Referrals.PatientFileNum                                     : 1.40 MB
+Patient.DoB                                                : 1.35 MB
+Appointments.INDEX                                              : 1.24 MB
+Provider.Full Name                                          : 1.18 MB
+Referrals.ReferralReferredOnDate                             : 1.06 MB
+Referrals.ReferralCreatedOnDate                              : 1.06 MB
+
+================================================================================
+   MODEL HEALTH SIGNALS
+================================================================================
+[OP_003_REFRESH_HEALTH] Last Refresh Failure Detected
+Description: Checks the most recent refresh status returned by the Power BI REST API.
+Why it matters: A failed or unknown last refresh means model content may be stale, incomplete, or operationally unreliable for downstream reports.
+Developer meaning: The latest refresh status is 'Completed'. Anything in ['Cancelled', 'Disabled', 'Error', 'Failed', 'Unknown'] means the last processing cycle should be treated as operationally unhealthy.
+Result: PASS | Last refresh status = Completed
+Failure detail: ModelRefresh_ShortMessage_ProcessingError Failed to get OAuth resource id, please make sure the OAuth is supported
+
+[AG_001_AUTO_DATE_TIME] Redundant Date Table Pollution
+Description: Counts auto-generated local date tables and date table templates created by automatic date/time behavior.
+Why it matters: These hidden tables increase model clutter, consume memory, and often duplicate date logic that should live in one explicit calendar table.
+Developer meaning: Auto date/time tables are hidden helper tables that Power BI creates for date columns. They are usually a sign that the model relies on automatic time intelligence instead of one deliberate calendar design.
+Logic: count tables whose names match LocalDateTable_* or DateTableTemplate_*. Threshold = 0.
+Result: PASS | Count = 0
+
+[SE_001_DICTIONARY_BLOAT] Dictionary Size Disproportion
+Description: Flags columns where dictionary storage is much larger than segment data storage.
+Why it matters: A large dictionary-to-data ratio often points to high-cardinality text or identifier columns that compress poorly and inflate memory use.
+Developer meaning: A flagged column is memory-expensive because its dictionary grows much faster than its segment data. This often happens with high-cardinality text, GUID-like keys, or identifiers stored as text.
+Numerator: dictionary_size = bytes from DISCOVER_STORAGE_TABLE_COLUMNS.DICTIONARY_SIZE
+Denominator: used_size = bytes from DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS.USED_SIZE
+Logic: dictionary_size / used_size >= 3.0 and total_size >= 1.00 MB and logical table rows >= 5,000.
+Result: FLAG | Flagged columns = 9
+
+[OP_001_NON_RESIDENT_SEGMENTS] Memory Paging Detected
+Description: Counts VertiPaq column segments whose DMV flag ISRESIDENT is False.
+Why it matters: Non-resident segments indicate storage structures that are not currently resident in memory, which can correlate with pressure, paging, or slower access paths.
+Developer meaning: A non-resident segment means VertiPaq reports that a segment is not resident in memory at the time of inspection. This is an operational signal, not automatically a design bug, but it is worth tracking on large or busy models.
+Logic: count rows in DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS where ISRESIDENT = False. Threshold = 0.
+Result: PASS | Count = 0
+
+[SE_002_HEAVY_RELATIONSHIP_STRUCTURES] Expensive Relationship Artifacts
+Description: Sums memory used by internal relationship-support artifacts whose TABLE_ID starts with R$.
+Why it matters: Large relationship-support structures can indicate costly relationship layouts, large bridge patterns, or model shapes that amplify storage overhead.
+Developer meaning: Internal R$ artifacts are relationship-support storage structures. When they become large, relationship design itself is consuming substantial memory.
+Logic: sum bytes for internal TABLE_ID values beginning with R$. Threshold = 50.0 MB.
+Result: PASS | Artifact count = 17 | Total = 2.23 MB | Dict = 0 bytes | Used = 2.23 MB
+
+[SE_003_RELATIONSHIP_RISK_COMPLEXITY] Relationship Complexity Risk
+Description: Computes a weighted score from inactive, bidirectional, and many-to-many relationships.
+Why it matters: These relationship patterns increase ambiguity risk, complicate filter propagation, and can make DAX behavior harder to reason about and validate.
+Developer meaning: This is a weighted design-risk score, not a service error. Higher scores mean more relationship patterns that tend to complicate filter flow, model predictability, and DAX reasoning.
+Logic: score = inactive_relationships * 1 + bidirectional_relationships * 2 + many_to_many_relationships * 3.
+Components: inactive = 2, bidirectional = 0, many-to-many = 2.
+Result: FLAG | Score = 8 | Warning threshold = 5
+
+================================================================================
+   TOP FLAGGED COLUMNS
+================================================================================
+What this section means: these are the columns flagged by the Dictionary Size Disproportion metric. They are shown because their dictionary storage is large relative to their segment data storage, which can point to expensive high-cardinality storage patterns.
+
+[1] Referrals.DiagnosisDescription
+    Ratio (dictionary_size / used_size): 23.02x
+    Numerator: dictionary_size = 13.22 MB
+    Denominator: used_size = 588.05 KB
+    Total size: 13.79 MB
+    Logical table rows: 631,510
+
+[2] Provider.Full Name
+    Ratio (dictionary_size / used_size): 21.09x
+    Numerator: dictionary_size = 1.12 MB
+    Denominator: used_size = 54.59 KB
+    Total size: 1.18 MB
+    Logical table rows: 28,321
+
+[3] Referrals.ReferralCreatedOnTIME
+    Ratio (dictionary_size / used_size): 13.06x
+    Numerator: dictionary_size = 20.98 MB
+    Denominator: used_size = 1.61 MB
+    Total size: 22.58 MB
+    Logical table rows: 631,510
+
+[4] Patient.PatientKey
+    Ratio (dictionary_size / used_size): 10.39x
+    Numerator: dictionary_size = 18.70 MB
+    Denominator: used_size = 1.80 MB
+    Total size: 20.50 MB
+    Logical table rows: 707,633
+
+[5] Patient.PHN
+    Ratio (dictionary_size / used_size): 9.83x
+    Numerator: dictionary_size = 17.69 MB
+    Denominator: used_size = 1.80 MB
+    Total size: 19.49 MB
+    Logical table rows: 707,633
+
+[6] Appointments.Seen Time
+    Ratio (dictionary_size / used_size): 9.21x
+    Numerator: dictionary_size = 40.10 MB
+    Denominator: used_size = 4.35 MB
+    Total size: 44.46 MB
+    Logical table rows: 2,312,564
+
+[7] Patient.Addressline1
+    Ratio (dictionary_size / used_size): 9.18x
+    Numerator: dictionary_size = 16.44 MB
+    Denominator: used_size = 1.79 MB
+    Total size: 18.23 MB
+    Logical table rows: 707,633
+
+[8] Patient.PatientFileNum
+    Ratio (dictionary_size / used_size): 8.56x
+    Numerator: dictionary_size = 15.40 MB
+    Denominator: used_size = 1.80 MB
+    Total size: 17.20 MB
+    Logical table rows: 707,633
+
+[9] Referrals.PatientFileNum
+    Ratio (dictionary_size / used_size): 7.27x
+    Numerator: dictionary_size = 11.67 MB
+    Denominator: used_size = 1.61 MB
+    Total size: 13.28 MB
+    Logical table rows: 631,510
+

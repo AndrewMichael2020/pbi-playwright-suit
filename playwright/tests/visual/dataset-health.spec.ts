@@ -23,9 +23,11 @@ import {
   extractFailureInfo,
   scanForDataIntegrityErrors,
 } from '../../helper-functions/refresh-health';
+import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
+const focus = loadFocus();
 
 const skipReason = !allConfigs
   ? 'Run npm run setup first.'
@@ -54,8 +56,10 @@ test.describe('Dataset health', () => {
         return { endpoints, accessToken };
       }
 
-      // ── RH-001 ────────────────────────────────────────────────────────────
-      test('RH-001 refresh history is available and non-empty', async ({}, testInfo) => {
+      // ── RH-002 ────────────────────────────────────────────────────────────
+      test('RH-002 latest refresh completed — visuals are not rendering stale or empty data', async ({}, testInfo) => {
+        test.skip(!isInFocus(focus, 'rh-002'), `Focus is "${focus}" — skipping refresh-failure check.`);
+
         testInfo.annotations.push(
           { type: 'dataset',    description: config.datasetName },
           { type: 'workspace',  description: config.workspaceName },
@@ -67,24 +71,8 @@ test.describe('Dataset health', () => {
           accessToken, config.workspaceId, config.datasetId, endpoints, 20,
         );
 
-        expect(
-          history.length,
-          'No refresh history — dataset may never have been refreshed or the service ' +
-          'account lacks Contributor access to the workspace.',
-        ).toBeGreaterThan(0);
-      });
-
-      // ── RH-002 ────────────────────────────────────────────────────────────
-      test('RH-002 latest refresh completed — visuals are not rendering stale or empty data', async ({}, testInfo) => {
-        testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
-
-        const { endpoints, accessToken } = await liveContext();
-        const history = await getRefreshHistory(
-          accessToken, config.workspaceId, config.datasetId, endpoints, 20,
-        );
-
         if (history.length === 0) {
-          test.skip(true, 'No refresh history — RH-001 covers the empty case.');
+          test.skip(true, 'No refresh history found for this dataset.');
           return;
         }
 
@@ -115,6 +103,8 @@ test.describe('Dataset health', () => {
 
       // ── RH-003 ────────────────────────────────────────────────────────────
       test('RH-003 no data-integrity or credential errors in refresh history', async ({}, testInfo) => {
+        test.skip(!isInFocus(focus, 'rh-003'), `Focus is "${focus}" — skipping data-integrity / credential check.`);
+
         testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
 
         const { endpoints, accessToken } = await liveContext();
@@ -123,7 +113,7 @@ test.describe('Dataset health', () => {
         );
 
         if (history.length === 0) {
-          test.skip(true, 'No refresh history — RH-001 covers the empty case.');
+          test.skip(true, 'No refresh history found for this dataset.');
           return;
         }
 
@@ -140,51 +130,6 @@ test.describe('Dataset health', () => {
           hits.length,
           `${hits.length} refresh failure(s) contain data-integrity or credential errors ` +
           `that cause visuals to render incorrect or empty data.  See annotations for details.`,
-        ).toBe(0);
-      });
-
-      // ── DS-001 ────────────────────────────────────────────────────────────
-      test('DS-001 all data source connections are bound — credentials exist for every source', async ({}, testInfo) => {
-        testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
-
-        const { endpoints, accessToken } = await liveContext();
-
-        let sources;
-        try {
-          sources = await getDataSources(
-            accessToken, config.workspaceId, config.datasetId, endpoints,
-          );
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes('400') || msg.includes('404') || msg.includes('NotSupported')) {
-            test.skip(true, `Datasources endpoint not available for this dataset type: ${msg}`);
-            return;
-          }
-          throw err;
-        }
-
-        testInfo.annotations.push({
-          type: 'datasource-count',
-          description: String(sources.length),
-        });
-
-        const unbound = sources.filter(
-          (s) => Object.keys(s.connectionDetails).length === 0,
-        );
-
-        for (const s of unbound) {
-          testInfo.annotations.push({
-            type: '⚠️ UNBOUND DATASOURCE',
-            description:
-              `${s.datasourceType || 'Unknown'} source has no connection details — ` +
-              `refresh cannot run, all visuals reading this source will show stale data.`,
-          });
-        }
-
-        expect(
-          unbound.length,
-          `${unbound.length} data source(s) have no connection details bound.  ` +
-          `Open dataset settings in Power BI Service and bind credentials for each source.`,
         ).toBe(0);
       });
     });

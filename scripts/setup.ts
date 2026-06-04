@@ -38,6 +38,7 @@ import {
   saveEnterpriseConfigs,
   type EnterpriseReportConfig,
 } from '../playwright/helper-functions/enterprise-config';
+import { FOCUS_MENU, saveFocus, type CheckFocus } from '../playwright/helper-functions/focus';
 
 loadEnvFile();
 
@@ -193,7 +194,48 @@ async function pickMany<T extends { name: string }>(
   }
 }
 
-// ── main ─────────────────────────────────────────────────────────────────────
+// ── focus menu ────────────────────────────────────────────────────────────────
+
+async function pickFocus(rl: readline.Interface, reportCount: number): Promise<CheckFocus> {
+  console.log(
+    `\n${bold(cyan('What do you want to check?'))}` +
+    dim(`  (${reportCount} test config(s) queued)\n`) +
+    dim('  Pick a focus to skip unrelated tests — saves time on large workspaces.\n'),
+  );
+
+  const OTHER_LABEL = 'Other (enter custom Playwright grep filter)';
+  const OTHER_VALUE = '__other__';
+  const items: Array<{ value: CheckFocus | typeof OTHER_VALUE; label: string; description: string }> = [
+    ...FOCUS_MENU,
+    { value: OTHER_VALUE, label: OTHER_LABEL, description: '' },
+  ];
+
+  items.forEach((item, i) => {
+    const num  = dim(`[${String(i + 1).padStart(2)}]`);
+    const sep  = i === 0 || i === FOCUS_MENU.length ? `\n  ${dim('─'.repeat(72))}\n` : '';
+    const desc = item.description ? dim(`  — ${item.description}`) : '';
+    process.stdout.write(`${sep}  ${num}  ${item.label.padEnd(26)}${desc}\n`);
+  });
+
+  console.log();
+
+  while (true) {
+    const ans = (await rl.question(dim(`  Enter number (1–${items.length}): `))).trim();
+    const idx = parseInt(ans, 10) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < items.length) {
+      const chosen = items[idx]!;
+      if (chosen.value === OTHER_VALUE) {
+        const grep = (await rl.question(dim('  Playwright grep pattern: '))).trim();
+        if (grep) process.env.PBI_GREP = grep;
+        return 'all';
+      }
+      return chosen.value as CheckFocus;
+    }
+    console.log(red(`  Please enter a number between 1 and ${items.length}.`));
+  }
+}
+
+
 
 async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFromEnv> & object): Promise<void> {
   const workspaceName   = process.env.PBI_WORKSPACE_NAME!;
@@ -358,7 +400,13 @@ async function main(): Promise<void> {
     );
     console.log();
 
-    // 6. Offer to run tests immediately
+    // 6. Pick focus area
+    const focus = await pickFocus(rl, configs.length);
+    saveFocus(focus);
+    const focusLabel = FOCUS_MENU.find((m) => m.value === focus)?.label ?? focus;
+    console.log(`\n  ${green('✓')} Focus: ${bold(focusLabel)}\n`);
+
+    // 7. Offer to run tests immediately
     const runNow = (await rl.question(`${bold('Run tests now?')} [Y/n]: `)).trim().toLowerCase();
     rl.close();
 

@@ -8,14 +8,18 @@ import {
 } from '../../helper-functions/powerbi-enterprise';
 import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 import { evaluateRefreshHealth } from '../../helper-functions/refresh-health';
+import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
+const focus = loadFocus();
 const skipReason = !allConfigs
   ? 'Run npm run setup first.'
   : !enterpriseCredentials
     ? 'Unable to build enterprise auth settings.'
-    : '';
+    : !isInFocus(focus, 'visuals')
+      ? `Focus is "${focus}" — visual page tests are not in scope.`
+      : '';
 
 // Build a stable VS-NNN id per config index, then group by report name
 // so the HTML report shows: Report name › Page name (business-readable).

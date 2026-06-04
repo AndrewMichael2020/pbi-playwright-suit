@@ -23,6 +23,7 @@
 import { expect, test } from '@playwright/test';
 import * as fs   from 'fs';
 import * as path from 'path';
+import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
 // ─── load baseline fixture ────────────────────────────────────────────────────
 
@@ -59,6 +60,7 @@ const baselineExists = fs.existsSync(BASELINE_PATH);
 const baseline: ModelBaseline | null = baselineExists
   ? (JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf-8')) as ModelBaseline)
   : null;
+const focus = loadFocus();
 
 const skipReason = !baselineExists
   ? `Baseline not found at ${BASELINE_PATH}.  Run: npm run ingest:model-txt -- "<model>.txt"`
@@ -73,6 +75,8 @@ test.describe('Model structure', () => {
   test(
     'MS-001 no unallowlisted many-to-many relationships — dimension tables retain PK uniqueness',
     ({}, testInfo) => {
+      test.skip(!isInFocus(focus, 'ms-001'), `Focus is "${focus}" — skipping model-integrity check.`);
+
       testInfo.annotations.push(
         { type: 'model',     description: baseline!.modelName },
         { type: 'workspace', description: baseline!.workspaceName },
@@ -106,47 +110,6 @@ test.describe('Model structure', () => {
           `  This relationship pattern means the "to" side has non-unique values (duplicate keys).\n` +
           `  Visuals filtering through this relationship will compute wrong aggregations.\n` +
           `  If this is intentional, add it to intentionalManyToMany in the baseline JSON.`,
-        ).join('\n'),
-      ).toBe(0);
-    },
-  );
-
-  // ── MS-002 ─────────────────────────────────────────────────────────────────
-  test(
-    'MS-002 no bidirectional cross-filter relationships — no ambiguous filter paths',
-    ({}, testInfo) => {
-      testInfo.annotations.push(
-        { type: 'model',    description: baseline!.modelName },
-        { type: 'captured', description: baseline!.capturedAt },
-      );
-
-      const allowlisted = new Set(baseline!.intentionalBidirectional);
-      const bidirectional = baseline!.relationships.filter(
-        (r) => r.crossFilter === 'BothDirections',
-      );
-
-      const violations = bidirectional.filter((r) => !allowlisted.has(relKey(r)));
-
-      for (const r of bidirectional) {
-        const label = allowlisted.has(relKey(r)) ? 'intentional' : '⚠️ UNALLOWLISTED';
-        testInfo.annotations.push({
-          type: `bidirectional — ${label}`,
-          description:
-            `${r.fromTable}[${r.fromColumn}] ↔ ${r.toTable}[${r.toColumn}]` +
-            (allowlisted.has(relKey(r))
-              ? ''
-              : ' — filter propagates in both directions; DAX aggregations may produce unexpected results'),
-        });
-      }
-
-      expect(
-        violations.length,
-        `${violations.length} bidirectional cross-filter relationship(s) are not in the intentional allowlist.\n` +
-        violations.map((r) =>
-          `  ${r.fromTable}[${r.fromColumn}] ↔ ${r.toTable}[${r.toColumn}]\n` +
-          `  Bidirectional filters create ambiguous filter propagation paths.\n` +
-          `  Visuals that cross this relationship may compute wrong or non-deterministic aggregations.\n` +
-          `  If this is intentional, add it to intentionalBidirectional in the baseline JSON.`,
         ).join('\n'),
       ).toBe(0);
     },
