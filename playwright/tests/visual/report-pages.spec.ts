@@ -48,10 +48,12 @@ test.describe('Report page health', () => {
           const endpoints = getPowerBiEndpoints(credentials.environment);
           const accessToken = await getAccessToken(credentials, endpoints);
 
-          // Acquire embed token — skip (not fail) when dataset XMLA permissions are disabled.
-          let embedToken: string;
+          // Acquire embed token (AppOwnsData).  When the user has view access but no
+          // GenerateToken permission, fall back to the user's own AAD token (UserOwnsData).
+          let tokenForEmbed = '';
+          let tokenTypeKey: 'Embed' | 'Aad' = 'Embed';
           try {
-            embedToken = await generateReportEmbedToken({
+            tokenForEmbed = await generateReportEmbedToken({
               accessToken,
               workspaceId: config.workspaceId,
               reportId: config.reportId,
@@ -67,7 +69,18 @@ test.describe('Report page health', () => {
               );
               return;
             }
-            throw err;
+            if (msg.includes('PowerBINotAuthorizedException')) {
+              // User has report-viewer access but not GenerateToken permission.
+              // Fall back to UserOwnsData: pass the AAD access token directly.
+              tokenForEmbed = accessToken;
+              tokenTypeKey = 'Aad';
+              testInfo.annotations.push({
+                type: 'auth-mode',
+                description: 'AAD fallback — GenerateToken not authorized; using user access token (UserOwnsData)',
+              });
+            } else {
+              throw err;
+            }
           }
 
           await page.goto('about:blank');
@@ -83,7 +96,7 @@ test.describe('Report page health', () => {
           // datasets, large models, gateway warm-up). page.evaluate itself is capped by the
           // project timeout (180s), so 90s inner leaves headroom for the rest of the test.
           const result: string = await page.evaluate(
-            async ({ reportId, pageId, embedUrl, embedToken }) => {
+            async ({ reportId, pageId, embedUrl, tokenForEmbed, tokenTypeKey }) => {
               const container = document.createElement('div');
               container.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;';
               document.body.appendChild(container);
@@ -96,13 +109,15 @@ test.describe('Report page health', () => {
                 pbi.factories.routerFactory,
               );
 
+              const tokenType = tokenTypeKey === 'Aad' ? models.TokenType.Aad : models.TokenType.Embed;
+
               powerbi.embed(container, {
                 type: 'report',
                 id: reportId,
                 pageName: pageId,
                 embedUrl,
-                accessToken: embedToken,
-                tokenType: models.TokenType.Embed,
+                accessToken: tokenForEmbed,
+                tokenType,
                 permissions: models.Permissions.Read,
                 viewMode: models.ViewMode.View,
               });
@@ -120,47 +135,46 @@ test.describe('Report page health', () => {
                 container.addEventListener('rendered', () => done('rendered'), { once: true });
               });
             },
-            { reportId: config.reportId, pageId: config.pageId, embedUrl: config.embedUrl, embedToken },
+            { reportId: config.reportId, pageId: config.pageId, embedUrl: config.embedUrl, tokenForEmbed, tokenTypeKey },
           );
 
-          // Always fetch refresh health — annotate on every test so the report shows
-          // dataset status whether the visual passed or failed.
-          try {
-            const history = await getRefreshHistory(
-              accessToken, config.workspaceId, config.datasetId, endpoints, 10,
-            );
-            if (history.length > 0) {
-              const health = evaluateRefreshHealth(history, 7, new Date().toISOString());
-              const summary = [
-                `latest: ${health.latestStatus} @ ${health.latestRefreshTime || 'unknown'}`,
-                `failures in window: ${health.failureCount}`,
-                ...(health.lastKnownFailure ? [`last error: ${health.lastKnownFailure.code}`] : []),
-              ].join(' · ');
-              testInfo.annotations.push({ type: 'refresh-health', description: summary });
+          // Fetch refresh health for annotation — only when a refresh-related focus is active.
+          // Skipped for broken-visuals focus to avoid unnecessary REST calls.
+          if (isInFocus(focus, 'rh-002') || isInFocus(focus, 'rh-003')) {
+            try {
+              const history = await getRefreshHistory(
+                accessToken, config.workspaceId, config.datasetId, endpoints, 10,
+              );
+              if (history.length > 0) {
+                const health = evaluateRefreshHealth(history, 7, new Date().toISOString());
+                const summary = [
+                  `latest: ${health.latestStatus} @ ${health.latestRefreshTime || 'unknown'}`,
+                  `failures in window: ${health.failureCount}`,
+                  ...(health.lastKnownFailure ? [`last error: ${health.lastKnownFailure.code}`] : []),
+                ].join(' · ');
+                testInfo.annotations.push({ type: 'refresh-health', description: summary });
 
-              // Prominently flag a failed latest refresh as its own annotation so it is
-              // immediately visible in the HTML report without expanding detail.
-              if (health.latestStatus === 'Failed') {
-                const msg = health.lastKnownFailure
-                  ? `${health.lastKnownFailure.code}: ${health.lastKnownFailure.message}`
-                  : 'no error detail available';
+                if (health.latestStatus === 'Failed') {
+                  const msg = health.lastKnownFailure
+                    ? `${health.lastKnownFailure.code}: ${health.lastKnownFailure.message}`
+                    : 'no error detail available';
+                  testInfo.annotations.push({
+                    type: '⚠️ REFRESH FAILED',
+                    description: msg,
+                  });
+                }
+              } else {
                 testInfo.annotations.push({
-                  type: '⚠️ REFRESH FAILED',
-                  description: msg,
+                  type: 'refresh-health',
+                  description: 'no refresh history returned by API',
                 });
               }
-            } else {
+            } catch (err: unknown) {
               testInfo.annotations.push({
-                type: 'refresh-health',
-                description: 'no refresh history returned by API',
+                type: 'refresh-health-error',
+                description: `API call failed: ${err instanceof Error ? err.message : String(err)}`,
               });
             }
-          } catch (err: unknown) {
-            // Surface the reason so it appears in the HTML report — not silently swallowed.
-            testInfo.annotations.push({
-              type: 'refresh-health-error',
-              description: `API call failed: ${err instanceof Error ? err.message : String(err)}`,
-            });
           }
 
           // On failure: wait briefly so the screenshot captures a more informative state,
