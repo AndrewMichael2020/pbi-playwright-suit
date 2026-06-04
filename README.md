@@ -69,22 +69,20 @@ For enterprise auth, the intended path is the same legacy-style MSAL device flow
 
 ### Browser install for visual tests
 
-If you will run the enterprise visual lane, also install Playwright browsers:
+The visual lane uses **system-installed Chrome** by default (`channel: 'chrome'`), so
+**`npm run install:browsers` is optional on Windows** — skip it if you already have Chrome.
+
+On Linux / CI where a system browser is not present, install Playwright's bundled Chromium:
 
 ```bash
 npm run install:browsers
 ```
 
-> **Windows users — missing DLL warning:**
-> If you see:
-> ```
-> Playwright Host validation warning: Host system is missing dependencies!
->     api-ms-win-core-apiquery-l2-1-0.dll
-> ```
-> Install the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe),
-> then re-run `npm run install:browsers`. The browsers are still downloaded even if the warning
-> appears — it is a host-validation notice, not a fatal download error. Visual tests may still
-> work on recent Windows 10 / Windows 11 builds despite the warning.
+To switch browser channel, set `PBI_BROWSER_CHANNEL`:
+
+```powershell
+$env:PBI_BROWSER_CHANNEL = "msedge"   # use system Edge
+```
 
 ## Before running anything
 
@@ -345,26 +343,27 @@ older clone, your `node_modules` may already be on 5.x — a fresh `npm install`
 
 ### `api-ms-win-core-apiquery-l2-1-0.dll` missing on Windows
 
-Full error:
+Full warning:
 
 ```
 Playwright Host validation warning: Host system is missing dependencies!
     api-ms-win-core-apiquery-l2-1-0.dll
 ```
 
-**Fix:**
+This warning appears when Playwright tries to validate its bundled Chromium on Windows.
+The suite avoids this entirely by using **system-installed Chrome** (`channel: 'chrome'`)
+instead of downloading a Playwright-bundled browser. Chrome is already on your machine
+and does not need these DLLs.
 
-1. Download and install [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
-2. Re-run:
+**You do not need to run `npm run install:browsers` at all on Windows.**
+Skip it. Discovery and visual tests use your existing Chrome installation.
+
+If you ever need to override the browser channel:
 
 ```powershell
-npm run install:browsers
+$env:PBI_BROWSER_CHANNEL = "msedge"   # use system Edge instead
+npm run test:visual
 ```
-
-The DLL is part of the Windows C Runtime API set. It is present on Windows 10 / 11 with
-up-to-date Visual C++ Redistributables. If the warning persists after installing the
-redistributable, your browsers are likely still downloaded and functional — run
-`npm run test:visual` to confirm and only investigate further if tests actually fail.
 
 ---
 

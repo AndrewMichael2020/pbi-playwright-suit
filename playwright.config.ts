@@ -31,7 +31,7 @@ export default defineConfig({
       testMatch: /.*visual\/.*\.spec\.ts/,
       timeout: 90_000,
       use: {
-        browserName: 'chromium',
+        channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
       },
     },
   ],
