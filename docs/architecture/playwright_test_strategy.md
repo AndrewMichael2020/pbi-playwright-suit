@@ -137,7 +137,7 @@ The baseline fixture ships with a generic `sample-model-baseline.json` demonstra
 - Deep persona / RLS scenario matrices
 - Custom UI interaction libraries per report type
 - Offline Power BI browser simulation
-- Advanced XMLA TOM scripting in the test runner
+- XMLA TOM scripting **inside the test runner** — model metadata is imported from an external script output (`.txt → JSON baseline`) via `npm run ingest:model-txt`, not executed in-process
 - Any assertion that requires knowing report-specific visual names or layout
 
 ---
