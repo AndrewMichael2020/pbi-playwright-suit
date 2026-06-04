@@ -2,6 +2,8 @@
 
 Lightweight Playwright-based Power BI quality suite for the **UPCC Dashboard** report.
 
+This is currently a **Node/TypeScript + Playwright** project. It does **not** require a `requirements.txt` file or a Python virtual environment for the implemented suite.
+
 It currently covers two lanes:
 
 1. **Metadata lane**: refresh health, schema drift, SQL extraction from M, duplicate heuristics
@@ -48,6 +50,8 @@ scripts/
 ```bash
 npm install
 ```
+
+No Python dependency installation is required for the current implementation.
 
 ## Local / Codespaces workflow
 
