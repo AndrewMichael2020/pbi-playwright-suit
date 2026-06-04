@@ -9,7 +9,8 @@
     "test": "playwright test --project=dry-run",
     "test:enterprise": "playwright test --project=enterprise",
     "test:full": "playwright test --project=dry-run --project=enterprise",
-    "show-report": "node -e \"const fs=require('fs'),p='test-archive';const runs=fs.readdirSync(p).filter(d=>fs.statSync(p+'/'+d).isDirectory()).sort();const latest=runs[runs.length-1];if(!latest){console.error('No runs in test-archive/');process.exit(1);}require('child_process').spawn('npx',['playwright','show-report',p+'/'+latest+'/html-report'],{stdio:'inherit',shell:true});\""
+    "show-report": "node -e \"const fs=require('fs'),p='test-archive';const runs=fs.readdirSync(p).filter(d=>fs.statSync(p+'/'+d).isDirectory()).sort();const latest=runs[runs.length-1];if(!latest){console.error('No runs in test-archive/');process.exit(1);}require('child_process').spawn('npx',['playwright','show-report',p+'/'+latest+'/html-report'],{stdio:'inherit',shell:true});\"",
+    "ingest:model-txt": "node --require tsx/cjs scripts/ingest-model-txt.ts"
   },
   "repository": {
     "type": "git",

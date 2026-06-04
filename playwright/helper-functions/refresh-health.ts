@@ -160,3 +160,53 @@ export function analyzeRefreshPatterns(
 
   return { consecutiveFailureCount, isStale, hoursSinceLastSuccess, failuresByCode };
 }
+
+/** Patterns in refresh error codes / messages that signal data-integrity or
+ *  credential problems — all of these directly prevent visuals from rendering
+ *  with correct data. */
+const DATA_INTEGRITY_PATTERNS: RegExp[] = [
+  /duplicate/i,
+  /unique.*constraint/i,
+  /primary.*key/i,
+  /ambiguous.*relationship/i,
+  /multiple.*values/i,
+  /cannot.*determine.*single/i,
+  /RowValueConflict/i,
+  /MonikerWithUnbound/i,
+  /unbound.*data.*source/i,
+  /credential/i,
+  /unauthorized/i,
+  /oauth/i,
+];
+
+export interface DataIntegrityHit {
+  code: string;
+  message: string;
+  time: string;
+  matchedPattern: string;
+}
+
+/** Scan all refresh failures for patterns that indicate broken data integrity
+ *  or broken credential binding — both cause visuals to render wrong or not at all. */
+export function scanForDataIntegrityErrors(
+  refreshes: RefreshHistoryEntry[],
+): DataIntegrityHit[] {
+  const hits: DataIntegrityHit[] = [];
+
+  for (const r of refreshes) {
+    if (r.status !== 'Failed') continue;
+    const { code, message } = extractFailureInfo([r]);
+    const combined = `${code ?? ''} ${message ?? ''}`;
+    const matched = DATA_INTEGRITY_PATTERNS.find((p) => p.test(combined));
+    if (matched) {
+      hits.push({
+        code: code ?? '',
+        message: message ?? '',
+        time: r.endTime ?? r.startTime ?? '',
+        matchedPattern: matched.source,
+      });
+    }
+  }
+
+  return hits;
+}

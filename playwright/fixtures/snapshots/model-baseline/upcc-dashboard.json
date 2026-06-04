@@ -1,0 +1,1196 @@
+{
+  "modelName": "UPCC Dashboard",
+  "workspaceName": "FHA-ADAR-BI-UAT",
+  "capturedAt": "2026-05-10T18:06:34.967Z",
+  "lastRefreshStatus": "Completed",
+  "lastFailureCode": "ModelRefresh_ShortMessage_ProcessingError",
+  "tables": [
+    {
+      "name": "Facility",
+      "hidden": false,
+      "columnCount": 6,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "FacilityKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Code",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Postal Code",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "City",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "UPCC",
+          "dataType": "String",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Provider",
+      "hidden": false,
+      "columnCount": 13,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ProviderKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Provider Code",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Full Name",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Provider Type",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Specialty Description",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Status",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Clinical Role",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Category",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Job Title",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Role Description",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Referral Category",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "AlliedHealthFlag",
+          "dataType": "Int64",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "hidden": false,
+      "columnCount": 10,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "PatientKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "PatientFileNum",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "DoB",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "DoD",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "PHN",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Sex",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Addressline1",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "City",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Province",
+          "dataType": "String",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "hidden": false,
+      "columnCount": 41,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "AppointmentKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ServiceKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "FacilityKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ProviderKey",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "PatientKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Type Code Description",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Status",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Seen Time",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Exclusion Flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "VirtualInPersonFlag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Longitudinal/Urgent",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Patient age at appointment booking",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "PatientFileNum",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Arrival Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Seen Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "LastVisitOfDayFlag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "AppointmentID",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Encounter Flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "First visit of the day flag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Only one appointment /day flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Attachment",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "VirtualFlagChanged",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Book Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Type Code",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "VisitAlliedHealthFlag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "VisitProviderOnlyflag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "LPN Provider flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Allied Health Provider Flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "ProviderOnlyflag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Triage Flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Registered Nurse provider flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "VisitTriageFlag",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Seen Hour",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Weekday",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "WeekdayNo",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Virtual/In Person",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "TimeDateHoliday",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Provider Only Visits",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Business Hours/After Hours",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Age Groups",
+          "dataType": "String",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Care Teams",
+      "hidden": false,
+      "columnCount": 16,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "PatientKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "CareTeamKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "FacilityKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ProviderKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "CareTeamID",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Care Open Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Care Closed Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Care Status",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Net New Attachment Flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "NetNewAttachmentFlagDesc",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Generic Provider flag",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Patient Age at Care Open date",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "TeamRoleCode",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "AttachmentType",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "TeamRoleDesc",
+          "dataType": "String",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Fiscal and Calendar Periods Bridge",
+      "hidden": false,
+      "columnCount": 10,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Period",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "timedate",
+          "dataType": "DateTime",
+          "hidden": true
+        },
+        {
+          "name": "timedateid",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Value",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "Sort",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ID",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "TimeDateHoliday",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "SortAsc",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "PeriodKey",
+          "dataType": "Int64",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "_DimMeasure",
+      "hidden": false,
+      "columnCount": 1,
+      "measureCount": 60,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Reporting group: Visit, Encounters, Appointments",
+      "hidden": true,
+      "columnCount": 3,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Measure",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Sort",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "dimAttachment",
+      "hidden": true,
+      "columnCount": 3,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Type",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Sort",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Referrals",
+      "hidden": false,
+      "columnCount": 24,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ReferralKey",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "ReferredByFacilityCode",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredToFacilityCode",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "AppointmentKey",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "ReferralType",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferralStatus",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferralCreatedOnDate",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferralReferredOnDate",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferredToPOSID",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Decision",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "ReferredToExternalProviderCode",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferredBYExternalProviderCode",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "PatientFileNum",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "AgeAtRef",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Longitudinal/Urgent",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "FacilityCode",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "ReferralCreatedOnTIME",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "rn",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "DiagnosisDescription",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "ExternalAppBookedDate",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "ReferralDecisionReasonDescription",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "TreatmentDescription",
+          "dataType": "String",
+          "hidden": false
+        },
+        {
+          "name": "ExternalProviderKey",
+          "dataType": "Int64",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Appointment Reporting Categories",
+      "hidden": true,
+      "columnCount": 4,
+      "measureCount": 3,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Appointment Categories",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Appointment Categories Fields",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Appointment Categories Order",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Referrals Reporting Categories",
+      "hidden": true,
+      "columnCount": 4,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Referrals Reporting Categories",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Referrals Reporting Categories Fields",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Referrals Reporting Categories Order",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Notes",
+      "hidden": true,
+      "columnCount": 5,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Note Id",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "short desc",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Note",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Page",
+          "dataType": "String",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Metrics Definition",
+      "hidden": true,
+      "columnCount": 6,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Metric Id",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Metric Name",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Definition",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Inclusions",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Exclusions",
+          "dataType": "String",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "LastUpdate",
+      "hidden": false,
+      "columnCount": 2,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "LastUpdate",
+          "dataType": "DateTime",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "Age",
+      "hidden": true,
+      "columnCount": 2,
+      "measureCount": 1,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Age",
+          "dataType": "Int64",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "Calendar Dates",
+      "hidden": false,
+      "columnCount": 6,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "TimeDateID",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Day of the week",
+          "dataType": "Int64",
+          "hidden": false
+        },
+        {
+          "name": "Date",
+          "dataType": "DateTime",
+          "hidden": false
+        },
+        {
+          "name": "Holiday",
+          "dataType": "Boolean",
+          "hidden": false
+        },
+        {
+          "name": "Day of the week name",
+          "dataType": "String",
+          "hidden": false
+        }
+      ]
+    },
+    {
+      "name": "User Access",
+      "hidden": true,
+      "columnCount": 4,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "Email",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Code",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Parameter",
+          "dataType": "String",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "User Access Facility",
+      "hidden": true,
+      "columnCount": 3,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "email",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Facility Code",
+          "dataType": "String",
+          "hidden": true
+        }
+      ]
+    },
+    {
+      "name": "User Access Drill Down",
+      "hidden": true,
+      "columnCount": 3,
+      "measureCount": 0,
+      "columns": [
+        {
+          "name": "RowNumber-2662979B-1795-4F74-8F37-6A1BA8059B61",
+          "dataType": "Int64",
+          "hidden": true
+        },
+        {
+          "name": "email",
+          "dataType": "String",
+          "hidden": true
+        },
+        {
+          "name": "Code",
+          "dataType": "String",
+          "hidden": true
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "b45b509e-27b1-4670-a123-6bc221a52319",
+      "fromTable": "Appointments",
+      "fromColumn": "PatientKey",
+      "toTable": "Patient",
+      "toColumn": "PatientKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "92e8e997-1308-4512-b717-7f9cb7aa48dc",
+      "fromTable": "Care Teams",
+      "fromColumn": "PatientKey",
+      "toTable": "Patient",
+      "toColumn": "PatientKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "09708d6e-60cf-4e04-a42b-ff3dc014803e",
+      "fromTable": "Appointments",
+      "fromColumn": "FacilityKey",
+      "toTable": "Facility",
+      "toColumn": "FacilityKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "b8c8d78f-f336-4ef2-a832-8a26101640c5",
+      "fromTable": "Appointments",
+      "fromColumn": "ProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "3ca7e135-e059-4c8c-b226-5d3ad13e6924",
+      "fromTable": "Care Teams",
+      "fromColumn": "ProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "aeda68ea-b750-4553-9524-ad40b734e3d2",
+      "fromTable": "Care Teams",
+      "fromColumn": "FacilityKey",
+      "toTable": "Facility",
+      "toColumn": "FacilityKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "ec5005d3-afb7-4adf-851b-a85716831e63",
+      "fromTable": "Referrals",
+      "fromColumn": "PatientFileNum",
+      "toTable": "Patient",
+      "toColumn": "PatientFileNum",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "7de1dd62-c321-4d37-84ea-dfe55e5625ce",
+      "fromTable": "Care Teams",
+      "fromColumn": "Patient Age at Care Open date",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "54f00509-087a-4dd5-91b2-52923a81c084",
+      "fromTable": "Appointments",
+      "fromColumn": "Patient age at appointment booking",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "46aa77be-79fd-4b2f-b894-077a917a532c",
+      "fromTable": "Referrals",
+      "fromColumn": "AgeAtRef",
+      "toTable": "Age",
+      "toColumn": "Age",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "e30518a7-257b-4339-ba22-daf494b53bdf",
+      "fromTable": "Appointments",
+      "fromColumn": "Seen Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "f15cc5e8-7080-4c88-80c6-4f25a954d723",
+      "fromTable": "Care Teams",
+      "fromColumn": "Care Open Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "abf7e0a6-bfd4-a796-ee66-e2c80c496fc0",
+      "fromTable": "Referrals",
+      "fromColumn": "FacilityCode",
+      "toTable": "Facility",
+      "toColumn": "Code",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "30b72aa0-f3ae-5064-7094-defff90ddeaf",
+      "fromTable": "Care Teams",
+      "fromColumn": "Care Closed Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": false,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "8f0dd34e-ae2a-7529-27f0-b58e6675b2d0",
+      "fromTable": "Referrals",
+      "fromColumn": "ReferralReferredOnDate",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "d87c990c-e7a4-1f13-dfb5-01654b0760a1",
+      "fromTable": "Appointments",
+      "fromColumn": "Book Date",
+      "toTable": "Calendar Dates",
+      "toColumn": "Date",
+      "active": false,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "3d8ee994-0fc1-3be7-2fdc-be61d827107f",
+      "fromTable": "Referrals",
+      "fromColumn": "ExternalProviderKey",
+      "toTable": "Provider",
+      "toColumn": "ProviderKey",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> One"
+    },
+    {
+      "id": "db02abad-3bce-3143-1632-4d2f9221c78c",
+      "fromTable": "Calendar Dates",
+      "fromColumn": "TimeDateID",
+      "toTable": "Fiscal and Calendar Periods Bridge",
+      "toColumn": "timedateid",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> Many"
+    },
+    {
+      "id": "3d4aabfd-d219-0104-14a1-fcaf9d1f6460",
+      "fromTable": "Facility",
+      "fromColumn": "Code",
+      "toTable": "User Access Facility",
+      "toColumn": "Facility Code",
+      "active": true,
+      "crossFilter": "OneDirection",
+      "cardinality": "Many -> Many"
+    }
+  ],
+  "intentionalManyToMany": [
+    "Calendar Dates::TimeDateID → Fiscal and Calendar Periods Bridge::timedateid",
+    "Facility::Code → User Access Facility::Facility Code"
+  ],
+  "intentionalBidirectional": []
+}

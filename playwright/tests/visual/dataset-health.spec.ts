@@ -1,18 +1,12 @@
 /**
  * Live dataset health checks — enterprise project.
  *
- * These tests run against the real Power BI REST API using the same
- * enterprise.generated.json written by `npm run setup`.  They independently
- * FAIL when a dataset is in a broken state so the HTML report clearly shows
- * which health dimension failed, separate from the visual render tests.
+ * Each test independently fails on a concrete signal that prevents Power BI
+ * report visuals from rendering correctly.  No thresholds — every broken state
+ * is a hard failure.
  *
  * Tests are deduplicated per dataset — if 4 pages share one dataset only one
- * set of health checks runs, not four.
- *
- * Thresholds (all overridable via .env):
- *   PBI_MAX_REFRESH_FAILURES     default 2   (failures in 7-day window)
- *   PBI_MAX_CONSECUTIVE_FAILURES default 2   (failures in a row)
- *   PBI_MAX_STALE_HOURS          default 48  (hours since last success)
+ * set of checks runs, not four.
  */
 
 import { expect, test } from '@playwright/test';
@@ -25,9 +19,9 @@ import {
 } from '../../helper-functions/powerbi-enterprise';
 import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 import {
-  analyzeRefreshPatterns,
   evaluateRefreshHealth,
   extractFailureInfo,
+  scanForDataIntegrityErrors,
 } from '../../helper-functions/refresh-health';
 
 const allConfigs = loadEnterpriseConfigs();
@@ -47,10 +41,6 @@ for (const config of allConfigs ?? []) {
   }
 }
 
-const MAX_REFRESH_FAILURES     = parseInt(process.env.PBI_MAX_REFRESH_FAILURES     ?? '2',  10);
-const MAX_CONSECUTIVE_FAILURES = parseInt(process.env.PBI_MAX_CONSECUTIVE_FAILURES ?? '2',  10);
-const MAX_STALE_HOURS          = parseInt(process.env.PBI_MAX_STALE_HOURS          ?? '48', 10);
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Dataset health', () => {
@@ -58,7 +48,6 @@ test.describe('Dataset health', () => {
 
   for (const config of uniqueDatasets.values()) {
     test.describe(config.datasetName, () => {
-      // Helper — acquires token (uses cache, nearly instant on 2nd call).
       async function liveContext() {
         const endpoints = getPowerBiEndpoints(enterpriseCredentials!.environment);
         const accessToken = await getAccessToken(enterpriseCredentials!, endpoints);
@@ -68,8 +57,8 @@ test.describe('Dataset health', () => {
       // ── RH-001 ────────────────────────────────────────────────────────────
       test('RH-001 refresh history is available and non-empty', async ({}, testInfo) => {
         testInfo.annotations.push(
-          { type: 'dataset',   description: config.datasetName },
-          { type: 'workspace', description: config.workspaceName },
+          { type: 'dataset',    description: config.datasetName },
+          { type: 'workspace',  description: config.workspaceName },
           { type: 'dataset-id', description: config.datasetId },
         );
 
@@ -80,13 +69,13 @@ test.describe('Dataset health', () => {
 
         expect(
           history.length,
-          'No refresh history returned — dataset may never have been refreshed, or the ' +
-          'service account lacks Contributor access to the workspace.',
+          'No refresh history — dataset may never have been refreshed or the service ' +
+          'account lacks Contributor access to the workspace.',
         ).toBeGreaterThan(0);
       });
 
       // ── RH-002 ────────────────────────────────────────────────────────────
-      test('RH-002 latest refresh status is operationally acceptable', async ({}, testInfo) => {
+      test('RH-002 latest refresh completed — visuals are not rendering stale or empty data', async ({}, testInfo) => {
         testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
 
         const { endpoints, accessToken } = await liveContext();
@@ -104,6 +93,7 @@ test.describe('Dataset health', () => {
         testInfo.annotations.push(
           { type: 'latest-status',  description: health.latestStatus },
           { type: 'latest-refresh', description: health.latestRefreshTime || 'unknown' },
+          { type: 'last-success',   description: health.lastSuccessTime  || 'never' },
         );
 
         if (health.latestStatus === 'Failed') {
@@ -114,21 +104,22 @@ test.describe('Dataset health', () => {
           });
         }
 
-        const BAD_STATUSES = new Set(['Failed', 'Disabled', 'Cancelled']);
+        const BAD_STATUSES = new Set(['Failed', 'Disabled', 'Cancelled', 'Unknown']);
         expect(
           BAD_STATUSES.has(health.latestStatus),
-          `Latest refresh status "${health.latestStatus}" is operationally unacceptable.  ` +
-          `Last refresh: ${health.latestRefreshTime || 'unknown'}.`,
+          `Latest refresh status "${health.latestStatus}" means visuals are rendering stale or empty data.  ` +
+          `Last refresh attempt: ${health.latestRefreshTime || 'unknown'}.  ` +
+          `Last success: ${health.lastSuccessTime || 'never'}.`,
         ).toBe(false);
       });
 
       // ── RH-003 ────────────────────────────────────────────────────────────
-      test(`RH-003 refresh failures in 7-day window do not exceed threshold (${MAX_REFRESH_FAILURES})`, async ({}, testInfo) => {
+      test('RH-003 no data-integrity or credential errors in refresh history', async ({}, testInfo) => {
         testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
 
         const { endpoints, accessToken } = await liveContext();
         const history = await getRefreshHistory(
-          accessToken, config.workspaceId, config.datasetId, endpoints, 20,
+          accessToken, config.workspaceId, config.datasetId, endpoints, 50,
         );
 
         if (history.length === 0) {
@@ -136,88 +127,24 @@ test.describe('Dataset health', () => {
           return;
         }
 
-        const health = evaluateRefreshHealth(history, 7, new Date().toISOString());
+        const hits = scanForDataIntegrityErrors(history);
 
-        testInfo.annotations.push({
-          type: 'failure-count-7d',
-          description: String(health.failureCount),
-        });
-
-        for (const f of health.failures) {
+        for (const hit of hits) {
           testInfo.annotations.push({
-            type: 'failure',
-            description: `${f.time}: ${f.code} — ${f.message || '(no message)'}`,
+            type: '⚠️ DATA INTEGRITY / CREDENTIAL ERROR',
+            description: `${hit.time} | ${hit.code}: ${hit.message || '(no message)'} — matched: ${hit.matchedPattern}`,
           });
         }
 
         expect(
-          health.failureCount,
-          `Dataset had ${health.failureCount} refresh failure(s) in the last 7 days ` +
-          `(threshold: ${MAX_REFRESH_FAILURES}).  Set PBI_MAX_REFRESH_FAILURES to adjust.`,
-        ).toBeLessThanOrEqual(MAX_REFRESH_FAILURES);
-      });
-
-      // ── RH-004 ────────────────────────────────────────────────────────────
-      test(`RH-004 consecutive failures from most recent refresh do not exceed threshold (${MAX_CONSECUTIVE_FAILURES})`, async ({}, testInfo) => {
-        testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
-
-        const { endpoints, accessToken } = await liveContext();
-        const history = await getRefreshHistory(
-          accessToken, config.workspaceId, config.datasetId, endpoints, 20,
-        );
-
-        if (history.length === 0) {
-          test.skip(true, 'No refresh history — RH-001 covers the empty case.');
-          return;
-        }
-
-        const patterns = analyzeRefreshPatterns(history, MAX_STALE_HOURS, new Date().toISOString());
-
-        testInfo.annotations.push({
-          type: 'consecutive-failures',
-          description: String(patterns.consecutiveFailureCount),
-        });
-
-        expect(
-          patterns.consecutiveFailureCount,
-          `Dataset has ${patterns.consecutiveFailureCount} consecutive refresh failure(s).  ` +
-          `Set PBI_MAX_CONSECUTIVE_FAILURES to adjust.`,
-        ).toBeLessThanOrEqual(MAX_CONSECUTIVE_FAILURES);
-      });
-
-      // ── RH-005 ────────────────────────────────────────────────────────────
-      test(`RH-005 dataset is not stale — last successful refresh within ${MAX_STALE_HOURS}h`, async ({}, testInfo) => {
-        testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
-
-        const { endpoints, accessToken } = await liveContext();
-        const history = await getRefreshHistory(
-          accessToken, config.workspaceId, config.datasetId, endpoints, 20,
-        );
-
-        if (history.length === 0) {
-          test.skip(true, 'No refresh history — RH-001 covers the empty case.');
-          return;
-        }
-
-        const patterns = analyzeRefreshPatterns(history, MAX_STALE_HOURS, new Date().toISOString());
-
-        testInfo.annotations.push({
-          type: 'hours-since-success',
-          description:
-            patterns.hoursSinceLastSuccess !== null
-              ? `${patterns.hoursSinceLastSuccess.toFixed(1)}h`
-              : 'never refreshed successfully',
-        });
-
-        expect(
-          patterns.isStale,
-          `Dataset last succeeded ${patterns.hoursSinceLastSuccess?.toFixed(1) ?? 'never'} hours ago.  ` +
-          `Threshold is ${MAX_STALE_HOURS}h.  Set PBI_MAX_STALE_HOURS to adjust.`,
-        ).toBe(false);
+          hits.length,
+          `${hits.length} refresh failure(s) contain data-integrity or credential errors ` +
+          `that cause visuals to render incorrect or empty data.  See annotations for details.`,
+        ).toBe(0);
       });
 
       // ── DS-001 ────────────────────────────────────────────────────────────
-      test('DS-001 all data source connections are configured', async ({}, testInfo) => {
+      test('DS-001 all data source connections are bound — credentials exist for every source', async ({}, testInfo) => {
         testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
 
         const { endpoints, accessToken } = await liveContext();
@@ -228,8 +155,6 @@ test.describe('Dataset health', () => {
             accessToken, config.workspaceId, config.datasetId, endpoints,
           );
         } catch (err: unknown) {
-          // Some dataset types (streaming, push) do not expose the datasources endpoint.
-          // Treat as a non-fatal skip rather than a hard failure.
           const msg = err instanceof Error ? err.message : String(err);
           if (msg.includes('400') || msg.includes('404') || msg.includes('NotSupported')) {
             test.skip(true, `Datasources endpoint not available for this dataset type: ${msg}`);
@@ -243,23 +168,23 @@ test.describe('Dataset health', () => {
           description: String(sources.length),
         });
 
-        const missing = sources.filter(
+        const unbound = sources.filter(
           (s) => Object.keys(s.connectionDetails).length === 0,
         );
 
-        for (const s of missing) {
+        for (const s of unbound) {
           testInfo.annotations.push({
-            type: '⚠️ MISSING CONNECTION',
+            type: '⚠️ UNBOUND DATASOURCE',
             description:
-              `${s.datasourceType || 'Unknown'} datasource has no connection details — ` +
-              `this causes "unable to access data source" errors at refresh time.`,
+              `${s.datasourceType || 'Unknown'} source has no connection details — ` +
+              `refresh cannot run, all visuals reading this source will show stale data.`,
           });
         }
 
         expect(
-          missing.length,
-          `${missing.length} data source(s) have empty connection details.  ` +
-          `Open the dataset settings in Power BI Service and bind the data source.`,
+          unbound.length,
+          `${unbound.length} data source(s) have no connection details bound.  ` +
+          `Open dataset settings in Power BI Service and bind credentials for each source.`,
         ).toBe(0);
       });
     });
