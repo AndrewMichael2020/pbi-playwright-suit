@@ -195,6 +195,42 @@ async function restGet<T>(path: string, accessToken: string, endpoints: PowerBiE
   });
 }
 
+export async function listWorkspaces(accessToken: string, endpoints: PowerBiEndpoints): Promise<PowerBiWorkspace[]> {
+  const response = await restGet<{ value?: Array<Record<string, unknown>> }>('/v1.0/myorg/groups', accessToken, endpoints);
+  return (response.value ?? []).map((w) => ({ id: getText(w.id), name: getText(w.name) }));
+}
+
+export async function listReports(
+  accessToken: string,
+  workspaceId: string,
+  endpoints: PowerBiEndpoints,
+): Promise<PowerBiReport[]> {
+  const response = await restGet<{ value?: Array<Record<string, unknown>> }>(
+    `/v1.0/myorg/groups/${workspaceId}/reports`,
+    accessToken,
+    endpoints,
+  );
+  return (response.value ?? []).map((r) => ({
+    id: getText(r.id),
+    name: getText(r.name),
+    datasetId: getText(r.datasetId) || undefined,
+    embedUrl: getText(r.embedUrl) || undefined,
+  }));
+}
+
+export async function listDatasets(
+  accessToken: string,
+  workspaceId: string,
+  endpoints: PowerBiEndpoints,
+): Promise<PowerBiDataset[]> {
+  const response = await restGet<{ value?: Array<Record<string, unknown>> }>(
+    `/v1.0/myorg/groups/${workspaceId}/datasets`,
+    accessToken,
+    endpoints,
+  );
+  return (response.value ?? []).map((d) => ({ id: getText(d.id), name: getText(d.name) }));
+}
+
 export async function findWorkspaceByName(
   accessToken: string,
   workspaceName: string,

@@ -12,7 +12,7 @@ Two test lanes:
 ```powershell
 git pull              # always pull first to get the latest fixes
 npm install
-npm run discover:enterprise-upcc   # sign in via browser when prompted
+npm run discover:interactive   # pick workspace + report from a menu; sign in via browser when prompted
 npm run test:visual
 ```
 
@@ -71,26 +71,67 @@ It does not affect your system Chrome.
 
 ## Enterprise discovery CLI
 
+Two discovery modes are available.
+
+### Interactive (recommended) — pick workspace and report from a menu
+
+```powershell
+npm run discover:interactive
+```
+
+Lists all workspaces and reports your account can access and prompts you to choose:
+
+```
+Authenticating…
+
+Available workspaces:
+  [1] FHA-ADAR-BI-UAT
+  [2] FHA-ADAR-BI-PROD
+  ...
+
+Enter number (1–N): 1
+
+Available reports:
+  [1] UPCC Dashboard
+  [2] Some Other Report
+  ...
+
+Enter number (1–N): 1
+
+Available pages:
+  [1] Summary page
+  [2] Detail page
+  ...
+
+Enter number (1–N): 1
+```
+
+The dataset is resolved automatically from the report. If multiple datasets exist and
+cannot be matched automatically, you will be prompted to pick one.
+
+### Non-interactive (CI / env-var driven)
+
 ```powershell
 npm run discover:enterprise-upcc
 ```
 
-What it does:
+Uses environment variable defaults (`FHA-ADAR-BI-UAT` / `UPCC Dashboard`).
+Override with `UPCC_WORKSPACE_NAME`, `UPCC_REPORT_NAME`, `UPCC_DATASET_NAME`, `UPCC_PAGE_NAME`.
 
-- authenticates via interactive MSAL device-flow (token cached for subsequent runs)
-- finds workspace `FHA-ADAR-BI-UAT`, report and dataset `UPCC Dashboard`
-- selects the first report page (or `UPCC_PAGE_NAME` if set)
-- writes `playwright/config/upcc-enterprise.generated.json`
+### What discovery writes
 
-**First run:** the terminal will print a URL and a code:
+Both commands write `playwright/config/upcc-enterprise.generated.json` (gitignored).
+No environment variables are written. The file is read automatically by `npm run test:visual`.
+
+**First run:** the terminal prints a device-flow sign-in code:
 
 ```
 To sign in, use a web browser to open the page https://login.microsoft.com/device
 and enter the code XXXXXXXX to authenticate.
 ```
 
-Open that URL in your browser, enter the code, sign in with your organisational account,
-then **re-run** `npm run discover:enterprise-upcc`. Subsequent runs reuse the cached token.
+Open that URL, enter the code, sign in, then **re-run** the command.
+Subsequent runs reuse the cached token.
 
 Optional environment variables:
 
@@ -98,10 +139,10 @@ Optional environment variables:
 |---|---|---|
 | `CLIENT_ID` | built-in public client | AAD app registration |
 | `TENANT_ID` | — | restrict to a specific tenant |
-| `UPCC_WORKSPACE_NAME` | `FHA-ADAR-BI-UAT` | workspace display name |
-| `UPCC_REPORT_NAME` | `UPCC Dashboard` | report display name |
-| `UPCC_DATASET_NAME` | `UPCC Dashboard` | dataset display name |
-| `UPCC_PAGE_NAME` | first page | specific page display name |
+| `UPCC_WORKSPACE_NAME` | `FHA-ADAR-BI-UAT` | non-interactive default workspace |
+| `UPCC_REPORT_NAME` | `UPCC Dashboard` | non-interactive default report |
+| `UPCC_DATASET_NAME` | `UPCC Dashboard` | non-interactive default dataset |
+| `UPCC_PAGE_NAME` | first page | non-interactive default page |
 | `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, …) |
 | `PBI_TOKEN_CACHE_FILE` | auto | path to MSAL token cache file |
 | `PBI_BROWSER_CHANNEL` | `chrome` | `chrome` or `msedge` |
