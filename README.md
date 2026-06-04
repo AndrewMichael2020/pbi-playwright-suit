@@ -75,6 +75,17 @@ If you will run the enterprise visual lane, also install Playwright browsers:
 npm run install:browsers
 ```
 
+> **Windows users — missing DLL warning:**
+> If you see:
+> ```
+> Playwright Host validation warning: Host system is missing dependencies!
+>     api-ms-win-core-apiquery-l2-1-0.dll
+> ```
+> Install the [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe),
+> then re-run `npm run install:browsers`. The browsers are still downloaded even if the warning
+> appears — it is a host-validation notice, not a fatal download error. Visual tests may still
+> work on recent Windows 10 / Windows 11 builds despite the warning.
+
 ## Before running anything
 
 Use this order on a fresh clone or after pulling new changes:
@@ -309,6 +320,83 @@ If a test retained a trace, Playwright will print the trace path in the failure 
 
 3. only refresh baselines deliberately after confirming the change is intentional
 4. local metadata tests should continue to use the committed mock fixtures
+
+## Troubleshooting
+
+### `uuid@8.3.2` deprecation warning during `npm install`
+
+The warning looks like:
+
+```
+WARN deprecated uuid@8.3.2: uuid@10 and below is no longer supported.
+```
+
+This came from `@azure/msal-node` ≤ 3.x depending on `uuid@8`. The repo now pins
+`@azure/msal-node@^5.2.2`, which drops the `uuid` dependency entirely. Run:
+
+```bash
+npm install
+```
+
+on a fresh clone to get the fixed version. If you previously ran `npm audit fix --force` on an
+older clone, your `node_modules` may already be on 5.x — a fresh `npm install` will confirm.
+
+---
+
+### `api-ms-win-core-apiquery-l2-1-0.dll` missing on Windows
+
+Full error:
+
+```
+Playwright Host validation warning: Host system is missing dependencies!
+    api-ms-win-core-apiquery-l2-1-0.dll
+```
+
+**Fix:**
+
+1. Download and install [Microsoft Visual C++ Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe)
+2. Re-run:
+
+```powershell
+npm run install:browsers
+```
+
+The DLL is part of the Windows C Runtime API set. It is present on Windows 10 / 11 with
+up-to-date Visual C++ Redistributables. If the warning persists after installing the
+redistributable, your browsers are likely still downloaded and functional — run
+`npm run test:visual` to confirm and only investigate further if tests actually fail.
+
+---
+
+### Discovery fails with `ENOENT` on `upcc-enterprise.generated.json`
+
+The `playwright/config/` directory is gitignored and is created on first discovery run.
+If the script exits with:
+
+```
+ENOENT: no such file or directory, open '...\playwright\config\upcc-enterprise.generated.json'
+```
+
+this was a bug fixed in the current codebase — `saveUpccEnterpriseConfig` now creates the
+directory automatically. Pull the latest commit and retry:
+
+```bash
+git pull
+npm run discover:enterprise-upcc
+```
+
+---
+
+### Discovery prints a device-flow code and then exits
+
+This is expected on first run (and after token expiry). Open a browser, go to:
+
+```
+https://login.microsoft.com/device
+```
+
+Enter the code printed in the terminal, sign in with your organisational account, then
+**re-run** `npm run discover:enterprise-upcc`. The token is cached for subsequent runs.
 
 ## Current limitations
 
