@@ -126,7 +126,7 @@ docs/
 
 playwright/
   config/
-    upcc-enterprise.generated.json
+    enterprise.generated.json
   .auth/
     msal-device-token-cache.json
   fixtures/

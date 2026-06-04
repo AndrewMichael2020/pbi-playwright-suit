@@ -26,9 +26,9 @@ import {
 } from '../playwright/helper-functions/powerbi-enterprise';
 import { loadEnvFile } from '../playwright/helper-functions/env-loader';
 import {
-  saveUpccEnterpriseConfigs,
-  type UpccEnterpriseConfig,
-} from '../playwright/helper-functions/upcc-enterprise-config';
+  saveEnterpriseConfigs,
+  type EnterpriseReportConfig,
+} from '../playwright/helper-functions/enterprise-config';
 
 loadEnvFile();
 
@@ -226,7 +226,7 @@ async function main(): Promise<void> {
     const datasets = await listDatasets(accessToken, workspace.id, endpoints);
 
     // 5. Build config entries
-    const configs: UpccEnterpriseConfig[] = [];
+    const configs: EnterpriseReportConfig[] = [];
 
     for (const report of selectedReports) {
       const dataset =
@@ -274,7 +274,7 @@ async function main(): Promise<void> {
 
     if (configs.length === 0) throw new Error('No valid report+page combinations selected.');
 
-    saveUpccEnterpriseConfigs(configs);
+    saveEnterpriseConfigs(configs);
 
     console.log(`\n${bold(green('✅ Discovery complete'))} — ${configs.length} test(s) queued:\n`);
     configs.forEach((c) =>

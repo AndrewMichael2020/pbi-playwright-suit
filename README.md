@@ -123,15 +123,15 @@ After you answer **Y**, visual tests run immediately.
 ### Non-interactive (CI / env-var driven)
 
 ```powershell
-npm run discover:enterprise-upcc
+npm run discover:enterprise
 ```
 
-Requires `UPCC_WORKSPACE_NAME` and `UPCC_REPORT_NAME` to be set in `.env`.
-Optional: `UPCC_DATASET_NAME`, `UPCC_PAGE_NAME`.
+Requires `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` to be set in `.env`.
+Optional: `PBI_DATASET_NAME`, `PBI_PAGE_NAME`.
 
 ### What discovery writes
 
-Both commands write `playwright/config/upcc-enterprise.generated.json` (gitignored).
+Both commands write `playwright/config/enterprise.generated.json` (gitignored).
 No environment variables are written. The file is read automatically by `npm run test:visual`.
 
 **First run:** the terminal prints a device-flow sign-in code:
@@ -163,10 +163,10 @@ fires, so charts that partially loaded will be visible.
 |---|---|---|
 | `CLIENT_ID` | built-in public client | AAD app registration |
 | `TENANT_ID` | — | restrict to a specific tenant |
-| `UPCC_WORKSPACE_NAME` | *(required for non-interactive)* | workspace name |
-| `UPCC_REPORT_NAME` | *(required for non-interactive)* | report name |
-| `UPCC_DATASET_NAME` | same as report name | dataset name |
-| `UPCC_PAGE_NAME` | first page | page display name |
+| `PBI_WORKSPACE_NAME` | *(required for non-interactive)* | workspace name |
+| `PBI_REPORT_NAME` | *(required for non-interactive)* | report name |
+| `PBI_DATASET_NAME` | same as report name | dataset name |
+| `PBI_PAGE_NAME` | first page | page display name |
 | `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, …) |
 | `PBI_TOKEN_CACHE_FILE` | auto | path to MSAL token cache file |
 | `PBI_BROWSER_CHANNEL` | `chrome` | `chrome` or `msedge` |
@@ -175,19 +175,19 @@ fires, so charts that partially loaded will be visible.
 
 ```text
 playwright/
-  config/upcc-enterprise.generated.json   # written by discovery, gitignored
+  config/enterprise.generated.json       # written by discovery, gitignored
   fixtures/snapshots/                     # committed mock fixtures
   helper-functions/
   tests/metadata/
   tests/visual/
 scripts/
   discover-interactive.ts                 # interactive discovery (recommended)
-  discover-upcc-enterprise.ts             # non-interactive / CI
+  discover-enterprise.ts                  # non-interactive / CI
 ```
 
 ## Troubleshooting
 
-### ENOENT on `upcc-enterprise.generated.json`
+### ENOENT on `enterprise.generated.json`
 
 Run discovery first:
 

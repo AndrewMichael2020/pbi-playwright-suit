@@ -4,7 +4,7 @@ This repository is building a **lightweight Playwright-based Power BI quality su
 
 ## Current intent
 
-Prioritize a practical, reusable suite for the **UPCC Dashboard** report first, with a path to later expand across the workspace.
+Prioritize a practical, reusable suite for **any Power BI report** in the workspace, with interactive discovery and per-page visual smoke testing.
 
 Focus on:
 
@@ -33,11 +33,13 @@ Do **not** prioritize:
 ## Repository conventions
 
 - Use the commands in `package.json`:
-  - `npm run discover:enterprise-upcc`
+  - `npm run discover:interactive`
+  - `npm run discover:enterprise`
   - `npm run typecheck`
   - `npm test`
 - Default local runs should use the committed mock fixtures already in the repo.
-- Use `scripts/discover-upcc-enterprise.ts` to wire the UPCC enterprise visual configuration.
+- Use `scripts/discover-interactive.ts` for interactive enterprise visual configuration (recommended).
+- Use `scripts/discover-enterprise.ts` for non-interactive/CI use (requires `PBI_WORKSPACE_NAME` + `PBI_REPORT_NAME` in `.env`).
 - Keep metadata tests runnable in isolated/local environments.
 - Keep visual smoke tests enterprise-oriented and avoid pretending local mocks are equivalent to real Power BI rendering.
 
@@ -54,7 +56,7 @@ When adding or changing code, prefer this order:
 
 ## Editing guidance
 
-- Preserve the current UPCC-first focus unless requirements change.
+- Keep the suite generic — no project-specific report names, workspace names, or IDs in code, docs, or README.
 - Reuse existing helper functions before adding new abstractions.
 - Avoid introducing environment-specific constants directly into tests.
 - Keep enterprise secrets, IDs, and URLs out of test logic where practical.

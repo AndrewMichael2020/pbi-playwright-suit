@@ -8,7 +8,7 @@ import {
   readEnterpriseCredentialsFromEnv,
 } from '../playwright/helper-functions/powerbi-enterprise';
 import { loadEnvFile } from '../playwright/helper-functions/env-loader';
-import { saveUpccEnterpriseConfig } from '../playwright/helper-functions/upcc-enterprise-config';
+import { saveEnterpriseConfig } from '../playwright/helper-functions/enterprise-config';
 
 loadEnvFile();
 
@@ -18,14 +18,14 @@ async function main(): Promise<void> {
     throw new Error('Unable to build enterprise auth settings.');
   }
 
-  const workspaceName = process.env.UPCC_WORKSPACE_NAME;
-  const reportName = process.env.UPCC_REPORT_NAME;
-  const datasetName = process.env.UPCC_DATASET_NAME ?? reportName;
-  const pageDisplayName = process.env.UPCC_PAGE_NAME;
+  const workspaceName = process.env.PBI_WORKSPACE_NAME;
+  const reportName    = process.env.PBI_REPORT_NAME;
+  const datasetName   = process.env.PBI_DATASET_NAME ?? reportName;
+  const pageDisplayName = process.env.PBI_PAGE_NAME;
 
   if (!workspaceName || !reportName) {
     throw new Error(
-      'Set UPCC_WORKSPACE_NAME and UPCC_REPORT_NAME in your .env file before using the non-interactive script.\n' +
+      'Set PBI_WORKSPACE_NAME and PBI_REPORT_NAME in your .env file before using the non-interactive script.\n' +
         'For interactive discovery, run: npm run discover:interactive',
     );
   }
@@ -34,10 +34,14 @@ async function main(): Promise<void> {
 
   const workspace = await findWorkspaceByName(accessToken, workspaceName, endpoints);
   if (!workspace) {
-    throw new Error(`Workspace '${workspaceName}' was not found. Confirm the service principal is a workspace member and can list groups.`);
+    throw new Error(
+      `Workspace '${workspaceName}' was not found. Confirm the account is a workspace member.`,
+    );
   }
 
-  const dataset = await findDatasetByName(accessToken, workspace.id, datasetName ?? reportName, endpoints);
+  const dataset = await findDatasetByName(
+    accessToken, workspace.id, datasetName ?? reportName, endpoints,
+  );
   if (!dataset) {
     throw new Error(`Dataset '${datasetName}' was not found in workspace '${workspaceName}'.`);
   }
@@ -53,15 +57,19 @@ async function main(): Promise<void> {
   }
 
   const page =
-    (pageDisplayName ? pages.find((candidate) => candidate.displayName === pageDisplayName) : undefined) ?? pages[0];
+    (pageDisplayName
+      ? pages.find((candidate) => candidate.displayName === pageDisplayName)
+      : undefined) ?? pages[0];
 
   if (pageDisplayName && page.displayName !== pageDisplayName) {
-    throw new Error(`Configured UPCC_PAGE_NAME '${pageDisplayName}' was not found in report '${reportName}'.`);
+    throw new Error(
+      `PBI_PAGE_NAME '${pageDisplayName}' was not found in report '${reportName}'.`,
+    );
   }
 
   const reportUrl = `${endpoints.webPrefix}/groups/${workspace.id}/reports/${report.id}/${page.name}`;
 
-  saveUpccEnterpriseConfig({
+  saveEnterpriseConfig({
     workspaceId: workspace.id,
     workspaceName: workspace.name,
     datasetId: dataset.id,
@@ -76,15 +84,18 @@ async function main(): Promise<void> {
     discoveredAt: new Date().toISOString(),
   });
 
-  console.log(`Discovered UPCC enterprise config:
-- workspace: ${workspace.name} (${workspace.id})
-- dataset: ${dataset.name} (${dataset.id})
-- report: ${report.name} (${report.id})
-- page: ${page.displayName} (${page.name})
-- output: playwright/config/upcc-enterprise.generated.json`);
+  console.log(
+    `Discovery complete:\n` +
+    `  workspace: ${workspace.name} (${workspace.id})\n` +
+    `  dataset:   ${dataset.name} (${dataset.id})\n` +
+    `  report:    ${report.name} (${report.id})\n` +
+    `  page:      ${page.displayName} (${page.name})\n` +
+    `  output:    playwright/config/enterprise.generated.json`,
+  );
 }
 
 void main().catch((error: unknown) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exitCode = 1;
 });
+

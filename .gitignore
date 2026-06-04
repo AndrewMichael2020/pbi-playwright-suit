@@ -221,7 +221,7 @@ __marimo__/
 node_modules/
 playwright-report/
 test-results/
-playwright/config/upcc-enterprise.generated.json
+playwright/config/enterprise.generated.json
 playwright/.auth/
 
 UPCC Dashboard.pbip

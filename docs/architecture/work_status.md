@@ -55,9 +55,10 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - `scripts/`
 - Refactored the normal local workflow so it uses committed mock fixtures already in the repo
 - Added enterprise discovery CLI:
-  - `scripts/discover-upcc-enterprise.ts`
+  - `scripts/discover-enterprise.ts` (non-interactive, env-driven)
+  - `scripts/discover-interactive.ts` (interactive, menu-driven)
 - Added generated enterprise config support:
-  - `playwright/config/upcc-enterprise.generated.json` (gitignored)
+  - `playwright/config/enterprise.generated.json` (gitignored)
   - `playwright/.auth/msal-device-token-cache.json` (gitignored)
 
 ### Metadata lane implemented
@@ -69,10 +70,10 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - schema-signature generation
   - signature drift comparison
   - duplicate heuristics with allowlists
-- Generated committed UPCC snapshots:
-  - `playwright/fixtures/snapshots/model-signatures/upcc-model-signature.json`
-  - `playwright/fixtures/snapshots/refresh-history/upcc-refresh-history.json`
-  - `playwright/fixtures/snapshots/refresh-history/upcc-refresh-health.json`
+- Generated committed baseline snapshots:
+  - `playwright/fixtures/snapshots/model-signatures/baseline-model-signature.json`
+  - `playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json`
+  - `playwright/fixtures/snapshots/refresh-history/baseline-refresh-health.json`
 
 ### Tests implemented
 
@@ -83,12 +84,12 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
   - schema drift tests
   - duplicate-check tests
 - Visual tests:
-  - real UPCC visual smoke implementation that auto-skips until enterprise discovery output and credentials are available
+  - enterprise visual smoke implementation that auto-skips until `enterprise.generated.json` and credentials are available
 
 ## Current result
 
 - **Metadata lane is runnable and passing locally**
-- **Visual lane exists as a scaffold but is not enabled yet**
+- **Visual lane runs against enterprise when credentials and discovery output are present**
 
 Current validated local commands:
 
@@ -99,22 +100,15 @@ npm test
 
 ## Current limitations
 
-- The visual smoke implementation is not live yet
-- `report_id` and `page_id` are still placeholders in:
-  - `playwright/test-cases/reports.csv`
-- Enterprise discovery is currently single-report and UPCC-specific
 - Live REST/XMLA capture has not yet replaced the committed local fixtures
+- Token cache path is fixed; multi-tenant support not implemented
 
 ## Recommended next steps
 
 1. Copy the suite into the enterprise-connected environment.
-2. Set `CLIENT_ID` and optionally `TENANT_ID`, then run:
-   - `npm run discover:enterprise-upcc`
-3. Confirm the generated file:
-   - `playwright/config/upcc-enterprise.generated.json`
-4. Run:
-   - `npm run test:visual`
-5. Run:
-   - `npm run test:metadata`
-   - `npm test`
+2. Set `CLIENT_ID` and optionally `TENANT_ID` in `.env`, then run:
+   - `npm run discover:interactive`
+3. Confirm the generated file at `playwright/config/enterprise.generated.json`.
+4. Run `npm run test:visual` to smoke-test selected reports.
+5. Run `npm test` to validate the full suite.
 6. Decide later whether to add live refresh/XMLA capture in enterprise, without changing the default local fixture-based workflow.

@@ -4,7 +4,9 @@ import { evaluateRefreshHealth, extractFailureInfo } from '../../helper-function
 import { RefreshHealthResult, RefreshHistoryEntry } from '../../helper-functions/types';
 
 test('RH-001 through RH-008 refresh history is normalized and evaluated', async () => {
-  const refreshHistory = readJsonFile<RefreshHistoryEntry[]>('playwright/fixtures/snapshots/refresh-history/upcc-refresh-history.json');
+  const refreshHistory = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
   const result = evaluateRefreshHealth(refreshHistory, 7, '2026-05-10T19:00:00.000Z');
 
   expect(result.latestStatus).toBe('Completed');
@@ -19,7 +21,9 @@ test('RH-001 through RH-008 refresh history is normalized and evaluated', async 
 });
 
 test('RH-006 nested failure payload extracts code and message', async () => {
-  const refreshHistory = readJsonFile<RefreshHistoryEntry[]>('playwright/fixtures/snapshots/refresh-history/upcc-refresh-history.json');
+  const refreshHistory = readJsonFile<RefreshHistoryEntry[]>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json',
+  );
   const failure = extractFailureInfo(refreshHistory);
 
   expect(failure).toEqual({
@@ -29,7 +33,9 @@ test('RH-006 nested failure payload extracts code and message', async () => {
 });
 
 test('FX-004 committed refresh health summary stays aligned', async () => {
-  const summary = readJsonFile<RefreshHealthResult>('playwright/fixtures/snapshots/refresh-history/upcc-refresh-health.json');
+  const summary = readJsonFile<RefreshHealthResult>(
+    'playwright/fixtures/snapshots/refresh-history/baseline-refresh-health.json',
+  );
 
   expect(summary.failureCount).toBe(1);
   expect(summary.lastKnownFailure?.code).toBe('ModelRefresh_ShortMessage_ProcessingError');

@@ -5,9 +5,9 @@ import {
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,
 } from '../../helper-functions/powerbi-enterprise';
-import { loadUpccEnterpriseConfigs } from '../../helper-functions/upcc-enterprise-config';
+import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 
-const allConfigs = loadUpccEnterpriseConfigs();
+const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
 const skipReason = !allConfigs
   ? 'Run npm run discover:interactive first.'
