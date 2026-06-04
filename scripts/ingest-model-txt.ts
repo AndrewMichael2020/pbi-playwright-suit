@@ -1,10 +1,10 @@
 /**
- * Parses the structured .txt output produced by discover_upcc_v14_fixed_v5.py
- * (and any future equivalent Python script) into a committed JSON baseline.
+ * Parses the structured .txt output produced by a Python Power BI metadata
+ * discovery script into a committed JSON model baseline.
  *
  * Usage:
- *   npm run ingest:model-txt -- "UPCC Dashboard.txt"
- *   npm run ingest:model-txt -- "UPCC Dashboard.txt" --out playwright/fixtures/snapshots/model-baseline/upcc-dashboard.json
+ *   npm run ingest:model-txt -- "MyReport.txt"
+ *   npm run ingest:model-txt -- "MyReport.txt" --out playwright/fixtures/snapshots/model-baseline/my-report.json
  *
  * When a baseline already exists the script prints a drift summary and exits
  * with code 1 if structural changes are detected (new M:M, removed tables,

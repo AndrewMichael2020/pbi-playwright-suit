@@ -8,15 +8,11 @@
  *           (duplicate key values).  Power BI resolves this with M:M internally
  *           but filter propagation changes — visuals compute wrong totals.
  *
- *   MS-002  Bidirectional cross-filter relationship
- *           BothDirections creates ambiguous filter paths.  DAX aggregations in
- *           visuals can produce unexpected results depending on query context.
- *
  * Allowlists live in the baseline JSON.  Update them manually after a conscious
  * design decision, then re-commit.
  *
  * Run `npm run ingest:model-txt -- "<file>.txt"` to regenerate the baseline
- * from a fresh Python script output.  The ingest script prints a drift summary
+ * from a Python script .txt export.  The ingest script prints a drift summary
  * and exits non-zero when structural changes are detected.
  */
 
@@ -28,7 +24,7 @@ import { loadFocus, isInFocus } from '../../helper-functions/focus';
 // ─── load baseline fixture ────────────────────────────────────────────────────
 
 const BASELINE_PATH = path.join(
-  __dirname, '..', '..', 'fixtures', 'snapshots', 'model-baseline', 'upcc-dashboard.json',
+  __dirname, '..', '..', 'fixtures', 'snapshots', 'model-baseline', 'sample-model-baseline.json',
 );
 
 interface BaselineRelationship {

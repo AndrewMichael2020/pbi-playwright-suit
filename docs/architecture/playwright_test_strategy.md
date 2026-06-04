@@ -1,761 +1,155 @@
-# Power BI Workspace Test Strategy
+# Power BI Playwright Quality Suite — Test Strategy
 
-## 1. Refined objective
+## 1. Objective
 
-This strategy is intentionally reset to match the current priority:
+Build a **simple, configuration-driven suite** that catches every signal that can make a Power BI report visual render wrong data, stale data, or no data at all — for **any report in any workspace**, without requiring report-specific automation code.
 
-- **Build a simple, reusable suite for any Power BI report in the workspace**
-- **Start with basic but valuable checks**
-- **Focus on refresh health, schema drift, and broken visuals**
-- **Do not overinvest in RLS-heavy or highly bespoke report behavior yet**
-
-The suite should be easy to move from Codespaces into an enterprise pipeline with minimal change.
+The suite is not a general UI test harness.  It is a **Power BI health monitor** that uses Playwright as its execution backbone.
 
 ---
 
-## 2. What changed from the earlier direction
+## 2. The three signals that break visuals
 
-The first draft leaned too far toward report-specific UI behavior and persona concerns. That is not the right starting point now.
+These are the only signals the suite asserts on.  Everything else is noise.
 
-The refined starting point is:
-
-1. **workspace-wide visual smoke coverage**
-2. **refresh-history health checks**
-3. **semantic-model schema signature checks**
-4. **duplicate/error-pattern checks**
-
-This still uses Playwright as the main automation harness, but the suite must include **metadata assertions** in addition to browser assertions.
+| ID | Signal | Root cause |
+|---|---|---|
+| **RH-002** | Latest dataset refresh is `Failed`, `Disabled`, `Cancelled`, or `Unknown` | Visuals are reading from a stale or empty dataset |
+| **RH-003** | Any entry in refresh history matches a data-integrity or credential error pattern | Broken data, broken auth, or duplicate key values in source causing bad aggregations |
+| **MS-001** | A Many-to-Many relationship is not in the intentional allowlist | A dimension table has non-unique key values; filter propagation changes; visual totals are wrong |
+| **VS-NNN** | A report page embed raises a Power BI SDK visual error | Broken measure, missing field, unconstrained join, or credential failure at render time |
 
 ---
 
-## 3. Inputs used for this strategy
+## 3. Two-lane architecture
 
-### 3.1 Current repository artifacts
+### Lane A — Visual smoke (enterprise only)
 
-- existing project context from enterprise Power BI workspace
-- legacy Power BI discovery/auth approach
-- prior metadata/export notes used for architectural ideas only
+- Playwright embeds the report page using a per-report embed token
+- The Power BI JavaScript SDK fires `rendered` or `error` events
+- Any SDK error code is treated as a test failure
+- One Playwright test per report page (`VS-001`, `VS-002`, …)
 
-### 3.2 Reference baseline
+### Lane B — Dataset health (enterprise + dry-run)
 
-The repository `kerski/pbi-dataops-visual-error-testing` is the best starting reference for the harness shape.
+- **RH-002 / RH-003**: call the Power BI REST refresh history endpoint; analyse status codes and error messages in-process (no browser needed)
+- **MS-001**: compare the committed model baseline JSON against the live model; detect new unallowlisted M:M relationships
+- One Playwright "test" per dataset (deduplicated across pages) for the health checks
 
-Useful elements from that reference:
-
-- Playwright as the execution engine
-- a simple config + global setup model
-- generated test-case records
-- service-principal-based live execution
-- broken visual detection through report embed/render checks
-
-What to keep from it:
-
-- **simple harness shape**
-- **test-case driven execution**
-- **workspace/report/page level coverage**
-- **CI-friendly packaging**
-
-What not to copy blindly:
-
-- highly report-page-specific assumptions
-- treating visual render success as the only quality signal
-- relying only on live service execution when Codespaces is isolated
-
-### 3.3 PBIP observation
-
-The dropped PBIP file confirms the project anchor:
-
-- report path: `<Report-Name>.Report`
-
-At the moment, only the `.pbip` manifest is present in the repo, not the report folder contents. That means the current plan can use PBIP as **project context**, but not yet as a full source of page and visual definitions.
+The dataset health lane can run anywhere — CI, Codespaces, local — because it uses only the REST API, not a browser.
 
 ---
 
-## 4. Suite scope
-
-The suite should cover a Power BI workspace through two lanes.
-
-### 4.1 Lane A: Visual smoke lane
-
-Purpose:
-
-- confirm that reports/pages render
-- detect broken visuals or embed failures
-- provide a thin browser-level quality gate
-
-This is where Playwright is the primary engine.
-
-### 4.2 Lane B: Model health lane
-
-Purpose:
-
-- detect refresh failures
-- inspect refresh history over a recent window such as 7 days
-- detect schema drift
-- detect fragile source-extraction changes
-- detect duplicate or suspicious model structures
-
-This lane can be implemented in TypeScript helpers and, where pragmatic, PowerShell/XMLA-assisted generation inspired by the reference repo.
-
-### 4.3 Why both lanes are needed
-
-A report can render and still be unhealthy:
-
-- refresh may have failed yesterday
-- source columns may have changed
-- table/column definitions may have drifted
-- M/SQL extraction may have changed unexpectedly
-- duplicate model objects may introduce ambiguity or broken visuals later
-
-So the suite should not be “only Playwright pages”. It should be a **Power BI report quality suite** with Playwright as the execution backbone.
-
----
-
-## 5. Recommended starting architecture
-
-## 5.1 Keep the harness light
-
-Use the kerski structure as the baseline, then extend only where needed.
-
-Recommended top-level structure:
+## 4. Suite structure
 
 ```text
-docs/
-  architecture/
-    playwright_test_strategy.md
-
 playwright/
   config/
-    enterprise.generated.json
-  .auth/
-    msal-device-token-cache.json
-  fixtures/
-    snapshots/
-      workspace/
-      refresh-history/
-      model-signatures/
+    enterprise.generated.json   # runtime — gitignored
+    enterprise.focus.json       # runtime — gitignored
+  fixtures/snapshots/
+    model-baseline/             # committed — one JSON per report model
+    model-signatures/           # committed — schema drift baselines
+    refresh-history/            # committed — mock fixtures for dry-run
+    enterprise-config/          # committed — sample shape for reference
   helper-functions/
-    auth/
-    powerbi-rest/
-    powerbi-xmla/
-    signatures/
-    comparisons/
-    logging/
+    powerbi-enterprise.ts       # REST API: auth, refresh history, embed token, datasources
+    refresh-health.ts           # refresh history analysis + data-integrity error scanning
+    enterprise-config.ts        # load/save enterprise.generated.json
+    focus.ts                    # focus menu: 9 named options + routing matrix
+    signature-diff.ts           # schema drift comparison
+    source-extraction.ts        # SQL extraction from M partition expressions
+    duplicate-checks.ts         # duplicate heuristic helpers
+    types.ts                    # shared TypeScript types
+    env-loader.ts               # .env loading
+    file-reader.ts              # fixture file helpers
   tests/
-    visual/
-      workspace-visual-smoke.spec.ts
-    metadata/
+    metadata/                   # dry-run (no credentials, no browser)
+      fixture-contracts.spec.ts
       refresh-health.spec.ts
       schema-drift.spec.ts
+      source-extraction.spec.ts
       duplicate-checks.spec.ts
-  global/
-    global-setup.ts
-playwright.config.ts
-package.json
+      model-structure.spec.ts   # MS-001 against committed baseline
+    visual/                     # enterprise (live Power BI)
+      dataset-health.spec.ts    # RH-002, RH-003
+      report-pages.spec.ts      # VS-NNN visual smoke
+  global/global-setup.ts
+scripts/
+  setup.ts                      # interactive setup wizard (focus menu + config)
+  ingest-model-txt.ts           # .txt export → JSON baseline + drift detection
 ```
 
-This is deliberately flatter than a large enterprise UI framework.
-
-For the current implementation:
-
-- local runs should use the committed mock fixtures already in the repo
-- enterprise visual setup should be produced by `npm run setup`, not by manual ID editing
-
 ---
 
-## 6. Baseline from the kerski repository
+## 5. Focus system
 
-The kerski repository is a good template because it already proves:
+`npm run setup` ends with a **focus selection menu** — 9 named options that let the developer skip unrelated checks when running across large workspaces:
 
-- Power BI tests can be **test-case driven**
-- Playwright works well as the runner
-- report embed/render validation is a useful smoke gate
-- CI packaging can stay small
-
-### 6.1 What to adopt directly
-
-1. **Playwright configuration pattern**
-2. **global setup entry point**
-3. **helper-functions split**
-4. **test-case driven execution**
-5. **pipeline-friendly outputs**
-
-### 6.2 What to extend
-
-Add new helper areas for:
-
-- refresh-history retrieval
-- semantic-model signature capture
-- drift comparison against a stored baseline
-- duplicate detection rules
-- source extraction comparison from partitions/M/SQL
-
-### 6.3 What to postpone
-
-Do not start with:
-
-- large Page Object Model hierarchies
-- deep persona libraries
-- RLS-specific scenario matrices
-- custom UI interaction libraries for every report type
-
-Those can come later if the suite proves useful.
-
----
-
-## 7. Core checks for the first usable version
-
-The first version should answer basic operational questions for **any report in the workspace**.
-
-### 7.1 Visual smoke checks
-
-For each report/page test case:
-
-- can the report be embedded or opened?
-- does the page render?
-- does the render emit known visual error states?
-- does the page show a common Power BI error banner/modal/text pattern?
-
-This follows the kerski model closely.
-
-### 7.2 Refresh health checks
-
-Use Power BI REST refresh history to inspect at least the last 7 days.
-
-Minimum checks:
-
-- latest refresh status
-- whether any refresh failed in the last 7 days
-- failure code and normalized failure message
-- count of failures in the inspection window
-- timestamp of last successful refresh
-
-This directly aligns to the existing legacy logic that parses `serviceExceptionJson` and nested failure payloads.
-
-### 7.3 Schema drift checks
-
-Capture a baseline signature for each semantic model and compare it on future runs.
-
-Minimum signature surface:
-
-- tables
-- columns
-- measures
-- partitions
-- relationships
-- roles if present, but only as metadata, not as primary test focus
-
-For partitions and source definitions, capture:
-
-- source type
-- M expression when visible
-- extracted SQL when visible
-
-This is especially important because the legacy extraction is fragile and should be tested rather than assumed.
-
-### 7.4 Duplicate and suspicious structure checks
-
-Add simple checks for:
-
-- duplicate table names
-- duplicate measure names within the same table
-- duplicate extracted source patterns where one definition appears copied or drifted
-- duplicate relationship patterns
-- unexpected inactive relationships not in an explicit allowlist
-
-These should begin as **warnings/fail-fast rules** only where the signal is clear.
-
-### 7.5 Refresh pattern analysis
-
-Beyond knowing whether a refresh failed, the suite should surface operational patterns:
-
-| Check | Description |
+| Focus | Runs |
 |---|---|
-| **Consecutive failures** | How many refreshes in a row have failed? ≥ 3 is a critical signal. |
-| **Staleness** | Hours since the last successful refresh. Configurable threshold (e.g. 24 h for daily datasets). |
-| **Failure classification** | Group failures by error code to distinguish transient blips from persistent issues (e.g. 3× OAuth credential failure = service connection broken). |
+| All signals | RH-002, RH-003, MS-001, VS-NNN |
+| Broken visuals only | VS-NNN |
+| Broken refresh (latest) | RH-002 |
+| Credential / auth errors | RH-003 (credential patterns only) |
+| Duplicate PK / M:M errors | MS-001 |
+| Data-integrity errors | RH-003 (data-integrity patterns only) |
+| Refresh health (all signals) | RH-002 + RH-003 |
+| Model integrity | MS-001 |
+| Quick triage | RH-002 + MS-001 |
 
-Common error codes to watch for:
+Focus is persisted to `playwright/config/enterprise.focus.json` (gitignored).  Each spec reads this at start time and calls `test.skip()` for out-of-scope tests.
 
-- `ModelRefresh_ShortMessage_ProcessingError` — often a credential or OAuth issue
-- `DM_GWPipeline_Gateway_SpooledOperationFailed` — gateway timeout or overload
-- `ProcessingError` — broad category; inspect `serviceExceptionJson` for detail
+---
 
-Implementation: `analyzeRefreshPatterns(refreshes, maxStaleHours, nowIso)` in `refresh-health.ts`.
+## 6. Model baseline workflow
 
-### 7.6 Cross-table integrity checks
+The MS-001 check requires a committed JSON baseline per report model.
 
-Power BI models that evolve over time accumulate structural debt. Add checks for:
+1. Export model metadata to a `.txt` file (via Python REST/XMLA script or manual export)
+2. Run `npm run ingest:model-txt -- "MyReport.txt"` to parse and write the baseline JSON
+3. On re-run, the ingest script compares the new export against the committed baseline and exits 1 with a drift report if structural changes are found
+4. Review the drift report; if the change is intentional, add the relationship key to `intentionalManyToMany` in the baseline JSON and commit
+5. The test passes on the next run
 
-| Check | Description |
+The baseline fixture ships with a generic `sample-model-baseline.json` demonstrating the shape.
+
+---
+
+## 7. Design decisions and constraints
+
+| Decision | Rationale |
 |---|---|
-| **Cross-table measure names** | Same measure name defined in multiple tables — causes confusion and potential inconsistency. |
-| **Zombie tables** | Hidden tables with no visible columns and no measures — likely orphaned after a model restructure. |
-
-These are warnings, not hard failures. They flag model hygiene issues before they become visible bugs.
-
-### 7.7 Linking refresh failures to visual errors (roadmap)
-
-A future capability: correlate the two lanes.
-
-- When a page fails to render (`QueryUserError`, `Missing_References`, etc.) *and* the dataset
-  had a failed refresh in the same window → the test report should surface both signals together.
-- This avoids chasing visual errors that are really just symptoms of a broken data pipeline.
-- Implementation: add a summary step in global teardown that cross-references
-  `enterprise.generated.json` visual results with the most recent `evaluateRefreshHealth` output.
+| No threshold env vars for staleness or failure count | Every broken refresh is a signal; thresholds produced false negatives |
+| RH-001 (refresh history exists) removed | Not a visual breakage signal |
+| DS-001 (datasource connection details) removed | REST endpoint unreliable across dataset types; RH-003 catches credential failures via history |
+| MS-002 (bidirectional cross-filter) removed | Performance concern, not a direct visual breakage signal |
+| Inactive relationships ignored | Not a visual breakage signal |
+| `tsx/cjs` require hook instead of `tsx` direct | Node 18 ESM loader crashes on Windows mapped network drives (`M:`) due to URL scheme parsing |
+| Model baseline is committed JSON, not live XMLA | Allows dry-run in isolated environments; XMLA requires enterprise connectivity |
+| One test per dataset for health checks | Avoids duplicate API calls when a report has many pages |
 
 ---
 
-## 8. Live mode and sandbox mode
+## 8. What is deliberately out of scope
 
-The suite should still support both sandbox and enterprise execution, but in a simpler form than the earlier draft.
-
-## 8.1 Enterprise live mode
-
-This is the primary target mode.
-
-Use:
-
-- user device-flow or service principal authentication
-- Power BI REST API
-- XMLA endpoint where allowed
-- `npm run setup` to resolve workspace/report/page configuration
-
-This matches both the reference repo and the legacy extraction workflow.
-
-## 8.2 Sandbox mode
-
-Because Codespaces is isolated, sandbox mode should not attempt to fully recreate real Power BI browser behavior at first.
-
-Instead, sandbox mode should focus on:
-
-- validating the harness wiring
-- validating parsers and comparison logic
-- validating stored snapshot comparisons
-- validating mock refresh history parsing
-- validating failure normalization rules
-
-For the browser layer, sandbox mode can use a small set of canned/mock payloads later, but that is **not** the first priority.
-
-### 8.3 Important simplification
-
-Do not spend early effort building a full fake Power BI shell.
-
-The first useful sandbox value is in:
-
-- metadata parser tests
-- diff logic tests
-- refresh-history rule tests
-
-That is much cheaper and better aligned to the current goal.
+- Large Page Object Model hierarchies
+- Deep persona / RLS scenario matrices
+- Custom UI interaction libraries per report type
+- Offline Power BI browser simulation
+- Advanced XMLA TOM scripting in the test runner
+- Any assertion that requires knowing report-specific visual names or layout
 
 ---
 
-## 9. Data contracts
+## 9. Reference baseline
 
-The suite should be driven by a few compact artifacts.
+The kerski `pbi-dataops-visual-error-testing` repository provided the harness shape:
 
-### 9.1 Generated enterprise config
+- Playwright as the execution engine
+- config + global setup model
+- test-case driven execution with VS-NNN IDs
+- service-principal-based live execution
+- broken visual detection via embed/render SDK events
 
-For the visual lane, a generated JSON config written by `npm run setup`:
-
-```json
-{
-  "workspaceId": "<guid>",
-  "workspaceName": "<workspace>",
-  "datasetId": "<guid>",
-  "datasetName": "<dataset>",
-  "reportId": "<guid>",
-  "reportName": "<report>",
-  "pageId": "ReportSection...",
-  "pageDisplayName": "Summary page",
-  "embedUrl": "https://app.powerbi.com/reportEmbed?...",
-  "reportUrl": "https://app.powerbi.com/groups/.../reports/.../ReportSection...",
-  "discoveredAt": "2026-06-03T..."
-}
-```
-
-The generated file should be:
-
-- created by CLI
-- gitignored
-- treated as enterprise runtime state, not source-controlled configuration
-
-### 9.2 Workspace model inventory file
-
-For metadata checks:
-
-```json
-{
-  "workspaceId": "<guid>",
-  "workspaceName": "<workspace>",
-  "models": [
-    {
-      "datasetId": "<guid>",
-      "datasetName": "<dataset>"
-    }
-  ]
-}
-```
-
-### 9.3 Refresh signature file
-
-Per model:
-
-```json
-{
-  "datasetId": "<guid>",
-  "windowDays": 7,
-  "latestStatus": "Completed",
-  "lastSuccessTime": "2026-05-10T18:06:34.967Z",
-  "failureCount": 1,
-  "failures": [
-    {
-      "time": "2026-03-11T18:21:51.45Z",
-      "code": "ModelRefresh_ShortMessage_ProcessingError",
-      "message": "Failed to get OAuth resource id, please make sure the OAuth is supported"
-    }
-  ]
-}
-```
-
-### 9.4 Model signature file
-
-Per dataset/model:
-
-```json
-{
-  "datasetId": "<guid>",
-  "datasetName": "<dataset>",
-  "tables": [],
-  "relationships": [],
-  "partitions": [],
-  "measures": [],
-  "sourceSignatures": []
-}
-```
-
-These files become the transfer-friendly contract between environments.
-
-For the current implementation, the committed mock fixtures are the default local contract.
-
----
-
-## 10. How to use the legacy script experience
-
-The legacy script is valuable mainly as a **source of tested extraction logic**, not as the runtime architecture itself.
-
-### 10.1 Keep these ideas
-
-1. refresh history parsing and nested error extraction
-2. XMLA/TOM for semantic-model structure
-3. ADOMD/DMVs where storage or model internals matter
-4. M-to-SQL extraction for visible source logic
-5. explicit handling of fragile/nullable metadata access
-
-### 10.2 Convert them into suite checks
-
-Instead of only producing a text dump, the new suite should:
-
-- collect signatures
-- compare signatures to baseline snapshots
-- fail or warn when differences exceed defined rules
-
-### 10.3 Suggested first comparison rules
-
-- new table added
-- table removed
-- column added
-- column removed
-- data type changed
-- measure expression changed
-- relationship changed
-- partition source type changed
-- extracted SQL changed
-- refresh failed within inspection window
-
-This is more useful than a static export alone.
-
----
-
-## 11. Duplicate detection strategy
-
-The duplicate checks should stay simple at first.
-
-Recommended starting rules:
-
-1. duplicate logical table names
-2. duplicate visible measure names within the same table
-3. duplicate extracted SQL blocks across partitions where duplication is unexpected
-4. suspicious duplicate relationship edges between the same table-column pairs
-5. repeated local date artifacts or duplicate calendar-like structures
-
-Output should distinguish:
-
-- **error**: likely invalid or breaking
-- **warning**: likely technical debt or drift
-- **info**: interesting but not yet actionable
-
----
-
-## 12. Recommended test lanes in Playwright
-
-Even metadata checks can still live in Playwright tests for consistency.
-
-### 12.1 `tests/visual/workspace-visual-smoke.spec.ts`
-
-Responsibilities:
-
-- iterate report/page test cases
-- obtain embed/open target
-- verify render success
-- detect known visual error patterns
-
-### 12.2 `tests/metadata/refresh-health.spec.ts`
-
-Responsibilities:
-
-- query refresh history
-- normalize failure payloads
-- enforce rules for latest status and 7-day history
-
-### 12.3 `tests/metadata/schema-drift.spec.ts`
-
-Responsibilities:
-
-- capture current semantic-model signature
-- compare to baseline snapshot
-- emit diffs clearly
-
-### 12.4 `tests/metadata/duplicate-checks.spec.ts`
-
-Responsibilities:
-
-- run duplicate heuristics
-- classify issues
-
-This keeps the suite unified while still separating concerns cleanly.
-
----
-
-## 13. Authentication and environment handling
-
-### 13.1 Live mode
-
-Use the reference approach:
-
-- service principal
-- tenant-aware endpoint resolution
-- REST for workspace/report/dataset/refresh calls
-- XMLA for model structure access
-
-### 13.2 Sandbox mode
-
-Use stored snapshots and mock payloads for:
-
-- refresh history
-- model signatures
-- diff test cases
-
-Do not require enterprise login for local parser and drift-validation work.
-
-### 13.3 Keep environment binding outside tests
-
-Environment values must stay in:
-
-- `.env`
-- environment manifests
-- pipeline secrets
-
-Never hardcode:
-
-- workspace IDs
-- report IDs
-- dataset IDs
-- tenant IDs
-
----
-
-## 14. Transferability mechanics
-
-To keep the solution drag-and-drop friendly:
-
-1. keep the suite driven by CSV/JSON inputs
-2. keep auth/environment data external
-3. keep schema snapshots as plain JSON
-4. keep helper functions small and composable
-5. keep report-specific logic out of the base harness
-
-The ideal enterprise move should require only:
-
-- copying the package
-- supplying secrets/manifests
-- generating or curating test-case files
-- running Playwright in CI
-
----
-
-## 15. What not to overengineer now
-
-Avoid these in the first implementation:
-
-- full workspace-wide POM catalog
-- complicated locator abstraction layers
-- advanced persona/RLS orchestration
-- a complete offline clone of Power BI Service
-- speculative visual interaction libraries before there are real use cases
-
-The suite should earn complexity only after the first checks prove useful.
-
----
-
-## 16. Suggested phased implementation
-
-### Phase 1: harness bootstrap
-
-- initialize Playwright project
-- lift the simple kerski-style structure
-- add environment and logging helpers
-
-### Phase 2: workspace visual smoke
-
-- create report/page test cases
-- implement render/broken-visual checks
-- produce CI-friendly HTML/JUnit output
-
-### Phase 3: refresh health
-
-- add REST refresh-history retrieval
-- normalize failure messages using the legacy logic pattern
-- add 7-day failure window assertions
-
-### Phase 4: schema signatures
-
-- capture tables, columns, measures, partitions, relationships
-- capture visible M and extracted SQL
-- save baseline snapshots
-
-### Phase 5: drift and duplicate rules
-
-- compare current snapshots to baseline
-- add duplicate heuristics
-- classify warnings vs failures
-
-### Phase 6: optional report-specific behavior later
-
-- only after the generic suite is valuable
-- only for reports that justify deeper UI testing
-
----
-
-## 17. Immediate recommendation
-
-Build the suite as a **small Power BI workspace quality harness**:
-
-- **Playwright for visual smoke**
-- **REST/XMLA helpers for refresh and schema checks**
-- **CSV/JSON-driven inputs**
-- **snapshot comparison for drift**
-- **kerski repo as the structural baseline**
-- **legacy extraction logic reused only where it adds hard-won value**
-
-That is the right “basic to start with” architecture: broad enough for any report in the workspace, useful for fragile schema and refresh concerns, and still compact enough for enterprise transfer.
-
----
-
-## 18. Comprehensive test catalog
-
-The first implementation targets a single report, but every test is written generically so it can run against any report in any workspace.
-
-### 18.1 Test lane A: visual smoke
-
-These tests are intentionally thin and generic.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| VS-001 | Discovered enterprise config resolves | Confirm discovery writes a usable report/page target | live | implement now |
-| VS-002 | Generated config is structurally valid | Validate the generated enterprise config before visual execution | live | implement now |
-| VS-003 | Report page renders without known visual error patterns | Detect broken visuals, error banners, permission modals, resource-limit messages, and common Power BI error text | live first | scaffold now, enable later |
-| VS-004 | Report page emits rendered state | Confirm render lifecycle completes for an embedded/opened report page | live first | scaffold now, enable later |
-| VS-005 | Report page has no known field/relationship error text | Catch classic broken-visual failures caused by missing fields or relationship ambiguity | live first | scaffold now, enable later |
-
-### 18.2 Test lane B: refresh health
-
-These tests are the first high-value metadata checks.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| RH-001 | Refresh history fixture or payload parses | Prove refresh-history input can be parsed into normalized structure | sandbox + live | implement now |
-| RH-002 | Latest refresh status is present | Ensure the latest refresh status is available and non-empty | sandbox + live | implement now |
-| RH-003 | Latest refresh status is operationally acceptable | Fail when latest status is in a blocked state such as Failed or Disabled | sandbox + live | implement now |
-| RH-004 | Seven-day refresh history window is evaluated | Ensure the rule engine inspects the configured lookback window, default 7 days | sandbox + live | implement now |
-| RH-005 | Refresh failures are counted correctly | Verify failure count over the inspection window | sandbox + live | implement now |
-| RH-006 | Nested serviceExceptionJson is normalized | Extract stable failure code/message from nested refresh error payloads | sandbox + live | implement now |
-| RH-007 | Last successful refresh timestamp is retained | Preserve operational recovery signal even when there are historical failures | sandbox + live | implement now |
-| RH-008 | Historical failure message remains detectable | Ensure known failure patterns remain visible after normalization | sandbox + live | implement now |
-
-### 18.3 Test lane C: schema signature and drift
-
-These tests create the baseline discipline for fragile model changes.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| SD-001 | Baseline model signature fixture is structurally valid | Validate the committed model signature mock fixture before drift comparison | sandbox | implement now |
-| SD-002 | Baseline model signature file is valid | Ensure committed signature JSON is structurally sound | sandbox + live | implement now |
-| SD-003 | Table inventory matches baseline | Detect added/removed tables | sandbox + live | implement now |
-| SD-004 | Column inventory matches baseline | Detect added/removed columns | sandbox + live | implement now |
-| SD-005 | Measure inventory matches baseline | Detect added/removed measures | sandbox + live | implement now |
-| SD-006 | Relationship inventory matches baseline | Detect changed relationship edges, cardinality, activity, or direction | sandbox + live | implement now |
-| SD-007 | Partition source types match baseline | Detect changes between M/query/calculated partition sources | sandbox + live | implement now |
-| SD-008 | Extracted SQL signatures match baseline | Detect changes in visible source SQL after normalization | sandbox + live | implement now |
-| SD-009 | Auto-date and hidden support artifacts are classified, not mistaken for drift | Avoid false alarms for known internal patterns | sandbox + live | implement now |
-| SD-010 | Drift output is human-readable | Ensure diffs are grouped into added, removed, and changed sets | sandbox + live | implement now |
-
-### 18.4 Test lane D: SQL and source extraction reliability
-
-These tests protect the most fragile extraction logic inherited from the legacy script.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| SE-001 | `Query=\"...\"` SQL block can be extracted from M | Reproduce the legacy extraction seam in TypeScript | sandbox | implement now |
-| SE-002 | Power BI line-feed and tab escapes are normalized | Convert `#(lf)`, `#(tab)`, `#(cr)` into stable SQL text | sandbox | implement now |
-| SE-003 | Double-quoted M escapes are normalized | Convert `\"\"` semantics into stable SQL text | sandbox | implement now |
-| SE-004 | Missing SQL block returns null cleanly | Avoid false positives when M has no native SQL query | sandbox | implement now |
-| SE-005 | SQL normalization is stable for large partition queries | Prevent whitespace-only drift noise | sandbox + live | implement now |
-
-### 18.5 Test lane E: duplicate and suspicious-structure checks
-
-These tests should begin as low-noise heuristics, not aggressive failures.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| DU-001 | Duplicate logical table names are detected | Catch invalid repeated table identities | sandbox + live | implement now |
-| DU-002 | Duplicate visible measure names per table are detected | Catch ambiguous repeated measures | sandbox + live | implement now |
-| DU-003 | Duplicate relationship edges are detected | Catch repeated from/to table-column pairs | sandbox + live | implement now |
-| DU-004 | Duplicate extracted SQL signatures are reported | Surface copied or unexpectedly repeated source definitions | sandbox + live | implement now |
-| DU-005 | Known internal support-column patterns are allowlisted | Avoid false positives for Power BI hidden row-number columns | sandbox + live | implement now |
-| DU-006 | Known intentionally inactive relationships are allowlisted | Avoid false positives where inactive relationships are part of model design | sandbox + live | implement now |
-
-### 18.6 Fixture and contract validation tests
-
-These keep the suite maintainable.
-
-| Test ID | Name | Goal | Mode | Initial status |
-|---|---|---|---|---|
-| FX-001 | Refresh snapshot matches contract | Prevent malformed refresh fixture files | sandbox + live | implement now |
-| FX-002 | Model signature snapshot matches contract | Prevent malformed schema baseline files | sandbox + live | implement now |
-| FX-003 | Refresh health snapshot matches contract | Prevent malformed refresh-health summary files | sandbox + live | implement now |
-| FX-004 | Generated enterprise config parses cleanly when present | Keep enterprise discovery output validated | live | implement later |
-
-### 18.7 Execution order for the first build
-
-Build and enable the first set of executable tests in this order:
-
-1. `FX-*` contract tests
-2. `SE-*` source extraction tests
-3. `RH-*` refresh health tests
-4. `SD-*` schema signature and drift tests
-5. `DU-*` duplicate-check tests
-6. `VS-*` visual smoke scaffolding, initially skipped outside enterprise execution
-
-This order maximizes immediate value in the isolated Codespaces environment while preserving the path to live visual testing later.
+This suite adopts those patterns and extends them with the dataset health lane.

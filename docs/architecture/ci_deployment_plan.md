@@ -2,34 +2,108 @@
 
 ## Purpose
 
-Run the Playwright Power BI quality suite automatically on a schedule, in a clean isolated environment, with results published as Power BI-consumable assets — no human interaction required after initial setup.
+Run the Playwright Power BI quality suite automatically on a schedule, in a clean isolated environment, with results published as artifacts — no human interaction required after initial setup.
 
 ---
 
-## Target architecture
+## Architecture overview
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  On-prem Azure DevOps Server                                    │
-│                                                                 │
-│  Pipeline (scheduled — daily or on demand)                      │
-│    │                                                            │
-│    ├─ Stage 1: dry-run   (no credentials, fast, always runs)   │
-│    └─ Stage 2: enterprise (service principal, live PBI checks)  │
-│         │                                                       │
-│         └─ Artifacts published to pipeline run                  │
-│              ├─ playwright-report/  (HTML)                      │
-│              ├─ test-results/       (JUnit XML + screenshots)   │
-│              └─ pbi-export/         (JSON → Power BI dataset)   │
-└─────────────────────────────────────────────────────────────────┘
-         │
-         └─ Power BI dataflow or REST push dataset
-              └─ Dashboard / report built on test result history
+Pipeline (scheduled — daily or on-demand)
+  │
+  ├─ Stage 1: dry-run   (no credentials, fast, always green — catches suite regressions)
+  └─ Stage 2: enterprise (service principal, live PBI checks)
+       │
+       └─ Artifacts
+            ├─ playwright-report/  (HTML — visual diff, annotations, traces)
+            ├─ test-results/       (JUnit XML + screenshots)
+            └─ pbi-export/         (JSON → optional Power BI push dataset)
 ```
 
 ---
 
-## Phase 1 — Self-hosted ADO agent (one-time, IT does this once)
+## Option A — GitHub Actions (recommended for GitHub-hosted repos)
+
+### One-time setup
+
+1. Create an Azure AD app registration; note `Client ID` and `Tenant ID`
+2. Generate a client secret
+3. Enable "Service principals can use Power BI APIs" in Power BI Admin Portal → Tenant settings
+4. Add the service principal as **Member** to each workspace the suite should test
+5. Store secrets in a GitHub environment named `power-bi-prod`:
+   - `PBI_TENANT_ID`
+   - `PBI_CLIENT_ID`
+   - `PBI_CLIENT_SECRET`
+
+### `.github/workflows/pbi-quality.yml`
+
+```yaml
+name: PBI Quality Suite
+
+on:
+  schedule:
+    - cron: '0 6 * * *'    # 06:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      workspace_name:
+        description: 'Override workspace name (leave blank for configured default)'
+        required: false
+      report_name:
+        description: 'Override report name (leave blank for all configured)'
+        required: false
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run typecheck
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dry-run-report
+          path: playwright-report/
+
+  enterprise:
+    needs: dry-run
+    runs-on: ubuntu-latest
+    environment: power-bi-prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm test
+        env:
+          PBI_TENANT_ID:      ${{ secrets.PBI_TENANT_ID }}
+          PBI_CLIENT_ID:      ${{ secrets.PBI_CLIENT_ID }}
+          PBI_CLIENT_SECRET:  ${{ secrets.PBI_CLIENT_SECRET }}
+          PBI_ENVIRONMENT:    Public
+          PBI_WORKSPACE_NAME: ${{ inputs.workspace_name }}
+          PBI_REPORT_NAME:    ${{ inputs.report_name }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: enterprise-report
+          path: playwright-report/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+```
+
+---
+
+## Option B — Azure DevOps (on-prem, self-hosted agent)
+
+### One-time setup
 
 | Step | Who | What |
 |---|---|---|
@@ -40,21 +114,6 @@ Run the Playwright Power BI quality suite automatically on a schedule, in a clea
 
 Agent install is a ZIP + `config.cmd` — no elevated rights needed after the first service registration.
 
----
-
-## Phase 2 — Service principal (one-time, Power BI admin does this once)
-
-A service principal (Azure App Registration) allows the pipeline to authenticate without a human.
-
-### App registration steps
-
-1. In Azure AD: create an app registration, note `Client ID` and `Tenant ID`
-2. Generate a client secret (set expiry to 1–2 years, add a calendar reminder to rotate)
-3. In Power BI Admin Portal → Tenant settings → **Enable service principals to use Power BI APIs**
-4. Add the service principal as **Member** to each workspace the suite should test
-
-### ADO secret variables
-
 Store these in an ADO Variable Group named `pbi-suite-credentials`:
 
 | Variable | Value |
@@ -64,32 +123,17 @@ Store these in an ADO Variable Group named `pbi-suite-credentials`:
 | `PBI_CLIENT_SECRET` | App registration secret (**mark as secret**) |
 | `PBI_ENVIRONMENT` | `Public` (or `GCC`, `China`, etc.) |
 
-These map directly to the env vars the suite already reads (`readEnterpriseCredentialsFromEnv`).
-
----
-
-## Phase 3 — Pipeline YAML
-
-Add `azure-pipelines.yml` at the repository root.
-
-### Key design decisions
-
-- **Two stages** — dry-run always runs (catches suite regressions); enterprise runs only when credentials are available.
-- **On-demand trigger** — a pipeline variable `REPORT_TARGET` lets a user override which workspace/report to test without editing the YAML.
-- **Config-as-code** — `playwright/config/enterprise.generated.json` is committed for the target workspace/reports. The pipeline uses it directly (CI mode — no interactive CLI needed).
-- **Artifacts** — HTML report, JUnit XML, screenshots, and a structured JSON export are all published.
-
-### `azure-pipelines.yml` (to be created)
+### `azure-pipelines.yml`
 
 ```yaml
-trigger: none   # manual + schedule only
+trigger: none
 
 schedules:
-  - cron: '0 6 * * *'        # 06:00 UTC daily (adjust to business hours)
+  - cron: '0 6 * * *'
     displayName: Daily quality run
     branches:
       include: [ main ]
-    always: true              # run even if no code changes
+    always: true
 
 parameters:
   - name: workspaceName
@@ -107,7 +151,7 @@ variables:
     value: '20.x'
 
 pool:
-  name: Default              # name of your self-hosted agent pool
+  name: Default    # name of your self-hosted agent pool
 
 stages:
 
@@ -117,8 +161,7 @@ stages:
       - job: DryRunTests
         steps:
           - task: NodeTool@0
-            inputs:
-              versionSpec: $(NODE_VERSION)
+            inputs: { versionSpec: $(NODE_VERSION) }
           - script: npm ci
             displayName: Install dependencies
           - script: npm run typecheck
@@ -146,19 +189,18 @@ stages:
         timeoutInMinutes: 60
         steps:
           - task: NodeTool@0
-            inputs:
-              versionSpec: $(NODE_VERSION)
+            inputs: { versionSpec: $(NODE_VERSION) }
           - script: npm ci
             displayName: Install dependencies
-          - script: npm run test:enterprise
+          - script: npm test
             displayName: Run enterprise tests
             env:
-              PBI_TENANT_ID:        $(PBI_TENANT_ID)
-              PBI_CLIENT_ID:        $(PBI_CLIENT_ID)
-              PBI_CLIENT_SECRET:    $(PBI_CLIENT_SECRET)
-              PBI_ENVIRONMENT:      $(PBI_ENVIRONMENT)
-              PBI_WORKSPACE_NAME:   ${{ parameters.workspaceName }}
-              PBI_REPORT_NAME:      ${{ parameters.reportName }}
+              PBI_TENANT_ID:      $(PBI_TENANT_ID)
+              PBI_CLIENT_ID:      $(PBI_CLIENT_ID)
+              PBI_CLIENT_SECRET:  $(PBI_CLIENT_SECRET)
+              PBI_ENVIRONMENT:    $(PBI_ENVIRONMENT)
+              PBI_WORKSPACE_NAME: ${{ parameters.workspaceName }}
+              PBI_REPORT_NAME:    ${{ parameters.reportName }}
           - task: PublishTestResults@2
             condition: always()
             inputs:
@@ -175,75 +217,51 @@ stages:
             inputs:
               targetPath: test-results
               artifact: test-results
-          - task: PublishPipelineArtifact@1
-            condition: always()
-            inputs:
-              targetPath: pbi-export
-              artifact: pbi-export
 ```
 
 ---
 
-## Phase 4 — Structured JSON export for Power BI
+## CI mode — no interactive setup needed
 
-After each enterprise run, a script (`scripts/export-results.ts`) reads the JUnit XML and screenshots index, then writes `pbi-export/run-results.json` with one row per test:
+Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or drive it entirely via env vars.  The suite reads `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` in non-interactive mode and skips all prompts.
+
+On-demand override: pass pipeline parameters / `workflow_dispatch` inputs to target a specific workspace and report without editing files.
+
+---
+
+## Optional: structured JSON export for Power BI
+
+After each enterprise run, publish `test-results/results.xml` to a Power BI push dataset or SharePoint folder for trend dashboards:
 
 ```json
 [
   {
-    "runId": "2025-05-13T06:00:00Z",
+    "runId": "2026-06-04T06:00:00Z",
     "testId": "VS-001",
-    "workspace": "Analytics-Workspace-A",
+    "workspace": "Analytics Workspace",
     "report": "Regional Metrics",
     "page": "Executive Summary",
     "status": "passed",
     "durationMs": 4120,
-    "errorCode": null,
-    "refreshHealth": null
+    "errorCode": null
   },
   {
-    "runId": "2025-05-13T06:00:00Z",
-    "testId": "VS-022",
-    "workspace": "Analytics-Workspace-A",
-    "report": "Clear Triage Report",
-    "page": "Clear Triage",
+    "runId": "2026-06-04T06:00:00Z",
+    "testId": "RH-002",
+    "workspace": "Analytics Workspace",
+    "report": "Regional Metrics",
+    "page": null,
     "status": "failed",
-    "durationMs": 8340,
-    "errorCode": "Missing_References",
-    "refreshHealth": "latest: Failed @ 2025-05-13 · failures in window: 3"
+    "durationMs": 890,
+    "errorCode": "Failed"
   }
 ]
 ```
 
-### Getting this into Power BI (two options)
+**Option A — Push dataset via REST API:** call `POST /v1.0/myorg/groups/{id}/datasets/{id}/rows` after each run.  
+**Option B — SharePoint / Blob drop:** publish JSON to a SharePoint folder; Power BI dataflow refreshes from that path on a schedule.
 
-**Option A — Push dataset via REST API (fully automated)**
-The export script calls `POST /v1.0/myorg/groups/{id}/datasets/{id}/rows` to append today's run to a streaming dataset. The Power BI dashboard updates immediately after the pipeline finishes. Requires the service principal to have write access to one dedicated dataset.
-
-**Option B — Dataflow / SharePoint drop (simpler, no push API needed)**
-The pipeline publishes `pbi-export/run-results.json` to a SharePoint folder or Azure Blob Storage. A Power BI dataflow refreshes from that path on a schedule. Lower complexity, slightly delayed (dataflow refresh lag).
-
-**Recommendation:** start with Option B. Add Option A once the dashboard shape is stable.
-
----
-
-## Phase 5 — Power BI dashboard on test results
-
-Suggested measures once data is in Power BI:
-
-| Visual | Measure |
-|---|---|
-| Pass rate over time (line) | `DIVIDE(COUNTROWS(FILTER(Results, [status]="passed")), COUNTROWS(Results))` |
-| Failures by report (bar) | `COUNTROWS(FILTER(Results, [status]="failed"))` grouped by `[report]` |
-| Error code breakdown (donut) | `COUNTROWS` grouped by `[errorCode]` |
-| Refresh health heatmap | `[refreshHealth]` text column, conditional formatting |
-| Latest run summary card | `MAX([runId])` → pass/fail count |
-
----
-
-## On-demand override
-
-Any team member can trigger a pipeline run manually in ADO and override `workspaceName` / `reportName` parameters to test a specific report without changing config files.
+Recommended: start with Option B.
 
 ---
 
@@ -251,19 +269,9 @@ Any team member can trigger a pipeline run manually in ADO and override `workspa
 
 | What to change | Where |
 |---|---|
-| Which reports to test by default | `playwright/config/enterprise.generated.json` (run `npm run setup` locally first) |
-| Schedule (cron) | `azure-pipelines.yml` → `schedules.cron` |
-| Timeout per test | `playwright.config.ts` → `enterprise` project `timeout` |
-| How many past refreshes to check | `report-pages.spec.ts` → `getRefreshHistory(..., N)` |
-| Power BI environment (GCC, etc.) | `pbi-suite-credentials` variable group → `PBI_ENVIRONMENT` |
+| Which reports to test by default | Commit `playwright/config/enterprise.generated.json` from `npm run setup` |
+| Focus (which signals to check) | Commit `playwright/config/enterprise.focus.json` from `npm run setup` |
+| Schedule (cron) | `azure-pipelines.yml` or `pbi-quality.yml` → `schedules.cron` |
+| Per-test timeout | `playwright.config.ts` → `enterprise` project `timeout` |
+| Power BI environment (GCC, etc.) | `PBI_ENVIRONMENT` secret / variable |
 
----
-
-## Rollout sequence
-
-1. IT installs ADO agent + Node on the server *(~2 hours, one-time)*
-2. Power BI admin creates app registration + workspace membership *(~30 min, one-time)*
-3. Developer commits `azure-pipelines.yml`, sets up variable group, runs first manual pipeline *(~1 hour)*
-4. Developer builds SharePoint/Blob drop + Power BI dataflow for results *(~2 hours)*
-5. Enable the daily schedule, confirm first overnight run *(15 min)*
-6. Build the results dashboard in Power BI *(ongoing)*

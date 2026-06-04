@@ -2,113 +2,97 @@
 
 ## Current objective
 
-Build a lightweight Playwright-based Power BI quality suite applicable to any report in any workspace.
+A lightweight Playwright-based Power BI quality suite that catches every signal that makes a report visual render wrong data, stale data, or no data — for any report in any workspace.
 
-The suite is intentionally focused on:
+---
 
-- broken visual smoke coverage
-- refresh history health
-- schema drift detection
-- fragile source extraction checks
-- duplicate/suspicious structure checks
+## Implemented and passing
 
-It is intentionally **not** focused on advanced RLS or heavy report-specific UI automation yet.
+### Metadata lane (47/47 tests, dry-run, no credentials required)
 
-## Progress recorded from this chat
+| Test file | What it covers |
+|---|---|
+| `fixture-contracts.spec.ts` | Refresh snapshot, schema baseline, and enterprise config shape contracts |
+| `refresh-health.spec.ts` | Refresh history parsing, nested `serviceExceptionJson` normalization, pattern analysis |
+| `schema-drift.spec.ts` | Schema signature generation and drift comparison (added/removed tables, columns, measures, relationships, SQL hash changes) |
+| `source-extraction.spec.ts` | SQL extraction from M partition expressions, normalization |
+| `duplicate-checks.spec.ts` | Duplicate table names, measure names, relationship edges, SQL signatures |
+| `model-structure.spec.ts` | **MS-001** — unallowlisted Many-to-Many relationships against committed baseline |
 
-### Architecture and planning
+### Enterprise lane (live Power BI, requires `npm run setup`)
 
-- Reviewed the current repository artifacts:
-  - reviewed existing report project context
-  - legacy Power BI discovery/auth approach
-  - prior metadata/export notes for architectural ideas only
-- Reviewed the reference baseline:
-  - `kerski/pbi-dataops-visual-error-testing`
-- Reworked the architecture away from RLS-heavy/report-specific design and toward a lighter **visual smoke + model health** approach
-- Wrote and refined:
-  - `docs/architecture/playwright_test_strategy.md`
+| Test file | Checks |
+|---|---|
+| `dataset-health.spec.ts` | **RH-002** latest refresh status; **RH-003** data-integrity / credential error patterns in history |
+| `report-pages.spec.ts` | **VS-NNN** visual smoke — Power BI SDK embed/render errors per report page |
 
-### Documentation
+Both enterprise test files auto-skip when `enterprise.generated.json` or credentials are absent.
 
-- Added `README.md` with:
-  - local setup and run instructions
-  - simplified enterprise bring-up sequence
-  - what to watch for
-  - debugging guidance
-- Added this `work_status.md`
-- Added `.github/copilot-instructions.md`
+---
 
-### Implementation completed
+## Signals in scope (only what breaks visuals)
 
-- Initialized a TypeScript + Playwright project
-- Added:
-  - `playwright.config.ts`
-  - `tsconfig.json`
-  - `package.json`
-- Created the first suite structure under:
-  - `playwright/config/`
-  - `playwright/fixtures/`
-  - `playwright/helper-functions/`
-  - `playwright/test-cases/`
-  - `playwright/tests/`
-  - `playwright/global/`
-  - `scripts/`
-- Refactored the normal local workflow so it uses committed mock fixtures already in the repo
-- Added enterprise discovery CLI:
-  - `scripts/discover-enterprise.ts` (non-interactive, env-driven)
-  - `scripts/discover-interactive.ts` (interactive, menu-driven)
-- Added generated enterprise config support:
-  - `playwright/config/enterprise.generated.json` (gitignored)
-  - `playwright/.auth/msal-device-token-cache.json` (gitignored)
+| ID | Signal |
+|---|---|
+| RH-002 | Latest refresh `Failed`, `Disabled`, `Cancelled`, or `Unknown` |
+| RH-003 | Any historical refresh entry matches data-integrity or credential error pattern |
+| MS-001 | Unallowlisted Many-to-Many relationship in model baseline |
+| VS-NNN | Power BI SDK visual error at render time |
 
-### Metadata lane implemented
+Explicitly removed: RH-001 (history exists), DS-001 (datasource connections), MS-002 (bidirectional cross-filter), threshold-based staleness / consecutive failure checks, inactive relationship checks.
 
-- Added parsing and helper logic for:
-  - refresh-history normalization
-  - nested `serviceExceptionJson` parsing
-  - SQL extraction from M expressions
-  - schema-signature generation
-  - signature drift comparison
-  - duplicate heuristics with allowlists
-- Generated committed baseline snapshots:
-  - `playwright/fixtures/snapshots/model-signatures/baseline-model-signature.json`
-  - `playwright/fixtures/snapshots/refresh-history/baseline-refresh-history.json`
-  - `playwright/fixtures/snapshots/refresh-history/baseline-refresh-health.json`
+---
 
-### Tests implemented
+## Interactive setup workflow
 
-- Metadata tests:
-  - fixture contract tests
-  - source extraction tests
-  - refresh health tests
-  - schema drift tests
-  - duplicate-check tests
-- Visual tests:
-  - enterprise visual smoke implementation that auto-skips until `enterprise.generated.json` and credentials are available
+`npm run setup` is the full enterprise configuration wizard:
 
-## Current result
+1. Device-flow sign-in
+2. Workspace selection (search or number)
+3. Report selection (multi-select, search)
+4. Page selection per report
+5. **Focus menu** — 9 named options (e.g. "Broken refresh", "Duplicate PK / M:M", "Quick triage") that skip out-of-scope tests; persisted to `enterprise.focus.json`
+6. Option to run tests immediately
 
-- **Metadata lane is runnable and passing locally**
-- **Visual lane runs against enterprise when credentials and discovery output are present**
+---
 
-Current validated local commands:
+## Key files
+
+| File | Purpose |
+|---|---|
+| `scripts/setup.ts` | Interactive wizard — discovery + focus selection |
+| `scripts/ingest-model-txt.ts` | Parse Python .txt model export → committed JSON baseline + drift detection |
+| `playwright/helper-functions/focus.ts` | Focus menu definitions, routing matrix, `isInFocus()` |
+| `playwright/helper-functions/refresh-health.ts` | `evaluateRefreshHealth()`, `scanForDataIntegrityErrors()` |
+| `playwright/helper-functions/powerbi-enterprise.ts` | REST API auth, refresh history, embed token |
+| `playwright/fixtures/snapshots/model-baseline/sample-model-baseline.json` | Generic mock baseline (6 tables, 5 relationships, 2 intentional M:M) |
+
+---
+
+## Commands
 
 ```bash
-npm run typecheck
-npm test
+npm install          # install dependencies
+npm run typecheck    # TypeScript check
+npm test             # dry-run — 47 fixture-based tests, no credentials
+npm run setup        # interactive enterprise configuration wizard
 ```
+
+---
 
 ## Current limitations
 
-- Live REST/XMLA capture has not yet replaced the committed local fixtures
+- Live XMLA model capture not yet integrated (model baseline must be generated from a Python script export)
+- Schema drift and source extraction checks run against committed mock fixtures only; live REST schema endpoint not available for regular datasets
 - Token cache path is fixed; multi-tenant support not implemented
+
+---
 
 ## Recommended next steps
 
-1. Copy the suite into the enterprise-connected environment.
-2. Set `CLIENT_ID` and optionally `TENANT_ID` in `.env`, then run:
-   - `npm run discover:interactive`
-3. Confirm the generated file at `playwright/config/enterprise.generated.json`.
-4. Run `npm run test:visual` to smoke-test selected reports.
-5. Run `npm test` to validate the full suite.
-6. Decide later whether to add live refresh/XMLA capture in enterprise, without changing the default local fixture-based workflow.
+1. Run `npm run setup` in the enterprise environment to select reports and focus
+2. Run `npm test` to confirm enterprise tests execute against live Power BI
+3. Commit `azure-pipelines.yml` or `.github/workflows/pbi-quality.yml` from `docs/architecture/ci_deployment_plan.md` for scheduled CI
+4. For each report with a Python model export: run `npm run ingest:model-txt -- "MyReport.txt"` and commit the baseline JSON to enable MS-001
+5. As the suite proves value, expand the model-baseline set to cover more reports in the workspace
+

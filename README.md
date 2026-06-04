@@ -1,200 +1,315 @@
 # pbi-playwright-suit
 
-Lightweight Playwright-based Power BI quality suite.
+Lightweight Playwright-based Power BI quality suite.  
+Catches the signals that break report visuals **before users notice them**.
 
 Two run modes:
 
-1. **Dry run** — validates suite logic against committed mock fixtures. No credentials, no browser, runs anywhere.
-2. **Enterprise run** — connects to live Power BI, picks workspace + reports interactively, then runs visual health checks against published reports.
+| Mode | When to use |
+|---|---|
+| **Dry run** | Validates suite logic against committed mock fixtures. No credentials, no browser. Runs anywhere — CI, Codespaces, local. |
+| **Enterprise run** | Connects to a live Power BI tenant, interrogates refresh history and model structure via REST API, and smoke-tests rendered report pages via Playwright. |
 
-## Quick start
+---
 
-### Enterprise run (live Power BI, Windows — Chrome already installed)
+## What the suite checks
+
+The suite focuses exclusively on signals that cause Power BI visuals to render **wrong data, stale data, or no data at all**.
+
+| ID | Signal | Why it matters |
+|---|---|---|
+| **RH-002** | Latest dataset refresh status is `Failed`, `Disabled`, `Cancelled`, or `Unknown` | Visuals are serving data from the last successful refresh — potentially days or weeks stale |
+| **RH-003** | Any historical refresh entry contains a data-integrity or credential error pattern | Patterns like `MonikerWithUnboundDataSources`, `OAuth`, `duplicate key`, `primary key`, `RowValueConflict` indicate broken data or auth that causes wrong or empty visuals |
+| **MS-001** | A Many-to-Many relationship is not in the intentional allowlist | The "dimension" table has non-unique key values — Power BI resolves M:M internally but filter propagation changes, causing wrong visual totals |
+| **VS-NNN** | A report page embed raises a Power BI SDK visual error | Broken measures, missing fields, unconstrained joins, or credential failures detected at render time |
+
+Checks **not** in scope: RLS scenarios, inactive relationships, datasource connection details, bidirectional cross-filter warnings, threshold-based staleness timers.
+
+---
+
+## Quick start — dry run (no credentials, no browser)
 
 ```powershell
-git pull
-npm install
-npm run setup
-```
-
-`npm run setup` signs you in via browser (device-flow), lets you pick a workspace, reports, and pages, then **offers to run visual checks immediately** — no separate command needed.
-
-> **Do NOT run `npm run install:browsers` on Windows.**
-> The enterprise run uses your existing Chrome installation.
-
-### Dry run (no credentials, no browser)
-
-```powershell
-git pull
+git clone https://github.com/AndrewMichael2020/pbi-playwright-suit
+cd pbi-playwright-suit
 npm install
 npm test
 ```
 
-Runs all fixture-based checks. Visual checks are automatically skipped when no enterprise config is present.
+All 47 fixture-based tests run and pass.  Visual enterprise tests auto-skip when no enterprise config is present.
 
-## Prerequisites
+---
+
+## Enterprise run (live Power BI, Windows)
+
+### Prerequisites
 
 - Node 18+ (Node 20+ recommended)
-- npm
-- **Enterprise run on Windows**: Google Chrome (system-installed). No browser download needed.
-- **Enterprise run on Linux / CI**: run `npm run install:browsers` once to download bundled Chromium.
+- Google Chrome or Microsoft Edge installed (no download required)
+- An organisational account with at least **Viewer** access to the target workspace
 
-## Install
-
-```powershell
-npm install
-```
-
-No Python virtual environment is required.
-No browser download is required on Windows.
-
-## Do I need `npm run install:browsers`?
-
-| Environment | Need it? |
-|---|---|
-| Windows + Chrome installed | **No — skip it** |
-| Windows + Edge installed | No — set `$env:PBI_BROWSER_CHANNEL = "msedge"` and skip it |
-| Linux / CI (no system browser) | Yes — run it once |
-
-If you ran it and saw this warning, **ignore it and move on**:
-
-```
-Playwright Host validation warning: Host system is missing dependencies!
-    api-ms-win-core-apiquery-l2-1-0.dll
-```
-
-That warning is produced when Playwright validates its own bundled Chromium on Windows.
-It does not affect your system Chrome.
-
-## Connecting to Power BI
-
-### Interactive (recommended)
+### 1 — Connect and configure
 
 ```powershell
 npm run setup
 ```
 
-Shows your workspaces and reports sorted alphabetically (top 20 first). Enter a **number** to select, or **type any text** to search by name:
+`setup` runs an interactive wizard:
+
+1. Signs you in via **device-flow** (browser opens `https://login.microsoft.com/device`)
+2. Lists your workspaces — enter a number or type to search
+3. Lists reports in that workspace — select one or more
+4. Lists pages in each report — select all or specific pages
+5. Asks **what to check** — shows a focus menu so you can skip unrelated tests on large workspaces:
 
 ```
-  Workspaces (3 total)
-    [  1] Analytics-Workspace-A
-    [  2] Analytics-Workspace-B
-    [  3] Analytics-Workspace-C
+  What do you want to check?  (12 test config(s) queued)
 
-  type to search · Enter number (1–3): 1
+   [ 1]  All signals                   — run every check
+   [ 2]  Broken visuals only           — render errors, SDK failures
+   [ 3]  Broken refresh (latest)       — latest refresh status is not Completed
+   [ 4]  Credential / auth errors      — OAuth, unbound data source, login failure
+   [ 5]  Duplicate PK / M:M errors     — unallowlisted Many-to-Many relationships
+   [ 6]  Data-integrity errors          — duplicate key, RowValueConflict in history
+   [ 7]  Refresh health (all signals)  — RH-002 + RH-003 combined
+   [ 8]  Model integrity               — MS-001 only
+   [ 9]  Quick triage                  — RH-002 + MS-001, fast scan of breakage
 
-  Reports (showing 20 of 47)
-    [  1] Quarterly Summary
-    [  2] Regional Metrics
-    ...
-    [ 20] Workforce Overview
-
-  type to search · Enter to show all 47
-  Enter number(s) — 1  1,3,5  2-6  all
-  > regional
-
-  Reports (2 total)
-    [  1] Regional Metrics
-    [  2] Regional Drill-Through
-
-  > 1
-
-  Pages — Regional Metrics (5 total)
-    [  1] Executive Summary
-    ...
-    [  5] Data Quality
-
-  > 1,5
-
-✅ 2 report page(s) queued
-
-Run tests now? [Y/n]:
+  Enter number (1–10):
 ```
 
-After you answer **Y**, enterprise checks run immediately.
+6. Confirms config and optionally runs tests immediately
 
-### Non-interactive (CI / env-var driven)
+### 2 — Run tests
 
 ```powershell
-npm run setup
+npm test
 ```
 
-Requires `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` to be set in `.env`.
-Optional: `PBI_DATASET_NAME`, `PBI_PAGE_NAME`.
+Or, if you chose "Run now?" in setup, tests run automatically.
 
-### What it writes
+### What setup writes
 
-`npm run setup` writes `playwright/config/enterprise.generated.json` (gitignored).
-No environment variables are written. The file is read automatically when running tests.
+- `playwright/config/enterprise.generated.json` — report/page list (gitignored)
+- `playwright/config/enterprise.focus.json` — selected focus (gitignored)
 
-**First run:** the terminal prints a sign-in code:
+Neither file is committed.  Pull and re-run `npm run setup` after a `git pull` that adds new reports.
 
+> **Do NOT run `npm run install:browsers` on Windows.**  
+> The enterprise run uses your existing system Chrome or Edge.
+
+---
+
+## Model baseline workflow
+
+The MS-001 check compares the live model structure against a committed JSON baseline.  
+Generating and maintaining the baseline is a one-time step per report.
+
+### 1 — Export model metadata
+
+Use a Python metadata script (or the Power BI REST API) to export a `.txt` file describing the model's tables, columns, and relationships.
+
+### 2 — Ingest into a baseline
+
+```powershell
+npm run ingest:model-txt -- "MyReport.txt"
 ```
-To sign in, use a web browser to open the page https://login.microsoft.com/device
-and enter the code XXXXXXXX to authenticate.
+
+This writes `playwright/fixtures/snapshots/model-baseline/my-report.json` and commits it.
+
+On subsequent runs, if the model has changed (new M:M relationship, removed table, cardinality change), the script prints a drift report and exits `1`.
+
+### 3 — Review and allowlist intentional changes
+
+Open the baseline JSON and add any intentional M:M relationships to `intentionalManyToMany`:
+
+```json
+"intentionalManyToMany": [
+  "Date::DateKey → Calendar Bridge::DateKey",
+  "User Access::Region → Customer::Region"
+]
 ```
 
-Open that URL, enter the code, sign in with your organisational account, then **re-run** the command.
-Subsequent runs reuse the cached token.
+Commit the updated baseline.  The test will pass on the next run.
+
+---
+
+## CI integration
+
+### GitHub Actions (Linux runner — installs Chromium once)
+
+```yaml
+name: PBI Quality Suite
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 06:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm run typecheck
+      - run: npm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dry-run-report
+          path: playwright-report/
+
+  enterprise:
+    needs: dry-run
+    runs-on: ubuntu-latest
+    environment: power-bi-prod       # store secrets here
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci
+      - run: npx playwright install chromium --with-deps
+      - run: npm test
+        env:
+          PBI_TENANT_ID:     ${{ secrets.PBI_TENANT_ID }}
+          PBI_CLIENT_ID:     ${{ secrets.PBI_CLIENT_ID }}
+          PBI_CLIENT_SECRET: ${{ secrets.PBI_CLIENT_SECRET }}
+          PBI_ENVIRONMENT:   Public
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: enterprise-report
+          path: playwright-report/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test-results/
+```
+
+### Azure DevOps (on-prem, self-hosted agent with Chrome)
+
+See [`docs/architecture/ci_deployment_plan.md`](docs/architecture/ci_deployment_plan.md) for the full ADO pipeline YAML with service-principal auth and artifact publishing.
+
+### CI mode — no interactive setup needed
+
+Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or generate it in CI with env vars:
+
+```yaml
+env:
+  PBI_WORKSPACE_NAME: Analytics Workspace
+  PBI_REPORT_NAME:    Regional Metrics
+```
+
+The suite reads those vars in non-interactive mode and skips the interactive prompts.
+
+---
 
 ## Understanding test results
 
-| Test outcome | Meaning |
+| Outcome | Meaning |
 |---|---|
-| ✅ passed | All visuals on that page rendered without SDK errors |
-| ❌ `error: InvalidUnconstrainedJoin` | A visual has an unconstrained join — data model fix needed |
-| ❌ `error: QueryUserError` | A DAX query failed — measure or relationship issue |
-| ❌ `error: Missing_References` | A visual references a field that no longer exists |
-| ⏭ skipped (XMLA permissions) | Dataset XMLA endpoint is disabled — enable in Power BI Admin Portal |
+| ✅ passed | No visual error, refresh healthy, model structure clean |
+| ❌ RH-002 | Latest refresh is Failed / Disabled — visuals are stale |
+| ❌ RH-003 | Refresh history contains data-integrity or credential errors |
+| ❌ MS-001 | Unallowlisted Many-to-Many — possible duplicate PK data |
+| ❌ VS-NNN visual error | SDK error at render time — broken measure, missing field, or auth failure |
+| ⏭ skipped | Focus excludes this check, or enterprise config not present |
 
-Videos are kept for every failed test. Screenshots capture the visual state 3 s after the error
-fires, so charts that partially loaded will be visible.
+Each failed test has a **screenshot**, **video**, and **trace** attached.  
+For `RH-*` and `MS-*` failures, annotations detail the specific error code and relationship key.
 
-## Optional environment variables
+```powershell
+npx playwright show-report
+npx playwright show-trace test-results/<folder>/trace.zip
+```
+
+---
+
+## Environment variables
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `CLIENT_ID` | built-in public client | AAD app registration |
-| `TENANT_ID` | — | restrict to a specific tenant |
-| `PBI_WORKSPACE_NAME` | *(required for non-interactive)* | workspace name |
-| `PBI_REPORT_NAME` | *(required for non-interactive)* | report name |
-| `PBI_DATASET_NAME` | same as report name | dataset name |
-| `PBI_PAGE_NAME` | first page | page display name |
-| `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, …) |
-| `PBI_TOKEN_CACHE_FILE` | auto | path to MSAL token cache file |
+| `CLIENT_ID` | built-in public client | AAD app registration client ID |
+| `TENANT_ID` | — | Restrict to a specific Azure AD tenant |
+| `PBI_CLIENT_SECRET` | — | Client secret for service principal (CI) |
+| `PBI_WORKSPACE_NAME` | — | Non-interactive: target workspace name |
+| `PBI_REPORT_NAME` | — | Non-interactive: target report name |
+| `PBI_DATASET_NAME` | same as report | Override dataset name |
+| `PBI_PAGE_NAME` | first page | Override page display name |
+| `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, `China`, …) |
+| `PBI_TOKEN_CACHE_FILE` | auto | Path to MSAL token cache |
 | `PBI_BROWSER_CHANNEL` | `chrome` | `chrome` or `msedge` |
+
+---
 
 ## Repository layout
 
 ```text
 playwright/
-  config/enterprise.generated.json       # written by npm run setup, gitignored
-  fixtures/snapshots/                     # committed mock fixtures for dry run
+  config/
+    enterprise.generated.json     # written by npm run setup — gitignored
+    enterprise.focus.json         # written by npm run setup — gitignored
+    environments/                 # environment endpoint maps
+  fixtures/snapshots/
+    model-baseline/               # committed model structure baselines (JSON)
+    model-signatures/             # committed schema drift baselines (JSON)
+    refresh-history/              # mock refresh fixtures for dry-run tests
+    enterprise-config/            # sample enterprise config shape (reference only)
   helper-functions/
-  tests/metadata/                         # dry-run checks (fixtures only)
-  tests/visual/                           # enterprise checks (live Power BI)
+    enterprise-config.ts          # load/save enterprise.generated.json
+    focus.ts                      # focus menu definitions + routing matrix
+    powerbi-enterprise.ts         # REST API helpers (auth, refresh history, embed token)
+    refresh-health.ts             # refresh history analysis + data-integrity scanning
+    signature-diff.ts             # schema drift comparison
+    source-extraction.ts          # SQL extraction from M expressions
+    duplicate-checks.ts           # duplicate heuristic helpers
+    types.ts                      # shared TypeScript types
+  tests/
+    metadata/                     # dry-run fixture-based tests
+      fixture-contracts.spec.ts
+      refresh-health.spec.ts
+      schema-drift.spec.ts
+      source-extraction.spec.ts
+      duplicate-checks.spec.ts
+      model-structure.spec.ts     # MS-001 against committed baseline
+    visual/                       # enterprise live tests
+      dataset-health.spec.ts      # RH-002, RH-003
+      report-pages.spec.ts        # VS-NNN visual smoke
+  global/global-setup.ts
 scripts/
-  setup.ts                                # Power BI connection setup (interactive & CI)
+  setup.ts                        # interactive setup wizard
+  ingest-model-txt.ts             # model .txt → JSON baseline + drift detection
+docs/
+  architecture/
+    playwright_test_strategy.md
+    ci_deployment_plan.md
+    work_status.md
 ```
+
+---
 
 ## Troubleshooting
 
-### ENOENT on `enterprise.generated.json`
+### `ENOENT: enterprise.generated.json`
 
-Run `npm run setup` first to connect to Power BI and select your report targets.
+Run `npm run setup` first.
 
 ---
 
 ### Sign-in code appears and the terminal returns immediately
 
-This is expected. Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
+Expected.  Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
 
 ---
 
 ### `uuid@8.3.2` deprecation warning during `npm install`
 
-Fixed. The repo now uses `@azure/msal-node@^5.2.2`. Pull and reinstall:
+Fixed — the repo now uses `@azure/msal-node@^5.2.2`.  Pull and reinstall:
 
 ```powershell
 git pull && npm install
@@ -202,9 +317,23 @@ git pull && npm install
 
 ---
 
+### `ERR_UNSUPPORTED_ESM_URL_SCHEME` on Windows mapped network drives
+
+This crashes when running scripts on a network path like `M:\`.  
+Fix: clone or copy the repo to a **local drive** (`C:\`, `D:\`, etc.) before running.
+
+---
+
+### `Playwright Host validation warning: api-ms-win-core-apiquery-l2-1-0.dll`
+
+This warning appears when Playwright validates its bundled Chromium on Windows.  
+It does **not** affect your system Chrome.  If you are using system Chrome, ignore it.
+
+---
+
 ### Test skipped with "XMLA permissions"
 
-Your Power BI admin needs to enable the XMLA endpoint on that dataset:
+Your Power BI admin needs to enable the XMLA endpoint:  
 **Power BI Admin Portal → Workspaces → (workspace) → Dataset settings → XMLA endpoint → Read**.
 
 ---
@@ -216,12 +345,4 @@ Remove-Item -Recurse -Force node_modules
 Remove-Item package-lock.json
 npm install
 ```
-
-## How to debug visual failures
-
-1. Open the HTML report: `npx playwright show-report`
-2. Each failing test has a **screenshot**, **video**, and **trace** attached.
-3. The video captures the full render timeline — even if the screenshot shows a loading state,
-   the video will show what actually rendered before the error fired.
-4. For trace analysis: `npx playwright show-trace test-results/<test-folder>/trace.zip`
 
