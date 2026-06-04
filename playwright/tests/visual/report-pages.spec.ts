@@ -18,8 +18,14 @@ const skipReason = !allConfigs
 test.describe('Report page health', () => {
   test.skip(Boolean(skipReason), skipReason);
 
-  for (const config of allConfigs ?? []) {
-    test(`${config.reportName} › ${config.pageDisplayName}`, async ({ page }) => {
+  for (const [i, config] of (allConfigs ?? []).entries()) {
+    const id = `VS-${String(i + 1).padStart(3, '0')}`;
+    test(id, async ({ page }, testInfo) => {
+      testInfo.annotations.push(
+        { type: 'workspace', description: config.workspaceName ?? '' },
+        { type: 'report',    description: config.reportName },
+        { type: 'page',      description: config.pageDisplayName },
+      );
       const credentials = enterpriseCredentials!;
       const endpoints = getPowerBiEndpoints(credentials.environment);
       const accessToken = await getAccessToken(credentials, endpoints);
@@ -100,7 +106,7 @@ test.describe('Report page health', () => {
 
       expect(
         result,
-        `Broken visual in "${config.reportName}" › "${config.pageDisplayName}": ${result}`,
+        `${id} Broken visual in "${config.reportName}" › "${config.pageDisplayName}": ${result}`,
       ).toBe('rendered');
     });
   }
