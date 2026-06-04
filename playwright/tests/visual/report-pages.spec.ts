@@ -59,7 +59,7 @@ test.describe('Report page health', () => {
 
       await page.goto('about:blank');
       await page.addScriptTag({
-        url: 'https://cdnjs.cloudflare.com/ajax/libs/powerbi-client/2.23.1/powerbi.min.js',
+        path: require.resolve('powerbi-client/dist/powerbi.min.js'),
       });
 
       // Canonical kerski pattern: embed into a full-viewport container, then race
