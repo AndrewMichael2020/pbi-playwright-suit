@@ -363,13 +363,13 @@ async function main(): Promise<void> {
     rl.close();
 
     if (runNow !== 'n' && runNow !== 'no') {
-      console.log(`\n${magenta('🎯 Launching full test suite (metadata + visual)…')}\n${'─'.repeat(60)}\n`);
+      console.log(`\n${magenta('🎯 Launching enterprise quality checks…')}\n${'─'.repeat(60)}\n`);
       const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
       // Stamp a run ID so all artifact paths for this run share one folder.
       const runId = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
       process.env.PBI_RUN_ID = runId;
       console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
-      spawn(npm, ['run', 'test:full'], { stdio: 'inherit' }).on('exit', (code) => {
+      spawn(npm, ['run', 'test:enterprise'], { stdio: 'inherit' }).on('exit', (code) => {
         process.exit(code ?? 0);
       });
     }
