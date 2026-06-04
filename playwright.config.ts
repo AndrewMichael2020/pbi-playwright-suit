@@ -21,7 +21,7 @@ export default defineConfig({
   reporter: [
     ['html', { open: 'never', outputFolder: `${archiveDir}/html-report` }],
     ['junit', { outputFile: `${archiveDir}/results.xml` }],
-    ['line'],
+    ['./playwright/reporter'],
   ],
   globalSetup: require.resolve('./playwright/global/global-setup'),
   use: {
