@@ -84,34 +84,34 @@ Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
 
 ```
   Workspaces (3 total)
-    [  1] My-BI-Workspace-PROD
-    [  2] My-BI-Workspace-UAT
-    [  3] My-BI-Workspace-DEV
+    [  1] Analytics-Workspace-A
+    [  2] Analytics-Workspace-B
+    [  3] Analytics-Workspace-C
 
-  Enter number: 2
+  Enter number: 1
 
   Reports (showing 20 of 47)
-    [  1] Alpha Dashboard
-    [  2] Beta Metrics
+    [  1] Quarterly Summary
+    [  2] Regional Metrics
     ...
-    [ 20] Omega Summary
+    [ 20] Workforce Overview
 
   /keyword to search · Enter to show all 47
   Enter number(s) — 1  1,3,5  2-6  all
-  > /upcc
+  > /regional
 
   Reports (2 total)
-    [  1] UPCC Dashboard
-    [  2] UPCC Executive Summary
+    [  1] Regional Metrics
+    [  2] Regional Drill-Through
 
   > 1
 
-  Pages — UPCC Dashboard (13 total)
-    [  1] Summary page
+  Pages — Regional Metrics (5 total)
+    [  1] Executive Summary
     ...
-    [ 13] UI testing
+    [  5] Data Quality
 
-  > 1,13
+  > 1,5
 
 ✅ Discovery complete — 2 test(s) queued
 
