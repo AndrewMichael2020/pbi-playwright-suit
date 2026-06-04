@@ -127,3 +127,97 @@ npm run setup        # interactive enterprise configuration wizard
 
 All SSD tests auto-skip if no snapshot file exists or `PBI_SQL_SERVER` is unset — fully backwards compatible with the current setup.
 
+---
+
+## Microsoft Fabric SKU consumption
+
+### What this suite does and does not consume
+
+| Operation | CU impact | Notes |
+|---|---|---|
+| REST API calls (list workspaces, reports, pages, datasets, refresh history) | **Zero** | Runs on Microsoft shared metadata infrastructure |
+| `GenerateToken` (embed token) | **Negligible** | One token per report page; ~0 CU-seconds |
+| Report page rendering via Power BI JS SDK | **Non-zero** | DAX queries fire per visual; this is the only real CU cost |
+| Dataset refresh | **Not triggered** | Suite reads history only — never triggers a refresh |
+| Metadata lane (`npm test`, all 47 fixture tests) | **Zero** | No browser, no embed, no DAX queries |
+
+The suite is a **read-only consumer** equivalent to a single analyst manually opening each report page.
+
+---
+
+### How rendering consumes CUs
+
+When the visual smoke lane embeds a report page, the Power BI SDK fires one DAX query per visual. Each query runs on-capacity and consumes Fabric CUs (Capacity Units) for its duration. Microsoft smooths CU usage over **5-minute windows** and throttles if cumulative overage exceeds the SKU's allocation.
+
+**Estimated CU-seconds per page render (at `rendered` or timeout):**
+
+| Report complexity | Visuals / page | Est. CU-seconds per page |
+|---|---|---|
+| Simple (KPI tiles, cards) | 3–5 | 0.05 – 0.2 |
+| Medium (bar charts, tables, slicers) | 8–15 | 0.2 – 1.0 |
+| Complex (matrix, DAX-heavy measures, large datasets) | 15–25 | 1.0 – 5.0 |
+| Timed out (render > 90s, large dataset cold-start) | — | 2.0 – 8.0 |
+
+> These are approximations. Actual CU draw depends on dataset size, query complexity, number of relationships, and whether the dataset is already warm in memory.
+
+---
+
+### Scenarios by workspace scale
+
+Assumes 2 Playwright workers (default), medium-complexity reports, 1.0 CU-second/page average.
+
+#### Scenario A — 100-page scan (small workspace, spot check)
+- 100 pages × 1.0 CU-s = **100 CU-seconds total**
+- Run duration ≈ 5–8 minutes
+- Average draw: ~0.2–0.3 CUs continuously
+- **Safe on any SKU, including F2**
+
+#### Scenario B — 500-page scan (medium workspace, nightly CI)
+- 500 pages × 1.0 CU-s = **500 CU-seconds total**
+- Run duration ≈ 12–18 minutes
+- Average draw: ~0.5–0.7 CUs continuously
+- **Safe on F2+; throttle risk on F2 only if reports are complex**
+
+#### Scenario C — 1,000-page scan (large workspace, full audit)
+- 1,000 pages × 1.0 CU-s = **1,000 CU-seconds total**
+- Run duration ≈ 20–35 minutes
+- Average draw: ~0.5–0.8 CUs continuously
+- **Safe on F4+; F2 may experience smoothing delays under complex-report load**
+
+#### Scenario D — 1,000-page scan, complex reports (worst case)
+- 1,000 pages × 3.0 CU-s = **3,000 CU-seconds total**
+- Run duration ≈ 30–50 minutes
+- Average draw: ~1.0–1.7 CUs continuously
+- **F4 safe (4 CUs); F2 at risk of throttle after first 5-minute window**
+
+#### Scenario E — Metadata-only run (`npm test`, or any non-visual focus)
+- **0 CU-seconds** — no browser, no DAX, no embed
+- Safe on any SKU, including shared capacity workspaces (no Premium required)
+
+---
+
+### SKU reference
+
+| Fabric SKU | CUs | 5-min allocation | Max burst (10×) | Recommended suite scenario |
+|---|---|---|---|---|
+| F2 | 2 | 600 CU-s | 6,000 CU-s | Metadata-only or ≤ 200 pages visual |
+| F4 | 4 | 1,200 CU-s | 12,000 CU-s | Up to 500 pages visual (nightly CI) |
+| F8 | 8 | 2,400 CU-s | 24,000 CU-s | Up to 1,500 pages visual |
+| F16 | 16 | 4,800 CU-s | 48,000 CU-s | Up to 3,000 pages visual |
+| F32 | 32 | 9,600 CU-s | 96,000 CU-s | Unlimited realistic workloads |
+| P1 (≈ F8) | 8 | 2,400 CU-s | 24,000 CU-s | Same as F8 |
+
+> **Important:** throttling does not fail the test immediately — Power BI queues queries and delays responses. You will see longer render times and possible `render timeout` signals, not hard 429 errors. Watch for test durations >30s as a sign of capacity pressure.
+
+---
+
+### Practical guidance
+
+- Run **metadata-only** (`npm test`) in any environment — zero capacity cost.
+- For **nightly CI** on a real workspace: F4 is the safe floor for up to 500 report pages.
+- **Schedule the visual run off-peak** (e.g. 02:00–04:00) to avoid competing with business-hours report usage on shared capacity.
+- Use **focus mode** to limit CU draw: `broken-visuals` and `quick-triage` skip all REST-only checks and run only the visual lane — no savings over `all checks` for CUs, but reduces run time, which reduces total CU draw.
+- The `--workers=1` flag (edit `playwright.config.ts`) halves parallelism and smooths CU draw if throttling is observed.
+- **Enterprise workspaces on shared Pro capacity** (no Premium/Fabric): embed token generation via `GenerateToken` is not available; the suite automatically falls back to `TokenType.Aad` (UserOwnsData), which renders identically but draws the same CUs.
+
+
