@@ -759,7 +759,7 @@
           "hidden": true
         },
         {
-          "name": "UPCC",
+          "name": "Category",
           "type": "String",
           "hidden": false
         }
