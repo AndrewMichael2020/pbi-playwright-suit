@@ -19,9 +19,9 @@ It is intentionally **not** focused on advanced RLS or heavy report-specific UI 
 ### Architecture and planning
 
 - Reviewed the current repository artifacts:
-  - `UPCC Dashboard.pbip`
-  - `legacy_discover_upcc_v14_fixed_v5.py`
-  - `legacy_concept_powerbi_meta.md`
+  - UPCC project context
+  - legacy Power BI discovery/auth approach
+  - prior metadata/export notes for architectural ideas only
 - Reviewed the reference baseline:
   - `kerski/pbi-dataops-visual-error-testing`
 - Reworked the architecture away from RLS-heavy/report-specific design and toward a lighter **visual smoke + model health** approach

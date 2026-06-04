@@ -4,6 +4,7 @@
   "description": "Lightweight Playwright-based Power BI workspace quality suite",
   "scripts": {
     "discover:enterprise-upcc": "tsx scripts/discover-upcc-enterprise.ts",
+    "install:browsers": "playwright install",
     "typecheck": "tsc --noEmit",
     "test": "playwright test",
     "test:metadata": "playwright test --project=metadata",

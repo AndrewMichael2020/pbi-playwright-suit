@@ -33,7 +33,7 @@ scripts/
 
 ## Prerequisites
 
-1. Node 20+ recommended
+1. Node 18+ required, Node 20+ recommended
 2. npm
 3. For enterprise visual execution: Playwright browser dependencies available in the target environment
 4. For enterprise discovery/visual execution:
@@ -48,6 +48,18 @@ scripts/
 
 ## Install
 
+### Required npm packages
+
+These are installed automatically by `npm install`:
+
+- `@playwright/test`
+- `typescript`
+- `tsx`
+- `@types/node`
+- `@azure/msal-node`
+
+### First-time install
+
 ```bash
 npm install
 ```
@@ -55,6 +67,47 @@ npm install
 No Python dependency installation is required for the current implementation.
 
 For enterprise auth, the suite reads normal shell environment variables and will also load a local `.env` file if present.
+
+### Browser install for visual tests
+
+If you will run the enterprise visual lane, also install Playwright browsers:
+
+```bash
+npm run install:browsers
+```
+
+## Before running anything
+
+Use this order on a fresh clone or after pulling new changes:
+
+```bash
+npm install
+npm run typecheck
+npm test
+```
+
+If you plan to run enterprise visual smoke:
+
+```bash
+npm install
+npm run install:browsers
+npm run discover:enterprise-upcc
+npm run test:visual
+```
+
+If you see:
+
+```text
+Cannot find module '@azure/msal-node'
+```
+
+then the repo dependencies are not fully installed in that clone yet. Run:
+
+```bash
+npm install
+```
+
+again before retrying discovery.
 
 ## Local / Codespaces workflow
 
@@ -124,19 +177,15 @@ npm run test:metadata
 ### Enterprise UPCC workflow
 
 1. install dependencies
-2. discover the real UPCC workspace/report/page via CLI
-3. run the visual smoke test
+2. install Playwright browsers
+3. discover the real UPCC workspace/report/page via CLI
+4. run the visual smoke test
 
 ```bash
 npm install
+npm run install:browsers
 npm run discover:enterprise-upcc
 npm run test:visual
-```
-
-If Playwright browsers are not installed in the enterprise runner:
-
-```bash
-npx playwright install
 ```
 
 Then run the whole suite if needed:

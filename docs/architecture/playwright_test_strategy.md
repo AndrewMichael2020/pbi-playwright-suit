@@ -32,9 +32,9 @@ This still uses Playwright as the main automation harness, but the suite must in
 
 ### 3.1 Current repository artifacts
 
-- `UPCC Dashboard.pbip`
-- `legacy_discover_upcc_v14_fixed_v5.py`
-- `legacy_concept_powerbi_meta.md`
+- existing UPCC project context
+- legacy Power BI discovery/auth approach
+- prior metadata/export notes used for architectural ideas only
 
 ### 3.2 Reference baseline
 
