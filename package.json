@@ -29,6 +29,6 @@
     "typescript": "^6.0.3"
   },
   "dependencies": {
-    "@azure/msal-node": "^5.2.2"
+    "@azure/msal-node": "^3.8.10"
   }
 }

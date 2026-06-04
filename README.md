@@ -37,14 +37,13 @@ scripts/
 2. npm
 3. For enterprise visual execution: Playwright browser dependencies available in the target environment
 4. For enterprise discovery/visual execution:
-   - `CLIENT_ID`
    - optional `TENANT_ID`
-   - optional `PBI_ENVIRONMENT` (defaults to `Public`)
-   - optional `.env` file in the repository root
+   - optional `PBI_ENVIRONMENT` (defaults to `Public`, meaning Azure Public cloud endpoints)
 5. Enterprise auth currently follows the legacy pattern:
    - interactive MSAL device flow
    - token cache reuse between runs
    - your own user access, not a service principal
+   - default public client app ID matches the legacy script if `CLIENT_ID` is not supplied
 
 ## Install
 
@@ -56,7 +55,7 @@ These are installed automatically by `npm install`:
 - `typescript`
 - `tsx`
 - `@types/node`
-- `@azure/msal-node`
+- `@azure/msal-node` (pinned to a Node 18-compatible release)
 
 ### First-time install
 
@@ -66,7 +65,7 @@ npm install
 
 No Python dependency installation is required for the current implementation.
 
-For enterprise auth, the suite reads normal shell environment variables and will also load a local `.env` file if present.
+For enterprise auth, the intended path is the same legacy-style MSAL device flow you were already using. No `.env.example` file is required.
 
 ### Browser install for visual tests
 
@@ -109,53 +108,29 @@ npm install
 
 again before retrying discovery.
 
-## Local / Codespaces workflow
+## Refreshing npm install
 
-### 1. Type-check
-
-```bash
-npm run typecheck
-```
-
-### 2. Run metadata tests only
+If you want to refresh a specific package install:
 
 ```bash
-npm run test:metadata
+npm uninstall @azure/msal-node
+npm install
 ```
 
-### 3. Run the full suite
-
-This currently runs:
-
-- metadata tests against committed mock fixtures
-- the visual smoke test, which auto-skips unless enterprise discovery + credentials exist
+If you want to refresh the full dependency install:
 
 ```bash
-npm test
+rm -rf node_modules package-lock.json
+npm install
 ```
 
-## What the current tests validate
+On Windows PowerShell:
 
-### Metadata lane
-
-- report/test-case fixture contract validity
-- refresh history parsing and normalization
-- 7-day refresh-health evaluation
-- nested `serviceExceptionJson` parsing
-- schema signature comparison against committed UPCC snapshots
-- drift comparison against the committed UPCC baseline
-- SQL extraction and normalization from M expressions
-- duplicate/suspicious-structure heuristics with allowlists for known model patterns
-
-### Visual lane
-
-The visual test now uses:
-
-- `scripts/discover-upcc-enterprise.ts`
-- `playwright/config/upcc-enterprise.generated.json`
-- `playwright/tests/visual/upcc-visual-smoke.spec.ts`
-
-It does not require manual CSV editing for the UPCC enterprise path.
+```powershell
+Remove-Item -Recurse -Force node_modules
+Remove-Item package-lock.json
+npm install
+```
 
 ## Simple workflows
 
@@ -234,6 +209,8 @@ Notes:
 - this command is the enterprise replacement for manual ID editing
 - on the first run, device flow will print a sign-in code and URL
 - later runs should reuse the cached token until it expires or is invalidated
+- if `CLIENT_ID` is omitted, the suite uses the same public client ID as the legacy script
+- `PBI_ENVIRONMENT=Public` means the Azure Public cloud endpoint set, not public/unauthenticated Power BI access
 
 ## What to watch for in enterprise
 

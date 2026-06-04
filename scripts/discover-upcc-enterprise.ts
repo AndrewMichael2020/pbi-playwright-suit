@@ -15,7 +15,7 @@ loadEnvFile();
 async function main(): Promise<void> {
   const credentials = readEnterpriseCredentialsFromEnv();
   if (!credentials) {
-    throw new Error('Missing CLIENT_ID. Set CLIENT_ID in your shell or .env before running enterprise discovery.');
+    throw new Error('Unable to build enterprise auth settings.');
   }
 
   const workspaceName = process.env.UPCC_WORKSPACE_NAME ?? 'FHA-ADAR-BI-UAT';

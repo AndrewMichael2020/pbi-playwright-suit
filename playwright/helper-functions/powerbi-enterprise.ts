@@ -7,6 +7,8 @@ import {
   type TokenCacheContext,
 } from '@azure/msal-node';
 
+const LEGACY_PUBLIC_CLIENT_ID = 'd3590ed6-52b3-4102-aeff-aad2292ab01c';
+
 export interface PowerBiEndpoints {
   apiPrefix: string;
   webPrefix: string;
@@ -97,16 +99,12 @@ export function getPowerBiEndpoints(environment = process.env.PBI_ENVIRONMENT ??
 }
 
 export function readEnterpriseCredentialsFromEnv(): EnterpriseCredentials | null {
-  const clientId = process.env.CLIENT_ID;
+  const clientId = process.env.CLIENT_ID ?? LEGACY_PUBLIC_CLIENT_ID;
   const tenantId = process.env.TENANT_ID;
   const environment = process.env.PBI_ENVIRONMENT ?? 'Public';
   const cacheFile =
     process.env.PBI_TOKEN_CACHE_FILE ??
     path.join(process.cwd(), 'playwright', '.auth', 'msal-device-token-cache.json');
-
-  if (!clientId) {
-    return null;
-  }
 
   return {
     clientId,
