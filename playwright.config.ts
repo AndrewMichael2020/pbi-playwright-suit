@@ -32,9 +32,9 @@ export default defineConfig({
       timeout: 180_000,
       use: {
         channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
-        launchOptions: {
-          args: ['--disable-web-security'],
-        },
+        launchOptions: { args: ['--disable-web-security'] },
+        screenshot: 'only-on-failure',
+        video: 'retain-on-failure',
       },
     },
   ],

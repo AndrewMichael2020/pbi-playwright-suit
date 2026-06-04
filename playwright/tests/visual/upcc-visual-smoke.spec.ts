@@ -5,11 +5,11 @@ import {
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,
 } from '../../helper-functions/powerbi-enterprise';
-import { loadUpccEnterpriseConfig } from '../../helper-functions/upcc-enterprise-config';
+import { loadUpccEnterpriseConfigs } from '../../helper-functions/upcc-enterprise-config';
 
-const enterpriseConfig = loadUpccEnterpriseConfig();
+const allConfigs = loadUpccEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
-const skipReason = !enterpriseConfig
+const skipReason = !allConfigs
   ? 'Run npm run discover:interactive first.'
   : !enterpriseCredentials
     ? 'Unable to build enterprise auth settings.'
@@ -18,14 +18,8 @@ const skipReason = !enterpriseConfig
 test.describe('UPCC visual smoke', () => {
   test.skip(Boolean(skipReason), skipReason);
 
-  test(
-    `Visual smoke — ${enterpriseConfig?.reportName ?? 'report'} › ${enterpriseConfig?.pageDisplayName ?? 'page'}`,
-    async ({ page }) => {
-      if (!enterpriseConfig || !enterpriseCredentials) {
-        test.skip(true, skipReason);
-      }
-
-      const config = enterpriseConfig!;
+  for (const config of allConfigs ?? []) {
+    test(`${config.reportName} › ${config.pageDisplayName}`, async ({ page }) => {
       const credentials = enterpriseCredentials!;
       const endpoints = getPowerBiEndpoints(credentials.environment);
       const accessToken = await getAccessToken(credentials, endpoints);
@@ -42,9 +36,8 @@ test.describe('UPCC visual smoke', () => {
         url: 'https://cdnjs.cloudflare.com/ajax/libs/powerbi-client/2.23.1/powerbi.min.js',
       });
 
-      // Races 'rendered' (all visuals OK) vs 'error' (any visual broke).
-      // Canonical kerski pattern — the SDK fires these as DOM events on
-      // document.body; whichever fires first determines the result.
+      // Canonical kerski pattern: race 'rendered' vs 'error' DOM events on
+      // document.body. The SDK fires 'error' the moment any visual breaks.
       const result: string = await page.evaluate(
         async ({ reportId, pageId, embedUrl, embedToken }) => {
           const pbi = (window as any)['powerbi-client'];
@@ -68,7 +61,8 @@ test.describe('UPCC visual smoke', () => {
 
           const once = { once: true };
           const errorPromise = new Promise<string>((resolve) => {
-            document.body.addEventListener('error', (e: any) => resolve(`error: ${e?.detail?.message ?? 'unknown'}`), once);
+            document.body.addEventListener('error', (e: any) =>
+              resolve(`error: ${e?.detail?.message ?? 'unknown'}`), once);
           });
           const renderedPromise = new Promise<string>((resolve) => {
             document.body.addEventListener('rendered', () => resolve('rendered'), once);
@@ -83,6 +77,6 @@ test.describe('UPCC visual smoke', () => {
         result,
         `Broken visual in "${config.reportName}" › "${config.pageDisplayName}": ${result}`,
       ).toBe('rendered');
-    },
-  );
+    });
+  }
 });

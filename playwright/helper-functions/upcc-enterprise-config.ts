@@ -23,15 +23,20 @@ export const upccEnterpriseConfigPath = path.join(
   'upcc-enterprise.generated.json',
 );
 
-export function loadUpccEnterpriseConfig(): UpccEnterpriseConfig | null {
-  if (!fs.existsSync(upccEnterpriseConfigPath)) {
-    return null;
-  }
-
-  return JSON.parse(fs.readFileSync(upccEnterpriseConfigPath, 'utf8')) as UpccEnterpriseConfig;
+/** Returns all discovered report+page entries, or null if not discovered yet. */
+export function loadUpccEnterpriseConfigs(): UpccEnterpriseConfig[] | null {
+  if (!fs.existsSync(upccEnterpriseConfigPath)) return null;
+  const raw = JSON.parse(fs.readFileSync(upccEnterpriseConfigPath, 'utf8')) as unknown;
+  // Accept both legacy single-object format and current array format.
+  return Array.isArray(raw) ? (raw as UpccEnterpriseConfig[]) : [raw as UpccEnterpriseConfig];
 }
 
-export function saveUpccEnterpriseConfig(config: UpccEnterpriseConfig): void {
+export function saveUpccEnterpriseConfigs(configs: UpccEnterpriseConfig[]): void {
   fs.mkdirSync(path.dirname(upccEnterpriseConfigPath), { recursive: true });
-  fs.writeFileSync(upccEnterpriseConfigPath, `${JSON.stringify(config, null, 2)}\n`);
+  fs.writeFileSync(upccEnterpriseConfigPath, `${JSON.stringify(configs, null, 2)}\n`);
+}
+
+// Kept for non-interactive script backward compat.
+export function saveUpccEnterpriseConfig(config: UpccEnterpriseConfig): void {
+  saveUpccEnterpriseConfigs([config]);
 }
