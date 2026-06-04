@@ -68,7 +68,9 @@ test.describe('Report page health', () => {
 
           await page.goto('about:blank');
           await page.addScriptTag({
-            path: require.resolve('powerbi-client/dist/powerbi.min.js'),
+            // Vendored at playwright/vendor/powerbi.min.js — committed to the repo so it
+            // works on every machine without needing 'powerbi-client' installed separately.
+            path: require('node:path').join(process.cwd(), 'playwright', 'vendor', 'powerbi.min.js'),
           });
 
           // Canonical kerski pattern: embed into a full-viewport container, then race
