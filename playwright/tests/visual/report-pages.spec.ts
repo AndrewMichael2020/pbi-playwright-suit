@@ -163,15 +163,15 @@ test.describe('Report page health', () => {
             });
           }
 
-          // On failure, wait briefly so the screenshot captures a more informative visual state.
+          // On failure: wait briefly so the screenshot captures a more informative state,
+          // then save render-state.png.  Passing pages produce no artifacts.
           if (result !== 'rendered') {
             await page.waitForTimeout(3_000);
+            await page.screenshot({
+              path: `${testInfo.outputDir}/render-state.png`,
+              fullPage: false,
+            });
           }
-          // Always capture what the page looked like — pass or fail.
-          await page.screenshot({
-            path: `${testInfo.outputDir}/render-state.png`,
-            fullPage: false,
-          });
 
           expect(
             result,
