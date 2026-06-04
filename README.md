@@ -1,6 +1,6 @@
 # pbi-playwright-suit
 
-Lightweight Playwright-based Power BI quality suite for the **UPCC Dashboard** report.
+Lightweight Playwright-based Power BI quality suite.
 
 Two test lanes:
 
@@ -12,9 +12,10 @@ Two test lanes:
 ```powershell
 git pull              # always pull first to get the latest fixes
 npm install
-npm run discover:interactive   # pick workspace + report from a menu; sign in via browser when prompted
-npm run test:visual
+npm run discover:interactive
 ```
+
+The discovery CLI signs you in via browser (device-flow), lets you pick a workspace, reports, and pages, then **offers to run the visual tests immediately** — no separate command needed.
 
 > **Do NOT run `npm run install:browsers` on Windows.**
 > The visual lane uses your existing Chrome installation. Running `install:browsers`
@@ -48,7 +49,6 @@ npm install
 ```
 
 No Python virtual environment is required.
-No `.env.example` file is required.
 No browser download is required on Windows.
 
 ## Do I need `npm run install:browsers`?
@@ -71,43 +71,54 @@ It does not affect your system Chrome.
 
 ## Enterprise discovery CLI
 
-Two discovery modes are available.
-
-### Interactive (recommended) — pick workspace and report from a menu
+### Interactive (recommended)
 
 ```powershell
 npm run discover:interactive
 ```
 
-Lists all workspaces and reports your account can access and prompts you to choose:
+Shows your workspaces and reports sorted alphabetically (top 20 first). You can:
+- Type a **number** to select
+- Type **`/keyword`** to search
+- Press **Enter** to expand to the full list
 
 ```
-Authenticating…
+  Workspaces (3 total)
+    [  1] My-BI-Workspace-PROD
+    [  2] My-BI-Workspace-UAT
+    [  3] My-BI-Workspace-DEV
 
-Available workspaces:
-  [1] FHA-ADAR-BI-UAT
-  [2] FHA-ADAR-BI-PROD
-  ...
+  Enter number: 2
 
-Enter number (1–N): 1
+  Reports (showing 20 of 47)
+    [  1] Alpha Dashboard
+    [  2] Beta Metrics
+    ...
+    [ 20] Omega Summary
 
-Available reports:
-  [1] UPCC Dashboard
-  [2] Some Other Report
-  ...
+  /keyword to search · Enter to show all 47
+  Enter number(s) — 1  1,3,5  2-6  all
+  > /upcc
 
-Enter number (1–N): 1
+  Reports (2 total)
+    [  1] UPCC Dashboard
+    [  2] UPCC Executive Summary
 
-Available pages:
-  [1] Summary page
-  [2] Detail page
-  ...
+  > 1
 
-Enter number (1–N): 1
+  Pages — UPCC Dashboard (13 total)
+    [  1] Summary page
+    ...
+    [ 13] UI testing
+
+  > 1,13
+
+✅ Discovery complete — 2 test(s) queued
+
+Run tests now? [Y/n]:
 ```
 
-The dataset is resolved automatically from the report. If multiple datasets exist and
-cannot be matched automatically, you will be prompted to pick one.
+After you answer **Y**, visual tests run immediately.
 
 ### Non-interactive (CI / env-var driven)
 
@@ -115,8 +126,8 @@ cannot be matched automatically, you will be prompted to pick one.
 npm run discover:enterprise-upcc
 ```
 
-Uses environment variable defaults (`FHA-ADAR-BI-UAT` / `UPCC Dashboard`).
-Override with `UPCC_WORKSPACE_NAME`, `UPCC_REPORT_NAME`, `UPCC_DATASET_NAME`, `UPCC_PAGE_NAME`.
+Requires `UPCC_WORKSPACE_NAME` and `UPCC_REPORT_NAME` to be set in `.env`.
+Optional: `UPCC_DATASET_NAME`, `UPCC_PAGE_NAME`.
 
 ### What discovery writes
 
@@ -130,19 +141,32 @@ To sign in, use a web browser to open the page https://login.microsoft.com/devic
 and enter the code XXXXXXXX to authenticate.
 ```
 
-Open that URL, enter the code, sign in, then **re-run** the command.
+Open that URL, enter the code, sign in with your organisational account, then **re-run** the command.
 Subsequent runs reuse the cached token.
 
-Optional environment variables:
+## Understanding test results
+
+| Test outcome | Meaning |
+|---|---|
+| ✅ passed | All visuals on that page rendered without SDK errors |
+| ❌ `error: InvalidUnconstrainedJoin` | A visual has an unconstrained join — data model fix needed |
+| ❌ `error: QueryUserError` | A DAX query failed — measure or relationship issue |
+| ❌ `error: Missing_References` | A visual references a field that no longer exists |
+| ⏭ skipped (XMLA permissions) | Dataset XMLA endpoint is disabled — enable in Power BI Admin Portal |
+
+Videos are kept for every failed test. Screenshots capture the visual state 3 s after the error
+fires, so charts that partially loaded will be visible.
+
+## Optional environment variables
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `CLIENT_ID` | built-in public client | AAD app registration |
 | `TENANT_ID` | — | restrict to a specific tenant |
-| `UPCC_WORKSPACE_NAME` | `FHA-ADAR-BI-UAT` | non-interactive default workspace |
-| `UPCC_REPORT_NAME` | `UPCC Dashboard` | non-interactive default report |
-| `UPCC_DATASET_NAME` | `UPCC Dashboard` | non-interactive default dataset |
-| `UPCC_PAGE_NAME` | first page | non-interactive default page |
+| `UPCC_WORKSPACE_NAME` | *(required for non-interactive)* | workspace name |
+| `UPCC_REPORT_NAME` | *(required for non-interactive)* | report name |
+| `UPCC_DATASET_NAME` | same as report name | dataset name |
+| `UPCC_PAGE_NAME` | first page | page display name |
 | `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, …) |
 | `PBI_TOKEN_CACHE_FILE` | auto | path to MSAL token cache file |
 | `PBI_BROWSER_CHANNEL` | `chrome` | `chrome` or `msedge` |
@@ -157,53 +181,42 @@ playwright/
   tests/metadata/
   tests/visual/
 scripts/
-  discover-upcc-enterprise.ts
+  discover-interactive.ts                 # interactive discovery (recommended)
+  discover-upcc-enterprise.ts             # non-interactive / CI
 ```
 
 ## Troubleshooting
 
-### ENOENT on `upcc-enterprise.generated.json` during discovery
+### ENOENT on `upcc-enterprise.generated.json`
 
-```
-ENOENT: no such file or directory, open '...\playwright\config\upcc-enterprise.generated.json'
-```
-
-You are on an older commit. Pull the fix and retry:
+Run discovery first:
 
 ```powershell
-git pull
-npm run discover:enterprise-upcc
+npm run discover:interactive
 ```
 
 ---
 
 ### Discovery prints a code and then the terminal returns (does not wait)
 
-This is expected. It printed the device-flow sign-in code. You must:
-
-1. Open `https://login.microsoft.com/device` in your browser
-2. Enter the code shown in the terminal
-3. Sign in with your organisational account
-4. Re-run `npm run discover:enterprise-upcc`
+This is expected. Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
 
 ---
 
 ### `uuid@8.3.2` deprecation warning during `npm install`
 
-Fixed. The repo now uses `@azure/msal-node@^5.2.2` which drops `uuid`. Pull and reinstall:
+Fixed. The repo now uses `@azure/msal-node@^5.2.2`. Pull and reinstall:
 
 ```powershell
-git pull
-npm install
+git pull && npm install
 ```
 
 ---
 
-### Cannot find module `@azure/msal-node`
+### Test skipped with "XMLA permissions"
 
-```powershell
-npm install
-```
+Your Power BI admin needs to enable the XMLA endpoint on that dataset:
+**Power BI Admin Portal → Workspaces → (workspace) → Dataset settings → XMLA endpoint → Read**.
 
 ---
 
@@ -215,24 +228,11 @@ Remove-Item package-lock.json
 npm install
 ```
 
-## How to debug enterprise failures
+## How to debug visual failures
 
-1. Run metadata first — if metadata fails, fix that before touching the browser.
-2. Inspect the generated config: `playwright/config/upcc-enterprise.generated.json`
-3. Run `npm run test:visual` in isolation.
-4. Check Playwright artifacts after failures:
-   - HTML report: `playwright-report/` → open with `npx playwright show-report`
-   - JUnit XML: `test-results/results.xml`
-
-## Current limitations
-
-- visual smoke depends on enterprise discovery and interactive user auth
-- live REST/XMLA snapshot refresh is not wired into the normal workflow
-- local metadata verification uses the committed mock fixtures only
-- this v1 is intentionally single-report focused
-
-## Next recommended step
-
-Run `npm run discover:enterprise-upcc` in the connected environment and verify the generated config
-contains the expected workspace, dataset, report, and page. Then run `npm run test:visual`.
+1. Open the HTML report: `npx playwright show-report`
+2. Each failing test has a **screenshot**, **video**, and **trace** attached.
+3. The video captures the full render timeline — even if the screenshot shows a loading state,
+   the video will show what actually rendered before the error fired.
+4. For trace analysis: `npx playwright show-trace test-results/<test-folder>/trace.zip`
 

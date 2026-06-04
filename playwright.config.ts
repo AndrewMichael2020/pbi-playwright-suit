@@ -33,6 +33,7 @@ export default defineConfig({
       use: {
         channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
         launchOptions: { args: ['--disable-web-security'] },
+        viewport: { width: 1280, height: 900 },
         screenshot: 'only-on-failure',
         video: 'retain-on-failure',
       },

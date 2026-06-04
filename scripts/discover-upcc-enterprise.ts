@@ -18,10 +18,17 @@ async function main(): Promise<void> {
     throw new Error('Unable to build enterprise auth settings.');
   }
 
-  const workspaceName = process.env.UPCC_WORKSPACE_NAME ?? 'FHA-ADAR-BI-UAT';
-  const reportName = process.env.UPCC_REPORT_NAME ?? 'UPCC Dashboard';
-  const datasetName = process.env.UPCC_DATASET_NAME ?? 'UPCC Dashboard';
+  const workspaceName = process.env.UPCC_WORKSPACE_NAME;
+  const reportName = process.env.UPCC_REPORT_NAME;
+  const datasetName = process.env.UPCC_DATASET_NAME ?? reportName;
   const pageDisplayName = process.env.UPCC_PAGE_NAME;
+
+  if (!workspaceName || !reportName) {
+    throw new Error(
+      'Set UPCC_WORKSPACE_NAME and UPCC_REPORT_NAME in your .env file before using the non-interactive script.\n' +
+        'For interactive discovery, run: npm run discover:interactive',
+    );
+  }
   const endpoints = getPowerBiEndpoints(credentials.environment);
   const accessToken = await getAccessToken(credentials, endpoints);
 
@@ -30,7 +37,7 @@ async function main(): Promise<void> {
     throw new Error(`Workspace '${workspaceName}' was not found. Confirm the service principal is a workspace member and can list groups.`);
   }
 
-  const dataset = await findDatasetByName(accessToken, workspace.id, datasetName, endpoints);
+  const dataset = await findDatasetByName(accessToken, workspace.id, datasetName ?? reportName, endpoints);
   if (!dataset) {
     throw new Error(`Dataset '${datasetName}' was not found in workspace '${workspaceName}'.`);
   }
