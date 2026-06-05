@@ -31,7 +31,10 @@ function pqlTestOnPath(): boolean {
   return probe.status === 0;
 }
 
-const PQL_AVAILABLE = pqlTestOnPath();
+// NOTE: pqlTestOnPath() is intentionally NOT called at module scope.
+// Calling spawnSync at module load time blocks Playwright's test collection
+// phase (ADOMD.NET load takes ~10s) and breaks enterprise test discovery.
+// The check runs lazily inside each test body instead.
 
 // ── deduplicate configs by reportName ─────────────────────────────────────────
 
@@ -80,16 +83,10 @@ if (!allConfigs) {
       if (!isInFocus(focus, 'pql-dq')) {
         test.skip(true, `Focus is "${focus}" — select [8] Key duplication (pql-test) to run this check.`);
       }
-      if (!PQL_AVAILABLE) {
+      if (!pqlTestOnPath()) {
         test.skip(
           true,
           'pql-test is not installed. Run: pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "pql-test==0.1.9"',
-        );
-      }
-      if (!hasFile) {
-        test.skip(
-          true,
-          `No DataQuality.DEV.Tests.dax for "${report.reportName}". Run: npm run pql:generate`,
         );
       }
 

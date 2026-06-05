@@ -9,8 +9,6 @@
  * set of checks runs, not four.
  */
 
-import path from 'node:path';
-import fs   from 'node:fs';
 import { expect, test } from '@playwright/test';
 import {
   getAccessToken,
@@ -18,7 +16,7 @@ import {
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,
 } from '../../helper-functions/powerbi-enterprise';
-import { loadEnterpriseConfigs, enterpriseConfigPath } from '../../helper-functions/enterprise-config';
+import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 import {
   evaluateRefreshHealth,
   extractFailureInfo,
@@ -27,30 +25,9 @@ import {
 } from '../../helper-functions/refresh-health';
 import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
-// ── DIAG: module-scope diagnostics (remove after bug is found) ───────────────
-const _diagCwd        = process.cwd();
-const _diagConfigPath = enterpriseConfigPath;
-const _diagFileExists = fs.existsSync(_diagConfigPath);
-console.log(`[DIAG dataset-health] cwd:          ${_diagCwd}`);
-console.log(`[DIAG dataset-health] configPath:   ${_diagConfigPath}`);
-console.log(`[DIAG dataset-health] fileExists:   ${_diagFileExists}`);
-if (_diagFileExists) {
-  try {
-    const _raw    = fs.readFileSync(_diagConfigPath, 'utf8');
-    const _parsed = JSON.parse(_raw) as unknown;
-    const _count  = Array.isArray(_parsed) ? _parsed.length : 1;
-    console.log(`[DIAG dataset-health] configCount:  ${_count}`);
-  } catch (e) { console.log(`[DIAG dataset-health] PARSE ERROR:  ${String(e)}`); }
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
 const focus = loadFocus();
-
-console.log(`[DIAG dataset-health] allConfigs:   ${allConfigs === null ? 'NULL' : `${allConfigs.length} entries`}`);
-console.log(`[DIAG dataset-health] credentials:  ${enterpriseCredentials === null ? 'NULL' : 'present'}`);
-console.log(`[DIAG dataset-health] focus:        "${focus}"`);
 
 const skipReason = !allConfigs
   ? 'Run npm run setup first.'
@@ -66,12 +43,9 @@ for (const config of allConfigs ?? []) {
   }
 }
 
-console.log(`[DIAG dataset-health] uniqueDatasets: ${uniqueDatasets.size}, skipReason: "${skipReason}"`);
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Dataset health', () => {
-  console.log(`[DIAG dataset-health] OUTER describe callback entered, datasets=${uniqueDatasets.size}`);
   // Guard: only call test.skip when there is actually a reason.
   if (skipReason) test.skip(true, skipReason);
 
