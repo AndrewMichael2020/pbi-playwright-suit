@@ -71,6 +71,7 @@ console.log(`[DIAG dataset-health] uniqueDatasets: ${uniqueDatasets.size}, skipR
 // ─────────────────────────────────────────────────────────────────────────────
 
 test.describe('Dataset health', () => {
+  console.log(`[DIAG dataset-health] OUTER describe callback entered, datasets=${uniqueDatasets.size}`);
   test.skip(Boolean(skipReason), skipReason);
 
   for (const config of uniqueDatasets.values()) {

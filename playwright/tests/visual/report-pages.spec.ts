@@ -65,13 +65,26 @@ for (const [i, config] of (allConfigs ?? []).entries()) {
 
 console.log(`[DIAG report-pages] reportGroups: ${reportGroups.size} report(s), ${[...reportGroups.values()].reduce((n, v) => n + v.length, 0)} test(s)`);
 
+// DIAG: sentinel flat test — if this shows up in "Running N test(s)" but the
+// nested ones don't, the problem is with nested test.describe, not flat tests.
+test.describe('DIAG — sentinel (remove after bug found)', () => {
+  test('sentinel flat test — confirms test registration works', () => {
+    console.log('[DIAG report-pages] sentinel test BODY executed');
+  });
+});
+
 test.describe('Report page health', () => {
+  console.log(`[DIAG report-pages] OUTER describe callback entered, skipReason="${skipReason}", groups=${reportGroups.size}`);
   test.skip(Boolean(skipReason), skipReason);
 
   for (const [reportName, items] of reportGroups) {
+    console.log(`[DIAG report-pages] registering inner describe for: "${reportName}" (${items.length} tests)`);
     test.describe(reportName, () => {
+      console.log(`[DIAG report-pages] INNER describe callback entered for: "${reportName}"`);
       for (const { config, id } of items) {
-        test(config.pageDisplayName, async ({ page }, testInfo) => {
+        const title = config.pageDisplayName ?? `[undefined page ${id}]`;
+        console.log(`[DIAG report-pages]   registering test: "${title}"`);
+        test(title, async ({ page }, testInfo) => {
           testInfo.annotations.push(
             { type: 'id',        description: id },
             { type: 'workspace', description: config.workspaceName ?? '' },
