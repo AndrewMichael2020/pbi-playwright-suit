@@ -6,6 +6,7 @@ import {
   type DeviceCodeRequest,
   type TokenCacheContext,
 } from '@azure/msal-node';
+import { httpErrorFromResponse } from './errors';
 
 const LEGACY_PUBLIC_CLIENT_ID = 'd3590ed6-52b3-4102-aeff-aad2292ab01c';
 
@@ -126,7 +127,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
     const body = await response.text();
-    throw new Error(`${response.status} ${response.statusText}: ${body}`);
+    throw httpErrorFromResponse({
+      status: response.status,
+      statusText: response.statusText,
+      url,
+      body,
+    });
   }
 
   return (await response.json()) as T;

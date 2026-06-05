@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { readJsonFile } from '../../helper-functions/file-reader';
-import { analyzeRefreshPatterns, evaluateRefreshHealth, extractFailureInfo } from '../../helper-functions/refresh-health';
+import { analyzeRefreshPatterns, evaluateRefreshHealth, extractFailureInfo, isBadRefreshStatus } from '../../helper-functions/refresh-health';
 import { RefreshHealthResult, RefreshHistoryEntry } from '../../helper-functions/types';
 
 test('RH-001 through RH-008 refresh history is normalized and evaluated', async () => {
@@ -166,3 +166,15 @@ test('RH-008 historical failure message remains detectable after normalization',
   expect(result.failures[0]?.code).toBeTruthy();
 });
 
+
+test('RS-001 bad refresh statuses are flagged from the closed status set', async () => {
+  for (const status of ['Failed', 'Disabled', 'Cancelled', 'Unknown']) {
+    expect(isBadRefreshStatus(status), `${status} should be flagged`).toBe(true);
+  }
+});
+
+test('RS-002 healthy and in-flight statuses are not flagged', async () => {
+  for (const status of ['Completed', 'InProgress', 'NotStarted', '']) {
+    expect(isBadRefreshStatus(status), `${status || '(empty)'} should not be flagged`).toBe(false);
+  }
+});

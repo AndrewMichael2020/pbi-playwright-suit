@@ -50,9 +50,10 @@ playwright/
     enterprise-config/          # committed — sample shape for reference
   helper-functions/
     powerbi-enterprise.ts       # REST API: auth, refresh history, embed token
-    refresh-health.ts           # refresh history analysis + credential/integrity error scanning
+    errors.ts                   # typed PowerBiError domain error for the REST boundary
+    refresh-health.ts           # refresh analysis + RefreshStatus enum + isBadRefreshStatus()
     enterprise-config.ts        # load/save enterprise.generated.json
-    focus.ts                    # focus menu: 6 live options + 1 TBD + routing matrix
+    focus.ts                    # focus menu: 6 live + 2 experimental pql + 1 TBD + routing matrix
     source-extraction.ts        # SQL extraction from M partition expressions
     types.ts                    # shared TypeScript types
     env-loader.ts               # .env loading
@@ -60,14 +61,20 @@ playwright/
   tests/
     metadata/                   # dry-run (no credentials, no browser)
       fixture-contracts.spec.ts
-      refresh-health.spec.ts
+      refresh-health.spec.ts    # RH-002/RH-003 logic + RS-001/RS-002 status enum
       source-extraction.spec.ts
+      errors.spec.ts            # ER-001..004 typed REST error boundary
     visual/                     # enterprise (live Power BI)
       dataset-health.spec.ts    # RH-002, RH-003
       report-pages.spec.ts      # VS-NNN visual smoke
+    pql/                        # experimental pql-test lane (unverified — awaits stable pql-test)
+      pql-schema.spec.ts        # schema drift via external pql-test (XMLA)
+      pql-dataquality.spec.ts   # key duplication via external pql-test (DAX)
   global/global-setup.ts
 scripts/
   setup.ts                      # interactive setup wizard (focus menu + config + run loop)
+  pql-generate-stubs.ts         # experimental — generates pql-test spec stubs
+  install-pql-test.ps1          # experimental — one-time pql-test installer (Windows)
 ```
 
 ---
@@ -84,7 +91,12 @@ scripts/
 | 4 | Refresh health | — | YES | YES | All refresh signals combined |
 | 5 | Quick triage | YES | YES | — | Fastest check for large workspaces |
 | 6 | All checks | YES | YES | YES | Every live signal |
+| [n/a] | Schema drift (pql-test) | — | — | — | **Experimental / unverified** — column/table existence via external pql-test (XMLA) |
+| [n/a] | Key duplication (pql-test) | — | — | — | **Experimental / unverified** — primary-key uniqueness via external pql-test (DAX) |
 | [TBD] | Source data schema drift | — | — | — | Column / table changes in source SQL |
+| 7 | Other (custom grep filter) | — | — | — | Arbitrary Playwright `--grep` filter |
+
+The two **pql-test** options run a separate Playwright project and are **experimental and not yet verified** — they await a more stable `pql-test` release. They are not part of the dry-run validate set.
 
 Focus is persisted to `playwright/config/enterprise.focus.json` (gitignored). Each spec reads this at start time and calls `test.skip()` for out-of-scope tests.
 
@@ -101,6 +113,7 @@ Focus is persisted to `playwright/config/enterprise.focus.json` (gitignored). Ea
 | `tsx/cjs` require hook instead of `tsx` direct | Node 18 ESM loader crashes on Windows mapped network drives (`M:`) due to URL scheme parsing |
 | One test per dataset for health checks | Avoids duplicate API calls when a report has many pages |
 | Auth token reused across runs | `npm run setup` authenticates once; the `while(true)` run loop reuses the token for subsequent runs in the same session |
+| Typed REST errors + closed `RefreshStatus` enum at the I/O boundary | Non-2xx responses become a named `PowerBiError` (closed `kind` discriminant, preserved `cause`); `isBadRefreshStatus()` is the single source of truth — see [`audit_2026-06.md`](audit_2026-06.md) |
 
 ---
 
@@ -166,7 +179,7 @@ PBI_SQL_PASSWORD=<password>
 - Deep persona / RLS scenario matrices
 - Custom UI interaction libraries per report type
 - Offline Power BI browser simulation
-- XMLA TOM scripting inside the test runner
+- XMLA TOM scripting **inside the test runner** (the experimental pql lane delegates XMLA to the external `pql-test` CLI instead)
 - Any assertion that requires knowing report-specific visual names or layout
 - Writing to or modifying any source database (Lane C is read-only)
 

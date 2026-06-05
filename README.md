@@ -1,6 +1,6 @@
 # pbi-playwright-suit
 
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-tested-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Node](https://img.shields.io/badge/Node-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Azure](https://img.shields.io/badge/Azure-MSAL%20%2F%20Power%20BI%20REST-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
@@ -12,6 +12,11 @@
 
 Agile Power BI quality suite that includes Playwright-based testing.  
 Catches the signals that break reports **before users notice them**.
+
+> **Who this is for.** This suite is built first for a **business-user analyst** who
+> owns Power BI reports and wants to check them **on demand** from their own machine —
+> `npm run setup`, pick reports, run. Scheduled CI is an **optional** enterprise
+> add-on, not a requirement. Everything works as a manual, interactive run.
 
 ---
 
@@ -80,7 +85,7 @@ npm install
 npm test
 ```
 
-All 23 checks run against committed mock fixtures and pass. Enterprise tests auto-skip when no config is present. This is also the command used in the `validate` CI job (see [CI integration](#ci-integration) below).
+All 29 checks run against committed mock fixtures and pass. Enterprise tests auto-skip when no config is present. This is also the command used in the `validate` CI job (see [CI integration](#ci-integration) below).
 
 ---
 
@@ -114,7 +119,14 @@ npm run setup
 | 4     | Refresh health               |   —    |   ✅   |   ✅   | All refresh signals combined           |
 | 5     | Quick triage                 |   ✅   |   ✅   |   —    | Fastest check for large workspaces     |
 | 6     | All checks                   |   ✅   |   ✅   |   ✅   | Every live signal                      |
+| [n/a] | Schema drift (pql-test)      |   —    |   —    |   —    | **Experimental / unverified** — column / table existence via XMLA; awaits a more stable `pql-test` release |
+| [n/a] | Key duplication (pql-test)   |   —    |   —    |   —    | **Experimental / unverified** — primary-key uniqueness via DAX; awaits a more stable `pql-test` release |
 | [TBD] | Source data schema drift     |   —    |   —    |   —    | Column / table changes in source SQL — coming soon |
+| 7     | Other (custom grep filter)   |   —    |   —    |   —    | Run an arbitrary Playwright `--grep` filter |
+
+> The two **pql-test** options run a separate Playwright project and require `pql-test`
+> installed and authenticated. They are **experimental and not yet verified** —
+> treat their results as indicative only until the upstream tool stabilises.
 
 6. Confirms config and offers to run immediately. When tests finish and you close the report viewer, the wizard asks **"Run another test? [Y/n]"** — answer Y to go back to report selection (no re-authentication needed) and queue another run.
 
@@ -133,6 +145,9 @@ Neither file is committed. Re-run `npm run setup` whenever you want to change th
 ---
 
 ## CI integration
+
+> **Optional.** CI is only relevant if your enterprise wants scheduled, unattended
+> runs. The analyst workflow above (`npm run setup` → run) needs none of this.
 
 ### GitHub Actions (Linux runner — installs Chromium once)
 
@@ -238,7 +253,8 @@ playwright/
       sample-enterprise-config.json        # sample shape for reference
   helper-functions/
     powerbi-enterprise.ts           # REST API: auth, refresh history, embed token
-    refresh-health.ts               # refresh history analysis + credential/integrity scanning
+    errors.ts                       # typed PowerBiError domain error for the REST boundary
+    refresh-health.ts               # refresh analysis + RefreshStatus enum + isBadRefreshStatus()
     source-extraction.ts            # SQL extraction from M partition expressions
     enterprise-config.ts            # load/save enterprise.generated.json
     focus.ts                        # focus menu definitions + routing matrix
@@ -248,11 +264,15 @@ playwright/
   tests/
     metadata/                       # fixture-based checks (no credentials, no browser)
       fixture-contracts.spec.ts     # fixture shape contracts
-      refresh-health.spec.ts        # RH-002, RH-003 parsing and pattern logic
+      refresh-health.spec.ts        # RH-002, RH-003, RS-001/RS-002 status logic
       source-extraction.spec.ts     # SQL extraction from M expressions
+      errors.spec.ts                # ER-001..004 typed REST error boundary
     visual/                         # enterprise live checks (require npm run setup)
       dataset-health.spec.ts        # RH-002, RH-003 against live Power BI
       report-pages.spec.ts          # VS-NNN visual smoke via Power BI JS SDK
+    pql/                            # experimental pql-test lane (unverified)
+      pql-schema.spec.ts            # schema drift via XMLA — awaits stable pql-test
+      pql-dataquality.spec.ts       # key duplication via DAX — awaits stable pql-test
   global/
     global-setup.ts
   vendor/
@@ -260,11 +280,16 @@ playwright/
   reporter.ts                       # custom Playwright reporter
 scripts/
   setup.ts                          # interactive enterprise configuration wizard
+  pql-generate-stubs.ts             # generates pql-test spec stubs (experimental)
+  install-pql-test.ps1              # one-time pql-test installer (Windows, experimental)
+pql/
+  README.md                         # pql-test lane notes
 docs/
   architecture/
     playwright_test_strategy.md
     ci_deployment_plan.md
     work_status.md
+    audit_2026-06.md                # architecture audit + boundary-hardening plan
 ```
 
 ---

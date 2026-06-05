@@ -1,5 +1,34 @@
 import { RefreshHealthResult, RefreshHistoryEntry, RefreshPatternResult } from './types';
 
+/**
+ * Closed set of dataset refresh statuses returned by the Power BI REST API.
+ * Used to keep status decision logic off of bare strings.
+ */
+export type RefreshStatus =
+  | 'Completed'
+  | 'Failed'
+  | 'Disabled'
+  | 'Cancelled'
+  | 'Unknown'
+  | 'InProgress'
+  | 'NotStarted';
+
+/**
+ * Statuses that mean visuals are rendering stale, empty, or no data — a hard
+ * failure for the suite. The single source of truth for "bad latest refresh".
+ */
+const BAD_REFRESH_STATUSES: ReadonlySet<RefreshStatus> = new Set<RefreshStatus>([
+  'Failed',
+  'Disabled',
+  'Cancelled',
+  'Unknown',
+]);
+
+/** True when a latest refresh status means visuals cannot render correct data. */
+export function isBadRefreshStatus(status: string): boolean {
+  return BAD_REFRESH_STATUSES.has(status as RefreshStatus);
+}
+
 function parseErrorPayload(raw?: string): { code?: string; message?: string } {
   if (!raw) {
     return {};

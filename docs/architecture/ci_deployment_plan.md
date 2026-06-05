@@ -4,7 +4,15 @@
 
 Run the Playwright Power BI quality suite automatically on a schedule, publish results as artifacts, and keep the documentation honest about what is and is not automated yet.
 
+> **CI is optional.** The suite's primary mode is **on-demand analyst use** —
+> `npm run setup` and run from a workstation. Scheduled CI in this document is an
+> **enterprise add-on** for teams that want unattended, recurring runs. If you are
+> an individual analyst, you do not need any of it.
+
 **Current reality:** the codebase supports **device-flow auth with an MSAL token cache**. That is enough for local enterprise runs and some trusted self-hosted scenarios, but it is **not** the same as unattended client-secret/service-principal CI. The validate stage is ready today; unattended enterprise CI is a planned next step.
+
+> The experimental **pql-test** lane (schema drift, key duplication) is **not part
+> of CI** — it is unverified and awaits a more stable `pql-test` release.
 
 ---
 

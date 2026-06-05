@@ -21,6 +21,7 @@ import {
   evaluateRefreshHealth,
   extractFailureInfo,
   scanForDataIntegrityErrors,
+  isBadRefreshStatus,
 } from '../../helper-functions/refresh-health';
 import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
@@ -91,9 +92,8 @@ test.describe('Dataset health', () => {
           });
         }
 
-        const BAD_STATUSES = new Set(['Failed', 'Disabled', 'Cancelled', 'Unknown']);
         expect(
-          BAD_STATUSES.has(health.latestStatus),
+          isBadRefreshStatus(health.latestStatus),
           `Latest refresh status "${health.latestStatus}" means visuals are rendering stale or empty data.  ` +
           `Last refresh attempt: ${health.latestRefreshTime || 'unknown'}.  ` +
           `Last success: ${health.lastSuccessTime || 'never'}.`,

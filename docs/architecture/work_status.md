@@ -8,13 +8,14 @@ A lightweight Playwright-based Power BI quality suite that catches every signal 
 
 ## Implemented and passing
 
-### Metadata lane (23/23 tests, dry-run, no credentials required)
+### Metadata lane (29/29 tests, dry-run, no credentials required)
 
 | Test file | What it covers |
 |---|---|
 | `fixture-contracts.spec.ts` | Refresh snapshot and enterprise config shape contracts |
-| `refresh-health.spec.ts` | Refresh history parsing, nested `serviceExceptionJson` normalization, pattern analysis |
+| `refresh-health.spec.ts` | Refresh history parsing, nested `serviceExceptionJson` normalization, pattern analysis, `isBadRefreshStatus()` (RS-001/RS-002) |
 | `source-extraction.spec.ts` | SQL extraction from M partition expressions, normalization |
+| `errors.spec.ts` | Typed `PowerBiError` boundary — status→kind mapping, structured context, cause preservation (ER-001..004) |
 
 ### Enterprise lane (live Power BI, requires `npm run setup`)
 
@@ -47,7 +48,7 @@ Explicitly removed: RH-001 (history exists), DS-001 (datasource connections), MS
 2. Workspace selection (search or number)
 3. Report selection (multi-select, search)
 4. Page selection per report
-5. **Focus menu** — 6 live options + 1 [TBD] placeholder (source schema drift) — skips out-of-scope tests; persisted to `enterprise.focus.json`
+5. **Focus menu** — 6 live options + 2 experimental pql-test options + 1 [TBD] placeholder (source schema drift) — skips out-of-scope tests; persisted to `enterprise.focus.json`. The two pql-test options (schema drift, key duplication) are **experimental and not yet verified** — they await more stable `pql-test` releases.
 6. Option to run tests immediately
 7. After closing the HTML report viewer: **"Run another test? [Y/n]"** — loops back to workspace selection without re-authenticating
 
@@ -59,8 +60,20 @@ Explicitly removed: RH-001 (history exists), DS-001 (datasource connections), MS
 |---|---|
 | `scripts/setup.ts` | Interactive wizard — discovery, focus selection, run loop |
 | `playwright/helper-functions/focus.ts` | Focus menu definitions, routing matrix, `isInFocus()` |
-| `playwright/helper-functions/refresh-health.ts` | `evaluateRefreshHealth()`, `scanForDataIntegrityErrors()` |
+| `playwright/helper-functions/refresh-health.ts` | `evaluateRefreshHealth()`, `scanForDataIntegrityErrors()`, `isBadRefreshStatus()` + `RefreshStatus` enum |
 | `playwright/helper-functions/powerbi-enterprise.ts` | REST API auth, refresh history, embed token |
+| `playwright/helper-functions/errors.ts` | Typed `PowerBiError` domain error + `classifyHttpError()` for the REST boundary |
+
+---
+
+## Boundary hardening (2026-06)
+
+Tracked in [`audit_2026-06.md`](audit_2026-06.md). Shipped:
+
+- **Typed REST errors** — `errors.ts` translates every non-2xx Power BI response into a named `PowerBiError` with a closed `kind` discriminant (`auth` / `notFound` / `throttled` / `service`) and a preserved transport `cause`.
+- **Closed refresh-status enum** — `RefreshStatus` + single `isBadRefreshStatus()` predicate replaces the duplicated `BAD_STATUSES` set that previously lived inside `dataset-health.spec.ts`.
+
+Deferred by design (acceptable for on-demand analyst runs; revisit only if enterprise CI is introduced): injectable env loader, import-time I/O containment.
 
 ---
 
@@ -69,7 +82,7 @@ Explicitly removed: RH-001 (history exists), DS-001 (datasource connections), MS
 ```bash
 npm install          # install dependencies
 npm run typecheck    # TypeScript check
-npm test             # dry-run — 23 fixture-based tests, no credentials
+npm test             # dry-run — 29 fixture-based tests, no credentials
 npm run setup        # interactive enterprise configuration wizard
 ```
 
@@ -86,7 +99,7 @@ npm run setup        # interactive enterprise configuration wizard
 ## Recommended next steps
 
 1. Run `npm run setup` to select reports and focus
-2. Run `npm test` to confirm the 23 dry-run tests pass
+2. Run `npm test` to confirm the 29 dry-run tests pass
 3. Run enterprise checks via `npm run setup` — select reports — run
 4. Commit `azure-pipelines.yml` or `.github/workflows/pbi-quality.yml` from `docs/architecture/ci_deployment_plan.md` for scheduled CI
 
@@ -131,7 +144,7 @@ All SSD tests auto-skip if no snapshot file exists or `PBI_SQL_SERVER` is unset.
 | `GenerateToken` (embed token) | **Negligible** | One token per report page; ~0 CU-seconds |
 | Report page rendering via Power BI JS SDK | **Non-zero** | DAX queries fire per visual; this is the only real CU cost |
 | Dataset refresh | **Not triggered** | Suite reads history only — never triggers a refresh |
-| Metadata lane (`npm test`, all 23 fixture tests) | **Zero** | No browser, no embed, no DAX queries |
+| Metadata lane (`npm test`, all 29 fixture tests) | **Zero** | No browser, no embed, no DAX queries |
 
 The suite is a **read-only consumer** equivalent to a single analyst manually opening each report page.
 
