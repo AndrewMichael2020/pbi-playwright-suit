@@ -255,39 +255,53 @@ npx playwright show-trace test-results/<folder>/trace.zip
 
 ```text
 playwright/
-  config/
-    enterprise.generated.json     # written by npm run setup — gitignored
-    enterprise.focus.json         # written by npm run setup — gitignored
-    environments/                 # environment endpoint maps
+  config/                           # runtime — gitignored
+    enterprise.generated.json       # report/page list written by npm run setup
+    enterprise.focus.json           # focus selection written by npm run setup
   fixtures/snapshots/
-    model-baseline/               # committed model structure baselines (JSON)
-    model-signatures/             # committed schema drift baselines (JSON)
-    refresh-history/              # mock refresh fixtures for dry-run tests
-    enterprise-config/            # sample enterprise config shape (reference only)
+    model-baseline/
+      sample-model-baseline.json           # happy-path mock (all M:M allowlisted)
+      sample-model-baseline-violation.json # negative-test mock (one M:M un-allowlisted)
+      <report>.json                        # committed per-report baseline (you add these)
+    model-signatures/
+      baseline-model-signature.json        # committed schema drift baseline
+      baseline-model-signature.current.json
+    refresh-history/
+      baseline-refresh-history.json        # mock refresh history fixture
+      baseline-refresh-history-patterns.json
+      baseline-refresh-health.json
+    enterprise-config/
+      sample-enterprise-config.json        # sample shape for reference
   helper-functions/
-    enterprise-config.ts          # load/save enterprise.generated.json
-    focus.ts                      # focus menu definitions + routing matrix
-    powerbi-enterprise.ts         # REST API helpers (auth, refresh history, embed token)
-    refresh-health.ts             # refresh history analysis + data-integrity scanning
-    signature-diff.ts             # schema drift comparison
-    source-extraction.ts          # SQL extraction from M expressions
-    duplicate-checks.ts           # duplicate heuristic helpers
-    types.ts                      # shared TypeScript types
+    powerbi-enterprise.ts           # REST API: auth, refresh history, embed token
+    refresh-health.ts               # refresh history analysis + data-integrity scanning
+    signature-diff.ts               # schema drift comparison
+    source-extraction.ts            # SQL extraction from M partition expressions
+    duplicate-checks.ts             # duplicate heuristic helpers
+    enterprise-config.ts            # load/save enterprise.generated.json
+    focus.ts                        # focus menu definitions + routing matrix
+    types.ts                        # shared TypeScript types
+    env-loader.ts                   # .env loading
+    file-reader.ts                  # fixture file helpers
   tests/
-    metadata/                     # dry-run fixture-based tests
-      fixture-contracts.spec.ts
-      refresh-health.spec.ts
-      schema-drift.spec.ts
-      source-extraction.spec.ts
-      duplicate-checks.spec.ts
-      model-structure.spec.ts     # MS-001 against committed baseline
-    visual/                       # enterprise live tests
-      dataset-health.spec.ts      # RH-002, RH-003
-      report-pages.spec.ts        # VS-NNN visual smoke
-  global/global-setup.ts
+    metadata/                       # fixture-based checks (no credentials)
+      fixture-contracts.spec.ts     # fixture shape contracts
+      refresh-health.spec.ts        # RH-002, RH-003 logic
+      schema-drift.spec.ts          # schema signature + drift detection
+      source-extraction.spec.ts     # SQL extraction from M expressions
+      duplicate-checks.spec.ts      # duplicate table/measure/relationship heuristics
+      model-structure.spec.ts       # MS-001 against committed baseline
+    visual/                         # enterprise live checks (require npm run setup)
+      dataset-health.spec.ts        # RH-002, RH-003 against live Power BI
+      report-pages.spec.ts          # VS-NNN visual smoke via Power BI JS SDK
+  global/
+    global-setup.ts
+  vendor/
+    powerbi.min.js                  # Power BI JS SDK (pinned, no CDN dependency)
+  reporter.ts                       # custom Playwright reporter
 scripts/
-  setup.ts                        # interactive setup wizard
-  ingest-model-txt.ts             # model .txt → JSON baseline + drift detection
+  setup.ts                          # interactive enterprise configuration wizard
+  ingest-model-txt.ts               # upcoming .txt model export → persisted JSON baseline
 docs/
   architecture/
     playwright_test_strategy.md
