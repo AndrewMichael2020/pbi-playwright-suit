@@ -94,7 +94,7 @@ All 48 checks run against committed mock fixtures and pass. Enterprise tests aut
 - Google Chrome or Microsoft Edge installed (no download required)
 - An organisational account with at least **Viewer** access to the target workspace
 
-### 1 — Connect and configure
+### Connect, configure, run
 
 ```powershell
 npm run setup
