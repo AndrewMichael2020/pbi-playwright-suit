@@ -157,6 +157,8 @@ This controls **what** to test. It does not change the current auth model, which
 
 On-demand override: pass pipeline parameters / `workflow_dispatch` inputs to target a specific workspace and report without editing files.
 
+Note: `enterprise.generated.json` and `enterprise.focus.json` are both gitignored. For CI, generate `enterprise.generated.json` as part of a pre-pipeline setup step, or commit it explicitly from a local discovery run.
+
 ---
 
 ## Optional: structured JSON export for Power BI

@@ -3,7 +3,6 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Playwright](https://img.shields.io/badge/Playwright-tested-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev/)
 [![Node](https://img.shields.io/badge/Node-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Python](https://img.shields.io/badge/Python-metadata%20scripts-3776AB?logo=python&logoColor=white)](https://python.org/)
 [![Azure](https://img.shields.io/badge/Azure-MSAL%20%2F%20Power%20BI%20REST-0078D4?logo=microsoftazure&logoColor=white)](https://azure.microsoft.com/)
 [![Microsoft Fabric](https://img.shields.io/badge/Microsoft%20Fabric-compatible-FF6600?logo=microsoft&logoColor=white)](https://www.microsoft.com/en-us/microsoft-fabric)
 [![Azure DevOps](https://img.shields.io/badge/Azure%20DevOps-CI%20ready-0078D7?logo=azuredevops&logoColor=white)](https://azure.microsoft.com/en-us/products/devops/)
@@ -63,11 +62,10 @@ The suite focuses exclusively on signals that cause Power BI visuals to render *
 | ID         | Signal                                                                             | Why it matters                                                                                                                                                             |
 | ---------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **RH-002** | Latest dataset refresh status is `Failed`, `Disabled`, `Cancelled`, or `Unknown`   | Visuals are serving data from the last successful refresh — potentially days or weeks stale                                                                                |
-| **RH-003** | Any historical refresh entry contains a data-integrity or credential error pattern | Patterns like `MonikerWithUnboundDataSources`, `OAuth`, `duplicate key`, `primary key`, `RowValueConflict` indicate broken data or auth that causes wrong or empty visuals |
-| **MS-001** | A Many-to-Many relationship is not in the intentional allowlist                    | The "dimension" table has non-unique key values — Power BI resolves M:M internally but filter propagation changes, causing wrong visual totals                             |
+| **RH-003** | Any historical refresh entry contains a credential or data-integrity error pattern | Patterns like `MonikerWithUnboundDataSources`, `OAuth`, `DMTS_UserNotFoundInADGraphError`, `duplicate key`, `RowValueConflict` indicate broken auth or bad data in visuals |
 | **VS-NNN** | A report page embed raises a Power BI SDK visual error                             | Broken measures, missing fields, unconstrained joins, or credential failures detected at render time                                                                       |
 
-Checks **not** in scope: RLS scenarios, inactive relationships, datasource connection details, bidirectional cross-filter warnings, threshold-based staleness timers.
+Checks **not** in scope: RLS scenarios, model structure / M:M relationships, datasource connection details, bidirectional cross-filter warnings, threshold-based staleness timers. Source data schema drift detection is planned (see [TBD] in the focus menu).
 
 ---
 
@@ -82,7 +80,7 @@ npm install
 npm test
 ```
 
-All 48 checks run against committed mock fixtures and pass. Enterprise tests auto-skip when no config is present. This is also the command used in the `validate` CI job (see [CI integration](#ci-integration) below).
+All 23 checks run against committed mock fixtures and pass. Enterprise tests auto-skip when no config is present. This is also the command used in the `validate` CI job (see [CI integration](#ci-integration) below).
 
 ---
 
@@ -106,23 +104,21 @@ npm run setup
 2. Lists your workspaces — enter a number or type to search
 3. Lists reports in that workspace — select one or more
 4. Lists pages in each report — select all or specific pages
-5. Asks **what to check** — choose a focus so you can skip unrelated checks on large workspaces:
+5. Asks **what to check** — choose a focus to skip unrelated tests on large workspaces:
 
-| #   | Focus                    | VS-NNN | RH-002 | RH-003 | MS-001 | Best for                                |
-| --- | ------------------------ | :----: | :----: | :----: | :----: | --------------------------------------- |
-| 1   | All checks               |   ✅   |   ✅   |   ✅   |  ✅¹   | Full audit                              |
-| 2   | Broken visuals           |   ✅   |   —    |   —    |   —    | Visual smoke only                       |
-| 3   | Dataset refresh failures |   —    |   ✅   |   —    |   —    | Is the data fresh?                      |
-| 4   | Credential / auth errors |   —    |   —    |   ✅   |   —    | OAuth / gateway failures                |
-| 5   | Duplicate PK / M:M       |   —    |   —    |   —    |  ✅¹   | Dimension key integrity                 |
-| 6   | Data integrity errors    |   —    |   —    |   ✅   |  ✅¹   | Bad aggregations, constraint violations |
-| 7   | Refresh health           |   —    |   ✅   |   ✅   |   —    | All refresh signals combined            |
-| 8   | Model integrity          |   —    |   —    |   —    |  ✅¹   | M:M relationship audit                  |
-| 9   | Quick triage             |   ✅   |   ✅   |   —    |   —    | Fastest check for large workspaces      |
+| #     | Focus                        | VS-NNN | RH-002 | RH-003 | Best for                               |
+| ----- | ---------------------------- | :----: | :----: | :----: | -------------------------------------- |
+| 1     | Broken visuals               |   ✅   |   —    |   —    | Visual smoke only                      |
+| 2     | Dataset refresh failures     |   —    |   ✅   |   —    | Is the data fresh?                     |
+| 3     | Credential / gateway errors  |   —    |   —    |   ✅   | OAuth / gateway auth failures          |
+| 4     | Refresh health               |   —    |   ✅   |   ✅   | All refresh signals combined           |
+| 5     | Quick triage                 |   ✅   |   ✅   |   —    | Fastest check for large workspaces     |
+| 6     | All checks                   |   ✅   |   ✅   |   ✅   | Every live signal                      |
+| [TBD] | Source data schema drift     |   —    |   —    |   —    | Column / table changes in source SQL — coming soon |
 
-> ¹ **MS-001 requires persisted PBI model baselines (to be implemented later).** If none exists for the selected report, the check is automatically skipped. Another obviously valuable feature, testing for source data schema drift, is also plannned to be implemented later.
+6. Confirms config and offers to run immediately. When tests finish and you close the report viewer, the wizard asks **"Run another test? [Y/n]"** — answer Y to go back to report selection (no re-authentication needed) and queue another run.
 
-6. Confirms config and offers to run immediately — or run later with `npm test`
+7. Exit when done — or skip the report viewer and run again straight away.
 
 ### What setup writes
 
@@ -190,15 +186,14 @@ The suite reads those vars and skips the workspace/report selection prompts. The
 
 | Outcome                | Meaning                                                                   |
 | ---------------------- | ------------------------------------------------------------------------- |
-| ✅ passed              | No visual error, refresh healthy, model structure clean                   |
+| ✅ passed              | No visual error, refresh healthy                                          |
 | ❌ RH-002              | Latest refresh is Failed / Disabled — visuals are stale                   |
-| ❌ RH-003              | Refresh history contains data-integrity or credential errors              |
-| ❌ MS-001              | Unallowlisted Many-to-Many — possible duplicate PK data                   |
+| ❌ RH-003              | Refresh history contains credential or data-integrity errors              |
 | ❌ VS-NNN visual error | SDK error at render time — broken measure, missing field, or auth failure |
 | ⏭ skipped             | Focus excludes this check, or enterprise config not present               |
 
 Each failed test has a **screenshot**, **video**, and **trace** attached.  
-For `RH-*` and `MS-*` failures, annotations detail the specific error code and relationship key.
+For `RH-*` failures, annotations detail the specific error code and timestamp.
 
 ```powershell
 npx playwright show-report
@@ -235,13 +230,6 @@ playwright/
     enterprise.generated.json       # report/page list written by npm run setup
     enterprise.focus.json           # focus selection written by npm run setup
   fixtures/snapshots/
-    model-baseline/
-      sample-model-baseline.json           # happy-path mock (all M:M allowlisted)
-      sample-model-baseline-violation.json # negative-test mock (one M:M un-allowlisted)
-      <report>.json                        # committed per-report baseline (you add these)
-    model-signatures/
-      baseline-model-signature.json        # committed schema drift baseline
-      baseline-model-signature.current.json
     refresh-history/
       baseline-refresh-history.json        # mock refresh history fixture
       baseline-refresh-history-patterns.json
@@ -250,23 +238,18 @@ playwright/
       sample-enterprise-config.json        # sample shape for reference
   helper-functions/
     powerbi-enterprise.ts           # REST API: auth, refresh history, embed token
-    refresh-health.ts               # refresh history analysis + data-integrity scanning
-    signature-diff.ts               # schema drift comparison
+    refresh-health.ts               # refresh history analysis + credential/integrity scanning
     source-extraction.ts            # SQL extraction from M partition expressions
-    duplicate-checks.ts             # duplicate heuristic helpers
     enterprise-config.ts            # load/save enterprise.generated.json
     focus.ts                        # focus menu definitions + routing matrix
     types.ts                        # shared TypeScript types
     env-loader.ts                   # .env loading
     file-reader.ts                  # fixture file helpers
   tests/
-    metadata/                       # fixture-based checks (no credentials)
+    metadata/                       # fixture-based checks (no credentials, no browser)
       fixture-contracts.spec.ts     # fixture shape contracts
-      refresh-health.spec.ts        # RH-002, RH-003 logic
-      schema-drift.spec.ts          # schema signature + drift detection
+      refresh-health.spec.ts        # RH-002, RH-003 parsing and pattern logic
       source-extraction.spec.ts     # SQL extraction from M expressions
-      duplicate-checks.spec.ts      # duplicate table/measure/relationship heuristics
-      model-structure.spec.ts       # MS-001 against persisted baseline (upcoming)
     visual/                         # enterprise live checks (require npm run setup)
       dataset-health.spec.ts        # RH-002, RH-003 against live Power BI
       report-pages.spec.ts          # VS-NNN visual smoke via Power BI JS SDK
@@ -277,7 +260,6 @@ playwright/
   reporter.ts                       # custom Playwright reporter
 scripts/
   setup.ts                          # interactive enterprise configuration wizard
-  ingest-model-txt.ts               # upcoming .txt model export → persisted JSON baseline
 docs/
   architecture/
     playwright_test_strategy.md
