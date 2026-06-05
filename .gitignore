@@ -221,7 +221,8 @@ __marimo__/
 node_modules/
 playwright-report/
 test-results/
-playwright/config/enterprise.generated.json
+playwright/config/*.generated.json
+playwright/config/enterprise.focus.json
 playwright/.auth/
 test-archive/
 
