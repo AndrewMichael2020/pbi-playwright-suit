@@ -1,3 +1,5 @@
+import path from 'node:path';
+import fs   from 'node:fs';
 import { expect, test } from '@playwright/test';
 import {
   generateReportEmbedToken,
@@ -6,13 +8,41 @@ import {
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,
 } from '../../helper-functions/powerbi-enterprise';
-import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
+import { loadEnterpriseConfigs, enterpriseConfigPath } from '../../helper-functions/enterprise-config';
 import { evaluateRefreshHealth } from '../../helper-functions/refresh-health';
 import { loadFocus, isInFocus } from '../../helper-functions/focus';
+
+// ── DIAG: module-scope diagnostics (remove after bug is found) ───────────────
+const _diagCwd        = process.cwd();
+const _diagConfigPath = enterpriseConfigPath;
+const _diagFileExists = fs.existsSync(_diagConfigPath);
+const _diagFocusPath  = path.join(_diagCwd, 'playwright', 'config', 'enterprise.focus.json');
+console.log(`[DIAG report-pages] cwd:          ${_diagCwd}`);
+console.log(`[DIAG report-pages] configPath:   ${_diagConfigPath}`);
+console.log(`[DIAG report-pages] fileExists:   ${_diagFileExists}`);
+if (_diagFileExists) {
+  try {
+    const _raw     = fs.readFileSync(_diagConfigPath, 'utf8');
+    const _parsed  = JSON.parse(_raw) as unknown;
+    const _count   = Array.isArray(_parsed) ? _parsed.length : 1;
+    console.log(`[DIAG report-pages] configCount:  ${_count}`);
+    if (Array.isArray(_parsed) && _parsed.length > 0) {
+      const _first = _parsed[0] as Record<string, unknown>;
+      console.log(`[DIAG report-pages] firstEntry:   ${JSON.stringify({ reportName: _first['reportName'], pageDisplayName: _first['pageDisplayName'] })}`);
+    }
+  } catch (e) { console.log(`[DIAG report-pages] PARSE ERROR:  ${String(e)}`); }
+}
+console.log(`[DIAG report-pages] focusExists:  ${fs.existsSync(_diagFocusPath)}`);
+// ─────────────────────────────────────────────────────────────────────────────
 
 const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
 const focus = loadFocus();
+
+console.log(`[DIAG report-pages] allConfigs:   ${allConfigs === null ? 'NULL' : `${allConfigs.length} entries`}`);
+console.log(`[DIAG report-pages] credentials:  ${enterpriseCredentials === null ? 'NULL' : 'present'}`);
+console.log(`[DIAG report-pages] focus:        "${focus}"`);
+
 const skipReason = !allConfigs
   ? 'Run npm run setup first.'
   : !enterpriseCredentials
@@ -20,6 +50,8 @@ const skipReason = !allConfigs
     : !isInFocus(focus, 'visuals')
       ? `Focus is "${focus}" — visual page tests are not in scope.`
       : '';
+
+console.log(`[DIAG report-pages] skipReason:   "${skipReason}"`);
 
 // Build a stable VS-NNN id per config index, then group by report name
 // so the HTML report shows: Report name › Page name (business-readable).
@@ -30,6 +62,8 @@ for (const [i, config] of (allConfigs ?? []).entries()) {
   if (!reportGroups.has(config.reportName)) reportGroups.set(config.reportName, []);
   reportGroups.get(config.reportName)!.push({ config, id });
 }
+
+console.log(`[DIAG report-pages] reportGroups: ${reportGroups.size} report(s), ${[...reportGroups.values()].reduce((n, v) => n + v.length, 0)} test(s)`);
 
 test.describe('Report page health', () => {
   test.skip(Boolean(skipReason), skipReason);
