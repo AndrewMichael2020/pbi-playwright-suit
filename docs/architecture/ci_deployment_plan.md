@@ -1,8 +1,10 @@
-# CI Deployment Plan — Scheduled Power BI Quality Suite
+# CI Deployment Plan — Validate Now, Unattended Enterprise Later
 
 ## Purpose
 
-Run the Playwright Power BI quality suite automatically on a schedule, in a clean isolated environment, with results published as artifacts — no human interaction required after initial setup.
+Run the Playwright Power BI quality suite automatically on a schedule, publish results as artifacts, and keep the documentation honest about what is and is not automated yet.
+
+**Current reality:** the codebase supports **device-flow auth with an MSAL token cache**. That is enough for local enterprise runs and some trusted self-hosted scenarios, but it is **not** the same as unattended client-secret/service-principal CI. The validate stage is ready today; unattended enterprise CI is a planned next step.
 
 ---
 
@@ -11,8 +13,8 @@ Run the Playwright Power BI quality suite automatically on a schedule, in a clea
 ```
 Pipeline (scheduled — daily or on-demand)
   │
-  ├─ Stage 1: dry-run   (no credentials, fast, always green — catches suite regressions)
-  └─ Stage 2: enterprise (service principal, live PBI checks)
+  ├─ Stage 1: validate   (current — no credentials, fast, catches suite regressions)
+  └─ Stage 2: enterprise (planned — unattended live Power BI checks once confidential auth exists)
        │
        └─ Artifacts
             ├─ playwright-report/  (HTML — visual diff, annotations, traces)
@@ -24,16 +26,9 @@ Pipeline (scheduled — daily or on-demand)
 
 ## Option A — GitHub Actions (recommended for GitHub-hosted repos)
 
-### One-time setup
+### Current working setup
 
-1. Create an Azure AD app registration; note `Client ID` and `Tenant ID`
-2. Generate a client secret
-3. Enable "Service principals can use Power BI APIs" in Power BI Admin Portal → Tenant settings
-4. Add the service principal as **Member** to each workspace the suite should test
-5. Store secrets in a GitHub environment named `power-bi-prod`:
-   - `PBI_TENANT_ID`
-   - `PBI_CLIENT_ID`
-   - `PBI_CLIENT_SECRET`
+The GitHub-hosted path that works today is the **validate** job only.
 
 ### `.github/workflows/pbi-quality.yml`
 
@@ -53,7 +48,7 @@ on:
         required: false
 
 jobs:
-  dry-run:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,44 +61,23 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: dry-run-report
+          name: validate-report
           path: playwright-report/
-
-  enterprise:
-    needs: dry-run
-    runs-on: ubuntu-latest
-    environment: power-bi-prod
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: '20' }
-      - run: npm ci
-      - run: npx playwright install chromium --with-deps
-      - run: npm test
-        env:
-          PBI_TENANT_ID:      ${{ secrets.PBI_TENANT_ID }}
-          PBI_CLIENT_ID:      ${{ secrets.PBI_CLIENT_ID }}
-          PBI_CLIENT_SECRET:  ${{ secrets.PBI_CLIENT_SECRET }}
-          PBI_ENVIRONMENT:    Public
-          PBI_WORKSPACE_NAME: ${{ inputs.workspace_name }}
-          PBI_REPORT_NAME:    ${{ inputs.report_name }}
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: enterprise-report
-          path: playwright-report/
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: test-results/
 ```
+
+### Upcoming: unattended enterprise stage
+
+Planned, not yet implemented in code:
+
+1. Add confidential-client auth to the runtime
+2. Read CI credentials directly from secrets/variables
+3. Restore a second `enterprise` job that runs live Power BI checks headlessly
 
 ---
 
 ## Option B — Azure DevOps (on-prem, self-hosted agent)
 
-### One-time setup
+### Current working setup
 
 | Step | Who | What |
 |---|---|---|
@@ -114,14 +88,7 @@ jobs:
 
 Agent install is a ZIP + `config.cmd` — no elevated rights needed after the first service registration.
 
-Store these in an ADO Variable Group named `pbi-suite-credentials`:
-
-| Variable | Value |
-|---|---|
-| `PBI_TENANT_ID` | Azure AD tenant ID |
-| `PBI_CLIENT_ID` | App registration client ID |
-| `PBI_CLIENT_SECRET` | App registration secret (**mark as secret**) |
-| `PBI_ENVIRONMENT` | `Public` (or `GCC`, `China`, etc.) |
+Use Azure DevOps today for the **validate** stage, or for trusted/self-hosted experimentation where you manage the token cache outside the repo.
 
 ### `azure-pipelines.yml`
 
@@ -135,30 +102,18 @@ schedules:
       include: [ main ]
     always: true
 
-parameters:
-  - name: workspaceName
-    displayName: Override workspace (leave blank for default)
-    type: string
-    default: ''
-  - name: reportName
-    displayName: Override report name (leave blank for all configured)
-    type: string
-    default: ''
-
 variables:
-  - group: pbi-suite-credentials
   - name: NODE_VERSION
     value: '20.x'
 
 pool:
-  name: Default    # name of your self-hosted agent pool
+  name: Default
 
 stages:
-
-  - stage: DryRun
-    displayName: Dry run — fixture validation
+  - stage: Validate
+    displayName: Validate suite
     jobs:
-      - job: DryRunTests
+      - job: ValidateTests
         steps:
           - task: NodeTool@0
             inputs: { versionSpec: $(NODE_VERSION) }
@@ -167,63 +122,38 @@ stages:
           - script: npm run typecheck
             displayName: Type check
           - script: npm test
-            displayName: Run dry-run tests
+            displayName: Run validate tests
           - task: PublishTestResults@2
             condition: always()
             inputs:
               testResultsFormat: JUnit
               testResultsFiles: test-results/results.xml
-              testRunTitle: Dry run
+              testRunTitle: Validate
           - task: PublishPipelineArtifact@1
             condition: always()
             inputs:
               targetPath: playwright-report
-              artifact: dry-run-report
-
-  - stage: Enterprise
-    displayName: Enterprise run — live Power BI checks
-    dependsOn: DryRun
-    condition: succeeded()
-    jobs:
-      - job: EnterpriseTests
-        timeoutInMinutes: 60
-        steps:
-          - task: NodeTool@0
-            inputs: { versionSpec: $(NODE_VERSION) }
-          - script: npm ci
-            displayName: Install dependencies
-          - script: npm test
-            displayName: Run enterprise tests
-            env:
-              PBI_TENANT_ID:      $(PBI_TENANT_ID)
-              PBI_CLIENT_ID:      $(PBI_CLIENT_ID)
-              PBI_CLIENT_SECRET:  $(PBI_CLIENT_SECRET)
-              PBI_ENVIRONMENT:    $(PBI_ENVIRONMENT)
-              PBI_WORKSPACE_NAME: ${{ parameters.workspaceName }}
-              PBI_REPORT_NAME:    ${{ parameters.reportName }}
-          - task: PublishTestResults@2
-            condition: always()
-            inputs:
-              testResultsFormat: JUnit
-              testResultsFiles: test-results/results.xml
-              testRunTitle: Enterprise run
-          - task: PublishPipelineArtifact@1
-            condition: always()
-            inputs:
-              targetPath: playwright-report
-              artifact: enterprise-report
-          - task: PublishPipelineArtifact@1
-            condition: always()
-            inputs:
-              targetPath: test-results
-              artifact: test-results
+              artifact: validate-report
 ```
+
+### Upcoming: unattended enterprise stage
+
+When confidential-client auth is implemented, store these in an ADO Variable Group named `pbi-suite-credentials`:
+
+| Variable | Value |
+|---|---|
+| `TENANT_ID` | Azure AD tenant ID |
+| `CLIENT_ID` | App registration client ID |
+| `CLIENT_SECRET` | App registration secret (**mark as secret**) |
+| `PBI_ENVIRONMENT` | `Public` (or `USGov`, `USGovHigh`, `USGovDoD`, `Germany`, `China`) |
 
 ---
 
-## CI mode — no interactive setup needed
+## CI selection mode — no interactive prompts
 
-Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or drive it entirely via env vars.  The suite reads `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` in non-interactive mode and skips all prompts.
+Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or drive report/page selection via env vars. The suite reads `PBI_WORKSPACE_NAME` and `PBI_REPORT_NAME` and skips the selection prompts.
+
+This controls **what** to test. It does not change the current auth model, which remains device-flow plus cached tokens. Fully non-interactive execution still requires a valid `PBI_TOKEN_CACHE_FILE`.
 
 On-demand override: pass pipeline parameters / `workflow_dispatch` inputs to target a specific workspace and report without editing files.
 
@@ -273,5 +203,4 @@ Recommended: start with Option B.
 | Focus (which signals to check) | Commit `playwright/config/enterprise.focus.json` from `npm run setup` |
 | Schedule (cron) | `azure-pipelines.yml` or `pbi-quality.yml` → `schedules.cron` |
 | Per-test timeout | `playwright.config.ts` → `enterprise` project `timeout` |
-| Power BI environment (GCC, etc.) | `PBI_ENVIRONMENT` secret / variable |
-
+| Power BI environment (`Public`, `USGov`, `USGovHigh`, `USGovDoD`, `Germany`, `China`) | `PBI_ENVIRONMENT` secret / variable |

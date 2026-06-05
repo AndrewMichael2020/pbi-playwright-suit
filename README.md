@@ -140,7 +140,7 @@ Neither file is committed. Re-run `npm run setup` whenever you want to change th
 
 ### GitHub Actions (Linux runner — installs Chromium once)
 
-The pipeline has two jobs: `validate` confirms the harness passes with no credentials (always runs), then `enterprise` runs the live Power BI checks using secrets from a protected environment.
+Today the **`validate`** job is turnkey on hosted runners. Unattended **enterprise** CI is **upcoming**: the current runtime auth uses device-flow plus an MSAL token cache (`CLIENT_ID` / `TENANT_ID`), not client-secret service-principal auth.
 
 ```yaml
 name: PBI Quality Suite
@@ -166,42 +166,15 @@ jobs:
         with:
           name: validate-report
           path: playwright-report/
-
-  enterprise: # live Power BI checks
-    needs: validate
-    runs-on: ubuntu-latest
-    environment: power-bi-prod # store secrets here
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: "20" }
-      - run: npm ci
-      - run: npx playwright install chromium --with-deps
-      - run: npm test
-        env:
-          PBI_TENANT_ID: ${{ secrets.PBI_TENANT_ID }}
-          PBI_CLIENT_ID: ${{ secrets.PBI_CLIENT_ID }}
-          PBI_CLIENT_SECRET: ${{ secrets.PBI_CLIENT_SECRET }}
-          PBI_ENVIRONMENT: Public
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: enterprise-report
-          path: playwright-report/
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: test-results
-          path: test-results/
 ```
 
 ### Azure DevOps (on-prem, self-hosted agent with Chrome)
 
-See [`docs/architecture/ci_deployment_plan.md`](docs/architecture/ci_deployment_plan.md) for the full ADO pipeline YAML with service-principal auth and artifact publishing.
+See [`docs/architecture/ci_deployment_plan.md`](docs/architecture/ci_deployment_plan.md) for the current validate pipeline and the future-state enterprise CI plan.
 
-### CI mode — no interactive setup needed
+### CI selection mode — no interactive prompts
 
-Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or generate it in CI with env vars:
+Commit `playwright/config/enterprise.generated.json` from a local `npm run setup` run, or drive report selection with env vars:
 
 ```yaml
 env:
@@ -209,7 +182,7 @@ env:
   PBI_REPORT_NAME: Regional Metrics
 ```
 
-The suite reads those vars in non-interactive mode and skips the interactive prompts.
+The suite reads those vars and skips the workspace/report selection prompts. These vars select **what** to test; they do not replace the current device-flow/token-cache auth. A fully non-interactive run still needs a valid service principal auth implementation.
 
 ---
 
@@ -236,11 +209,12 @@ npx playwright show-trace test-results/<folder>/trace.zip
 
 ## Environment variables
 
+Use `.env.example` as the template for a local `.env` file. Interactive `npm run setup` works without `.env`; these are optional overrides and non-interactive inputs.
+
 | Variable               | Default                | Purpose                                     |
 | ---------------------- | ---------------------- | ------------------------------------------- |
-| `CLIENT_ID`            | built-in public client | AAD app registration client ID              |
-| `TENANT_ID`            | —                      | Restrict to a specific Azure AD tenant      |
-| `PBI_CLIENT_SECRET`    | —                      | Client secret for service principal (CI)    |
+| `CLIENT_ID`            | built-in public client | Azure AD public client ID for device-flow auth |
+| `TENANT_ID`            | —                      | Optional Azure AD tenant for device-flow auth |
 | `PBI_WORKSPACE_NAME`   | —                      | Non-interactive: target workspace name      |
 | `PBI_REPORT_NAME`      | —                      | Non-interactive: target report name         |
 | `PBI_DATASET_NAME`     | same as report         | Override dataset name                       |
@@ -248,12 +222,14 @@ npx playwright show-trace test-results/<folder>/trace.zip
 | `PBI_ENVIRONMENT`      | `Public`               | Azure cloud (`Public`, `USGov`, `China`, …) |
 | `PBI_TOKEN_CACHE_FILE` | auto                   | Path to MSAL token cache                    |
 | `PBI_BROWSER_CHANNEL`  | `chrome`               | `chrome` or `msedge`                        |
+| `PBI_RUN_ID`           | timestamp              | Override the `test-archive/<run-id>` folder name |
 
 ---
 
 ## Repository layout
 
 ```text
+.env.example                      # local env template (copy to .env)
 playwright/
   config/                           # runtime — gitignored
     enterprise.generated.json       # report/page list written by npm run setup
