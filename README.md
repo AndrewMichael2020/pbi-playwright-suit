@@ -18,9 +18,9 @@ Catches the signals that break reports **before users notice them**.
 
 ## The Cost of Waiting for Customers to Tell You Your Reports Are Broken
 
-*On proactive quality, the operational economics of reactive analytics, and what a CI-first test harness actually buys a modern data team — with numbers.*
+_On proactive quality, the operational economics of reactive analytics, and what a CI-first test harness actually buys a modern data team — with numbers._
 
-It begins with an email. A director — or an operations manager who has been staring at a dashboard all morning, growing quietly uneasy — notices that the numbers look wrong. The chart on the front page of the weekly performance report is blank. The total is frozen at last Tuesday's figure. She writes to the analytics team: *"Is the report working? The data doesn't seem right."*
+It begins with an email. A director — or an operations manager who has been staring at a dashboard all morning, growing quietly uneasy — notices that the numbers look wrong. The chart on the front page of the weekly performance report is blank. The total is frozen at last Tuesday's figure. She writes to the analytics team: _"Is the report working? The data doesn't seem right."_
 
 That email is not merely a support ticket. It is the sound of trust eroding.
 
@@ -38,9 +38,9 @@ Fifty incidents at $1,000 each = **$50,000/month in unplanned senior developer t
 
 Annualised: **$600,000 per year.** For a single workspace. In developer time alone — before pricing the trust deficit, before counting the decisions made on stale data, before accounting for the senior stakeholder who quietly abandons the dashboard and reverts to spreadsheets.
 
-**What CI changes.** The principle of catching defects before users experience them is not new in software engineering. A code change that breaks a unit test in a CI pipeline is caught in seconds. The cost of that catch is effectively zero: a few seconds of compute, a Slack notification, a targeted fix. The cost of the same defect reaching production is an order of magnitude higher. IBM's *Systems Science Institute* and Capers Jones's longitudinal studies both place the ratio of production-defect costs to early-design-phase caught costs at **15:1 to 30:1** depending on defect type and system complexity.
+**What CI changes.** The principle of catching defects before users experience them is not new in software engineering. A code change that breaks a unit test in a CI pipeline is caught in seconds. The cost of that catch is effectively zero: a few seconds of compute, a Slack notification, a targeted fix. The cost of the same defect reaching production is an order of magnitude higher. IBM's _Systems Science Institute_ and Capers Jones's longitudinal studies both place the ratio of production-defect costs to early-design-phase caught costs at **15:1 to 30:1** depending on defect type and system complexity.
 
-Applied to the Power BI scenario: a pipeline that runs this suite nightly — a run that completes in **8–12 minutes** across 1,000 report pages — surfaces the morning's broken reports as a clean, prioritised signal: *three datasets failed their refresh; one carries a credential error matching a known OAuth expiry pattern; one carries a data-integrity violation that will corrupt the totals on four pages.* That signal arrives **before** the director sends the email. A junior engineer triages it in **15 minutes at $100/hr = $25**. The targeted fix takes **1 hour = $200**. Total incident cost: **$225**.
+Applied to the Power BI scenario: a pipeline that runs this suite nightly — a run that completes in **8–12 minutes** across 1,000 report pages — surfaces the morning's broken reports as a clean, prioritised signal: _three datasets failed their refresh; one carries a credential error matching a known OAuth expiry pattern; one carries a data-integrity violation that will corrupt the totals on four pages._ That signal arrives **before** the director sends the email. A junior engineer triages it in **15 minutes at $100/hr = $25**. The targeted fix takes **1 hour = $200**. Total incident cost: **$225**.
 
 Compared to the reactive scenario: **$1,000 reactive vs. $225 proactive = $775 saved per caught incident.**
 
@@ -54,31 +54,26 @@ The return on this investment is not marginal. It is structural. And it compound
 
 ---
 
-Two run modes:
-
-| Mode | When to use |
-|---|---|
-| **Dry run** | Validates suite logic against committed mock fixtures. No credentials, no browser. Runs anywhere — CI, Codespaces, local. |
-| **Enterprise run** | Connects to a live Power BI tenant, interrogates refresh history and model structure via REST API, and smoke-tests rendered report pages via Playwright. |
-
 ---
 
 ## What the suite checks
 
 The suite focuses exclusively on signals that cause Power BI visuals to render **wrong data, stale data, or no data at all**.
 
-| ID | Signal | Why it matters |
-|---|---|---|
-| **RH-002** | Latest dataset refresh status is `Failed`, `Disabled`, `Cancelled`, or `Unknown` | Visuals are serving data from the last successful refresh — potentially days or weeks stale |
+| ID         | Signal                                                                             | Why it matters                                                                                                                                                             |
+| ---------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **RH-002** | Latest dataset refresh status is `Failed`, `Disabled`, `Cancelled`, or `Unknown`   | Visuals are serving data from the last successful refresh — potentially days or weeks stale                                                                                |
 | **RH-003** | Any historical refresh entry contains a data-integrity or credential error pattern | Patterns like `MonikerWithUnboundDataSources`, `OAuth`, `duplicate key`, `primary key`, `RowValueConflict` indicate broken data or auth that causes wrong or empty visuals |
-| **MS-001** | A Many-to-Many relationship is not in the intentional allowlist | The "dimension" table has non-unique key values — Power BI resolves M:M internally but filter propagation changes, causing wrong visual totals |
-| **VS-NNN** | A report page embed raises a Power BI SDK visual error | Broken measures, missing fields, unconstrained joins, or credential failures detected at render time |
+| **MS-001** | A Many-to-Many relationship is not in the intentional allowlist                    | The "dimension" table has non-unique key values — Power BI resolves M:M internally but filter propagation changes, causing wrong visual totals                             |
+| **VS-NNN** | A report page embed raises a Power BI SDK visual error                             | Broken measures, missing fields, unconstrained joins, or credential failures detected at render time                                                                       |
 
 Checks **not** in scope: RLS scenarios, inactive relationships, datasource connection details, bidirectional cross-filter warnings, threshold-based staleness timers.
 
 ---
 
-## Quick start — dry run (no credentials, no browser)
+## Validate this suite (no credentials needed)
+
+Before connecting to a live tenant — or in CI environments without credentials — you can confirm the harness itself is working:
 
 ```powershell
 git clone https://github.com/AndrewMichael2020/pbi-playwright-suit
@@ -87,11 +82,11 @@ npm install
 npm test
 ```
 
-All 48 fixture-based tests run and pass.  Visual enterprise tests auto-skip when no enterprise config is present.
+All 48 checks run against committed mock fixtures and pass. Enterprise tests auto-skip when no config is present. This is also the command used in the `validate` CI job (see [CI integration](#ci-integration) below).
 
 ---
 
-## Enterprise run (live Power BI, Windows)
+## Running the tests (testing your own Power BI reports)
 
 ### Prerequisites
 
@@ -113,47 +108,31 @@ npm run setup
 4. Lists pages in each report — select all or specific pages
 5. Asks **what to check** — choose a focus so you can skip unrelated checks on large workspaces:
 
-| # | Focus | VS-NNN | RH-002 | RH-003 | MS-001 | Best for |
-|---|---|:---:|:---:|:---:|:---:|---|
-| 1 | All checks | ✅ | ✅ | ✅ | ✅¹ | Full audit |
-| 2 | Broken visuals | ✅ | — | — | — | Visual smoke only |
-| 3 | Dataset refresh failures | — | ✅ | — | — | Is the data fresh? |
-| 4 | Credential / auth errors | — | — | ✅ | — | OAuth / gateway failures |
-| 5 | Duplicate PK / M:M | — | — | — | ✅¹ | Dimension key integrity |
-| 6 | Data integrity errors | — | — | ✅ | ✅¹ | Bad aggregations, constraint violations |
-| 7 | Refresh health | — | ✅ | ✅ | — | All refresh signals combined |
-| 8 | Model integrity | — | — | — | ✅¹ | M:M relationship audit |
-| 9 | Quick triage | ✅ | ✅ | — | — | Fastest check for large workspaces |
+| #   | Focus                    | VS-NNN | RH-002 | RH-003 | MS-001 | Best for                                |
+| --- | ------------------------ | :----: | :----: | :----: | :----: | --------------------------------------- |
+| 1   | All checks               |   ✅   |   ✅   |   ✅   |  ✅¹   | Full audit                              |
+| 2   | Broken visuals           |   ✅   |   —    |   —    |   —    | Visual smoke only                       |
+| 3   | Dataset refresh failures |   —    |   ✅   |   —    |   —    | Is the data fresh?                      |
+| 4   | Credential / auth errors |   —    |   —    |   ✅   |   —    | OAuth / gateway failures                |
+| 5   | Duplicate PK / M:M       |   —    |   —    |   —    |  ✅¹   | Dimension key integrity                 |
+| 6   | Data integrity errors    |   —    |   —    |   ✅   |  ✅¹   | Bad aggregations, constraint violations |
+| 7   | Refresh health           |   —    |   ✅   |   ✅   |   —    | All refresh signals combined            |
+| 8   | Model integrity          |   —    |   —    |   —    |  ✅¹   | M:M relationship audit                  |
+| 9   | Quick triage             |   ✅   |   ✅   |   —    |   —    | Fastest check for large workspaces      |
 
-> ¹ **MS-001 requires committed model baselines.** If none exists for the selected report, the check is automatically skipped. See [MS-001 setup](#ms-001--model-structure-check-upcoming) below.
+> ¹ **MS-001 requires persisted PBI model baselines (to be implemented later).** If none exists for the selected report, the check is automatically skipped. Another obviously valuable feature, testing for source data schema drift, is also plannned to be implemented later.
 
-6. Confirms config and optionally runs tests immediately
-
-### 2 — Run tests
-
-```powershell
-npm test
-```
-
-Or, if you chose "Run now?" in setup, tests run automatically.
+6. Confirms config and offers to run immediately — or run later with `npm test`
 
 ### What setup writes
 
 - `playwright/config/enterprise.generated.json` — report/page list (gitignored)
 - `playwright/config/enterprise.focus.json` — selected focus (gitignored)
 
-Neither file is committed.  Pull and re-run `npm run setup` after a `git pull` that adds new reports.
+Neither file is committed. Re-run `npm run setup` whenever you want to change the report selection or focus.
 
 > **Do NOT run `npm run install:browsers` on Windows.**  
 > The enterprise run uses your existing system Chrome or Edge.
-
----
-
-## MS-001 — model structure check *(upcoming)*
-
-MS-001 flags **unallowlisted Many-to-Many relationships** in a committed JSON snapshot of a report's model.  A M:M relationship indicates a dimension table has lost PK uniqueness — Power BI resolves it silently but filter propagation changes, causing visuals to compute wrong totals.
-
-> ⚠️ **Live XMLA model capture is not yet integrated.** MS-001 is available today if you generate the model export externally (Python metadata script or Power BI REST API) and run `npm run ingest:model-txt -- "MyReport.txt"` to create and commit the baseline JSON.  If no baseline is committed for a report, all MS-001 focus options skip automatically.  Full live integration is planned.
 
 ---
 
@@ -161,21 +140,23 @@ MS-001 flags **unallowlisted Many-to-Many relationships** in a committed JSON sn
 
 ### GitHub Actions (Linux runner — installs Chromium once)
 
+The pipeline has two jobs: `validate` confirms the harness passes with no credentials (always runs), then `enterprise` runs the live Power BI checks using secrets from a protected environment.
+
 ```yaml
 name: PBI Quality Suite
 
 on:
   schedule:
-    - cron: '0 6 * * *'   # 06:00 UTC daily
+    - cron: "0 6 * * *" # 06:00 UTC daily
   workflow_dispatch:
 
 jobs:
-  dry-run:
+  validate: # suite self-check — no credentials needed
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with: { node-version: "20" }
       - run: npm ci
       - run: npx playwright install chromium --with-deps
       - run: npm run typecheck
@@ -183,25 +164,25 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: dry-run-report
+          name: validate-report
           path: playwright-report/
 
-  enterprise:
-    needs: dry-run
+  enterprise: # live Power BI checks
+    needs: validate
     runs-on: ubuntu-latest
-    environment: power-bi-prod       # store secrets here
+    environment: power-bi-prod # store secrets here
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: '20' }
+        with: { node-version: "20" }
       - run: npm ci
       - run: npx playwright install chromium --with-deps
       - run: npm test
         env:
-          PBI_TENANT_ID:     ${{ secrets.PBI_TENANT_ID }}
-          PBI_CLIENT_ID:     ${{ secrets.PBI_CLIENT_ID }}
+          PBI_TENANT_ID: ${{ secrets.PBI_TENANT_ID }}
+          PBI_CLIENT_ID: ${{ secrets.PBI_CLIENT_ID }}
           PBI_CLIENT_SECRET: ${{ secrets.PBI_CLIENT_SECRET }}
-          PBI_ENVIRONMENT:   Public
+          PBI_ENVIRONMENT: Public
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -225,7 +206,7 @@ Commit `playwright/config/enterprise.generated.json` from a local `npm run setup
 ```yaml
 env:
   PBI_WORKSPACE_NAME: Analytics Workspace
-  PBI_REPORT_NAME:    Regional Metrics
+  PBI_REPORT_NAME: Regional Metrics
 ```
 
 The suite reads those vars in non-interactive mode and skips the interactive prompts.
@@ -234,14 +215,14 @@ The suite reads those vars in non-interactive mode and skips the interactive pro
 
 ## Understanding test results
 
-| Outcome | Meaning |
-|---|---|
-| ✅ passed | No visual error, refresh healthy, model structure clean |
-| ❌ RH-002 | Latest refresh is Failed / Disabled — visuals are stale |
-| ❌ RH-003 | Refresh history contains data-integrity or credential errors |
-| ❌ MS-001 | Unallowlisted Many-to-Many — possible duplicate PK data |
+| Outcome                | Meaning                                                                   |
+| ---------------------- | ------------------------------------------------------------------------- |
+| ✅ passed              | No visual error, refresh healthy, model structure clean                   |
+| ❌ RH-002              | Latest refresh is Failed / Disabled — visuals are stale                   |
+| ❌ RH-003              | Refresh history contains data-integrity or credential errors              |
+| ❌ MS-001              | Unallowlisted Many-to-Many — possible duplicate PK data                   |
 | ❌ VS-NNN visual error | SDK error at render time — broken measure, missing field, or auth failure |
-| ⏭ skipped | Focus excludes this check, or enterprise config not present |
+| ⏭ skipped             | Focus excludes this check, or enterprise config not present               |
 
 Each failed test has a **screenshot**, **video**, and **trace** attached.  
 For `RH-*` and `MS-*` failures, annotations detail the specific error code and relationship key.
@@ -255,18 +236,18 @@ npx playwright show-trace test-results/<folder>/trace.zip
 
 ## Environment variables
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `CLIENT_ID` | built-in public client | AAD app registration client ID |
-| `TENANT_ID` | — | Restrict to a specific Azure AD tenant |
-| `PBI_CLIENT_SECRET` | — | Client secret for service principal (CI) |
-| `PBI_WORKSPACE_NAME` | — | Non-interactive: target workspace name |
-| `PBI_REPORT_NAME` | — | Non-interactive: target report name |
-| `PBI_DATASET_NAME` | same as report | Override dataset name |
-| `PBI_PAGE_NAME` | first page | Override page display name |
-| `PBI_ENVIRONMENT` | `Public` | Azure cloud (`Public`, `USGov`, `China`, …) |
-| `PBI_TOKEN_CACHE_FILE` | auto | Path to MSAL token cache |
-| `PBI_BROWSER_CHANNEL` | `chrome` | `chrome` or `msedge` |
+| Variable               | Default                | Purpose                                     |
+| ---------------------- | ---------------------- | ------------------------------------------- |
+| `CLIENT_ID`            | built-in public client | AAD app registration client ID              |
+| `TENANT_ID`            | —                      | Restrict to a specific Azure AD tenant      |
+| `PBI_CLIENT_SECRET`    | —                      | Client secret for service principal (CI)    |
+| `PBI_WORKSPACE_NAME`   | —                      | Non-interactive: target workspace name      |
+| `PBI_REPORT_NAME`      | —                      | Non-interactive: target report name         |
+| `PBI_DATASET_NAME`     | same as report         | Override dataset name                       |
+| `PBI_PAGE_NAME`        | first page             | Override page display name                  |
+| `PBI_ENVIRONMENT`      | `Public`               | Azure cloud (`Public`, `USGov`, `China`, …) |
+| `PBI_TOKEN_CACHE_FILE` | auto                   | Path to MSAL token cache                    |
+| `PBI_BROWSER_CHANNEL`  | `chrome`               | `chrome` or `msedge`                        |
 
 ---
 
@@ -338,13 +319,13 @@ Run `npm run setup` first.
 
 ### Sign-in code appears and the terminal returns immediately
 
-Expected.  Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
+Expected. Open `https://login.microsoft.com/device`, enter the code, sign in, then re-run.
 
 ---
 
 ### `uuid@8.3.2` deprecation warning during `npm install`
 
-Fixed — the repo now uses `@azure/msal-node@^5.2.2`.  Pull and reinstall:
+Fixed — the repo now uses `@azure/msal-node@^5.2.2`. Pull and reinstall:
 
 ```powershell
 git pull && npm install
@@ -362,7 +343,7 @@ Fix: clone or copy the repo to a **local drive** (`C:\`, `D:\`, etc.) before run
 ### `Playwright Host validation warning: api-ms-win-core-apiquery-l2-1-0.dll`
 
 This warning appears when Playwright validates its bundled Chromium on Windows.  
-It does **not** affect your system Chrome.  If you are using system Chrome, ignore it.
+It does **not** affect your system Chrome. If you are using system Chrome, ignore it.
 
 ---
 
@@ -380,4 +361,3 @@ Remove-Item -Recurse -Force node_modules
 Remove-Item package-lock.json
 npm install
 ```
-
