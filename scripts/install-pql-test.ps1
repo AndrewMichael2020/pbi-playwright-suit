@@ -133,20 +133,46 @@ if (-not $env:VIRTUAL_ENV) {
 # 8. Auth login
 Write-Host ""
 Write-Host "  One-time authentication required." -ForegroundColor White
-Write-Host "  A browser will open -- sign in with your Power BI account." -ForegroundColor DarkGray
-Write-Host "  Credentials are stored in Windows Credential Manager." -ForegroundColor DarkGray
+Write-Host "  Uses Microsoft's Power BI Desktop client ID (pre-approved in enterprise" -ForegroundColor DarkGray
+Write-Host "  tenants -- bypasses admin consent for third-party apps)." -ForegroundColor DarkGray
+Write-Host "  Credentials stored in Windows Credential Manager." -ForegroundColor DarkGray
 Write-Host ""
+
+# Read TENANT_ID from .env if present
+$PbiFqdn   = $null
+$TenantId  = $null
+$ClientId  = 'd3590ed6-52b3-4102-aeff-aad2292ab01c'   # Microsoft Power BI Desktop -- pre-approved in enterprise tenants
+$envFile   = Join-Path $RepoRoot '.env'
+
+if (Test-Path $envFile) {
+    Get-Content $envFile | ForEach-Object {
+        if ($_ -match '^\s*TENANT_ID\s*=\s*(.+)$')   { $TenantId  = $Matches[1].Trim().Trim('"').Trim("'") }
+        if ($_ -match '^\s*PBI_FQDN\s*=\s*(.+)$')    { $PbiFqdn   = $Matches[1].Trim().Trim('"').Trim("'") }
+    }
+}
+
+if ($TenantId) {
+    Write-Host "  Found TENANT_ID in .env: $TenantId" -ForegroundColor DarkGray
+} else {
+    Write-Host "  No TENANT_ID found in .env -- you will be prompted for it." -ForegroundColor Yellow
+    $TenantId = Read-Host "  Enter your Azure AD Tenant ID (from Azure Portal > Overview)"
+}
+
+$loginArgs = @('auth', 'login', '--client-id', $ClientId, '--tenant', $TenantId)
 
 $doLogin = Read-Host "  Run pql-test auth login now? [Y/n]"
 if ($doLogin -eq '' -or $doLogin -match '^[Yy]') {
-    & $pql auth login
+    & $pql @loginArgs
     if ($LASTEXITCODE -eq 0) {
         Write-Ok "Authenticated.  npm run setup will now unlock [7] and [8]."
     } else {
-        Write-Warn "Auth login exited $LASTEXITCODE.  Re-run: .\.venv\Scripts\pql-test.exe auth login"
+        Write-Warn "Auth login exited $LASTEXITCODE."
+        Write-Host "  If you saw an admin-consent screen, re-run with the Microsoft client ID:" -ForegroundColor Yellow
+        Write-Host "    pql-test auth login --client-id $ClientId --tenant $TenantId" -ForegroundColor Cyan
     }
 } else {
-    Write-Host "  Skipped.  Run later: .\.venv\Scripts\pql-test.exe auth login" -ForegroundColor DarkGray
+    Write-Host "  Skipped.  Run later:" -ForegroundColor DarkGray
+    Write-Host "    pql-test auth login --client-id $ClientId --tenant $TenantId" -ForegroundColor Cyan
 }
 
 Write-Host ""
