@@ -56,16 +56,25 @@ const magenta = (s: string) => `\x1b[35m${s}\x1b[0m`;
 
 type PqlStatus = 'not-installed' | 'not-authed' | 'ready';
 
+/**
+ * Checks only whether pql-test is on PATH — uses `where` (Windows) / `which`
+ * (Unix) which is instant and does NOT start Python or load ADOMD.NET.
+ * Auth is checked lazily only if the user actually selects a pql focus option.
+ */
 function checkPqlStatus(): PqlStatus {
-  const version = spawnSync('pql-test', ['--version'], { encoding: 'utf-8', shell: true });
-  if (version.status !== 0) return 'not-installed';
-  const authStatus = spawnSync('pql-test', ['auth', 'status'], { encoding: 'utf-8', shell: true });
-  // "auth status" exits 0 and prints something like "Logged in as ..." when authed
-  const out = (authStatus.stdout ?? '') + (authStatus.stderr ?? '');
-  if (authStatus.status !== 0 || /not logged in|no credentials|not authenticated/i.test(out)) {
-    return 'not-authed';
-  }
+  const probe = spawnSync(
+    process.platform === 'win32' ? 'where' : 'which',
+    ['pql-test'],
+    { encoding: 'utf-8', shell: false },
+  );
+  if (probe.status !== 0 || !probe.stdout?.trim()) return 'not-installed';
+  // Executable found — assume ready; auth errors surface in the test run itself
   return 'ready';
+}
+
+function startPqlStatusCheck(): Promise<PqlStatus> {
+  // Synchronous and fast (no Python), so no worker thread needed
+  return Promise.resolve(checkPqlStatus());
 }
 
 // ── timing helpers ─────────────────────────────────────────────────────────────
@@ -226,7 +235,7 @@ async function pickMany<T extends { name: string }>(
 
 // ── focus menu ────────────────────────────────────────────────────────────────
 
-async function pickFocus(rl: readline.Interface, reportCount: number): Promise<CheckFocus> {
+async function pickFocus(rl: readline.Interface, reportCount: number, pqlStatusPromise: Promise<PqlStatus>): Promise<CheckFocus> {
   console.log(
     `\n${bold(cyan('What do you want to check?'))}` +
     dim(`  (${reportCount} test config(s) queued)\n`) +
@@ -236,7 +245,7 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   const OTHER_LABEL = 'Other (enter custom Playwright grep filter)';
   const OTHER_VALUE = '__other__' as const;
 
-  const pqlStatus  = checkPqlStatus();
+  const pqlStatus  = await pqlStatusPromise;
   const liveItems  = FOCUS_MENU.filter((m) => !m.tbd && !m.pql);
   const pqlItems   = FOCUS_MENU.filter((m) => m.pql);
   const tbdItems   = FOCUS_MENU.filter((m) => m.tbd);
@@ -268,10 +277,7 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
       process.stdout.write(`  ${num}  ${item.label.padEnd(32)}${desc}\n`);
     });
   } else {
-    const hint =
-      pqlStatus === 'not-installed'
-        ? yellow('pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "pql-test==0.1.9"  then  pql-test auth login')
-        : yellow('pql-test auth login');
+    const hint = yellow('Run: npm run pql:install  (installs pql-test and authenticates)');
     pqlItems.forEach((item) => {
       process.stdout.write(
         `  ${dim('[n/a]')}  ${dim(item.label.padEnd(32))}${dim('  — ')}${hint}\n`,
@@ -395,6 +401,11 @@ async function main(): Promise<void> {
   const accessToken = await getAccessToken(credentials, endpoints);
   console.log(`${ts()} ${green('✓ Authenticated')} ${elapsed(t)}\n`);
 
+  // Start pql-test status check in background immediately — Python startup
+  // takes ~10s, so by the time the user finishes picking workspace/report/pages
+  // the result is already available and pickFocus() has zero wait.
+  const pqlStatusPromise = startPqlStatusCheck();
+
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
   // ── main loop — repeat until user says "no more" ────────────────────────────
@@ -500,7 +511,7 @@ async function main(): Promise<void> {
       console.log();
 
       // 6. Pick focus area
-      const focus = await pickFocus(rl, configs.length);
+      const focus = await pickFocus(rl, configs.length, pqlStatusPromise);
       saveFocus(focus);
       const focusLabel = FOCUS_MENU.find((m) => m.value === focus)?.label ?? focus;
       console.log(`\n  ${green('✓')} Focus: ${bold(focusLabel)}\n`);
