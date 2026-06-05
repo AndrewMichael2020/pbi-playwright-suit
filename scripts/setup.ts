@@ -270,7 +270,7 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   } else {
     const hint =
       pqlStatus === 'not-installed'
-        ? yellow('pip install pql-test  +  pql-test auth login')
+        ? yellow('pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ "pql-test==0.1.9"  then  pql-test auth login')
         : yellow('pql-test auth login');
     pqlItems.forEach((item) => {
       process.stdout.write(

@@ -82,76 +82,104 @@ async function executeQuery(
 // ── schema fetchers using INFO DAX functions ──────────────────────────────────
 
 interface TableMeta     { name: string; isHidden: boolean }
+// ── schema fetchers using INFO.VIEW.* DAX functions ──────────────────────────
+
+interface TableMeta     { id: string; name: string; isHidden: boolean }
 interface ColumnMeta    { tableName: string; name: string; dataType: string; isHidden: boolean }
 interface KeyColumnMeta { tableName: string; columnName: string }
 
-async function fetchTables(
+/**
+ * Discovers the column names actually exposed by INFO.VIEW.TABLES() and
+ * INFO.VIEW.COLUMNS() in this Power BI service instance.  Prints them so
+ * the user can report them when the schema query fails.
+ */
+async function discoverInfoViewColumns(
   token: string,
   workspaceId: string,
   datasetId: string,
   apiBase: string,
-): Promise<TableMeta[]> {
-  const rows = await executeQuery(
-    token, workspaceId, datasetId,
-    'EVALUATE SELECTCOLUMNS(INFO.TABLES(), "Name", [Name], "IsHidden", [IsHidden])',
-    apiBase,
-  );
-  return rows.map((r) => ({
-    name:     String(r['Name'] ?? r['[Name]'] ?? ''),
-    isHidden: Boolean(r['IsHidden'] ?? r['[IsHidden]']),
-  })).filter((t) => t.name);
+): Promise<void> {
+  const probes: [string, string][] = [
+    ['INFO.VIEW.TABLES()',  'EVALUATE TOPN(1, INFO.VIEW.TABLES())'],
+    ['INFO.VIEW.COLUMNS()', 'EVALUATE TOPN(1, INFO.VIEW.COLUMNS())'],
+  ];
+  for (const [label, dax] of probes) {
+    try {
+      const rows = await executeQuery(token, workspaceId, datasetId, dax, apiBase);
+      const keys = rows.length > 0 ? Object.keys(rows[0]) : ['(no rows returned)'];
+      console.log(dim(`     ${label} columns: ${keys.join(', ')}`));
+    } catch (e) {
+      console.log(yellow(`     ${label} — probe failed: ${(e as Error).message}`));
+    }
+  }
 }
 
 /**
- * Fetches all column metadata in a single executeQueries call using
- * INFO.COLUMNS() joined to INFO.TABLES() via ADDCOLUMNS+LOOKUPVALUE.
+ * Fetches tables + columns + key-column flags in two parallel INFO.VIEW.*
+ * queries, then joins them in TypeScript via TableID.
  *
- * INFO.VIEW.COLUMNS() was avoided because its [TableName] projection
- * is not available in all Power BI service versions.
+ * Both queries use only SELECTCOLUMNS on INFO.VIEW.* — no ADDCOLUMNS or
+ * LOOKUPVALUE — which avoids the "column not found" errors caused by
+ * INFO.COLUMNS() (lower-level, XMLA-only) being unavailable via executeQueries.
  *
- * Returns columns (for schema file) and key columns (for DataQuality file)
- * from one API round-trip.
+ * If the queries fail, discoverInfoViewColumns() is called automatically so
+ * the actual available column names are printed for diagnosis.
  */
-async function fetchColumnsAndKeys(
+async function fetchSchema(
   token: string,
   workspaceId: string,
   datasetId: string,
   apiBase: string,
-): Promise<{ columns: ColumnMeta[]; keyColumns: KeyColumnMeta[] }> {
-  const dax = [
-    'EVALUATE',
-    'SELECTCOLUMNS(',
-    '  ADDCOLUMNS(',
-    '    INFO.COLUMNS(),',
-    '    "TableName", LOOKUPVALUE(INFO.TABLES()[Name], INFO.TABLES()[ID], [TableID])',
-    '  ),',
-    '  "Table",    [TableName],',
-    '  "Column",   [ExplicitName],',
-    '  "DataType", [DataType],',
-    '  "IsHidden", [IsHidden],',
-    '  "IsKey",    [IsKey]',
-    ')',
-  ].join('\n');
+): Promise<{ tables: TableMeta[]; columns: ColumnMeta[]; keyColumns: KeyColumnMeta[] }> {
+  let tableRows: Record<string, string | number | boolean | null>[];
+  let colRows:   Record<string, string | number | boolean | null>[];
 
-  const rows = await executeQuery(token, workspaceId, datasetId, dax, apiBase);
+  try {
+    [tableRows, colRows] = await Promise.all([
+      executeQuery(token, workspaceId, datasetId,
+        'EVALUATE SELECTCOLUMNS(INFO.VIEW.TABLES(), "ID", [ID], "Name", [Name], "IsHidden", [IsHidden])',
+        apiBase),
+      executeQuery(token, workspaceId, datasetId,
+        'EVALUATE SELECTCOLUMNS(INFO.VIEW.COLUMNS(), "TableID", [TableID], "Column", [Name], "DataType", [DataType], "IsHidden", [IsHidden], "IsKey", [IsKey])',
+        apiBase),
+    ]);
+  } catch (err) {
+    console.log(yellow(`\n     Diagnosing available INFO.VIEW columns…`));
+    await discoverInfoViewColumns(token, workspaceId, datasetId, apiBase);
+    throw err;
+  }
 
-  const columns: ColumnMeta[]    = [];
+  const tables: TableMeta[] = tableRows
+    .map((r) => ({
+      id:       String(r['ID']       ?? r['[ID]']       ?? ''),
+      name:     String(r['Name']     ?? r['[Name]']     ?? ''),
+      isHidden: Boolean(r['IsHidden'] ?? r['[IsHidden]']),
+    }))
+    .filter((t) => t.id && t.name);
+
+  const tableIdToName    = new Map(tables.map((t) => [t.id, t.name]));
+  const tableIdToHidden  = new Map(tables.map((t) => [t.id, t.isHidden]));
+
+  const columns:    ColumnMeta[]    = [];
   const keyColumns: KeyColumnMeta[] = [];
 
-  for (const r of rows) {
-    const tableName = String(r['Table']   ?? r['[Table]']   ?? '');
-    const name      = String(r['Column']  ?? r['[Column]']  ?? '');
-    const dataType  = String(r['DataType'] ?? r['[DataType]'] ?? '');
-    const isHidden  = Boolean(r['IsHidden'] ?? r['[IsHidden]']);
-    const isKey     = Boolean(r['IsKey']   ?? r['[IsKey]']);
+  for (const r of colRows) {
+    const tableId  = String(r['TableID']  ?? r['[TableID]']  ?? '');
+    const name     = String(r['Column']   ?? r['[Column]']   ?? '');
+    const dataType = String(r['DataType'] ?? r['[DataType]'] ?? '');
+    const isHidden = Boolean(r['IsHidden'] ?? r['[IsHidden]']);
+    const isKey    = Boolean(r['IsKey']   ?? r['[IsKey]']);
 
+    const tableName = tableIdToName.get(tableId);
     if (!tableName || !name) continue;
 
-    columns.push({ tableName, name, dataType, isHidden });
+    // Inherit table-level hidden flag (column inherits if table is hidden)
+    const effectiveHidden = isHidden || (tableIdToHidden.get(tableId) ?? false);
+    columns.push({ tableName, name, dataType, isHidden: effectiveHidden });
     if (isKey) keyColumns.push({ tableName, columnName: name });
   }
 
-  return { columns, keyColumns };
+  return { tables, columns, keyColumns };
 }
 
 // ── DAX file generators ───────────────────────────────────────────────────────
@@ -270,15 +298,14 @@ async function main(): Promise<void> {
   for (const ds of datasets) {
     console.log(dim(`  Querying schema: ${ds.reportName}…`));
 
-    let tables:  TableMeta[]  = [];
-    let columns: ColumnMeta[] = [];
+    let tables:     TableMeta[]     = [];
+    let columns:    ColumnMeta[]    = [];
     let keyColumns: KeyColumnMeta[] = [];
 
     try {
-      [tables, { columns, keyColumns }] = await Promise.all([
-        fetchTables(accessToken, ds.workspaceId, ds.datasetId, endpoints.apiPrefix),
-        fetchColumnsAndKeys(accessToken, ds.workspaceId, ds.datasetId, endpoints.apiPrefix),
-      ]);
+      ({ tables, columns, keyColumns } = await fetchSchema(
+        accessToken, ds.workspaceId, ds.datasetId, endpoints.apiPrefix,
+      ));
     } catch (err) {
       console.log(yellow(`  ⚠  Schema query failed for "${ds.reportName}": ${(err as Error).message}`));
       skipped++;
