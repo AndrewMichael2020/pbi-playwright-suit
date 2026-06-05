@@ -35,14 +35,14 @@ export default defineConfig({
       // Dry run: validates suite logic against committed mock fixtures.
       // No browser, no credentials required. Runs anywhere.
       name: 'dry-run',
-      testMatch: /.*metadata\/.*\.spec\.ts/,
+      testMatch: '**/{metadata,fixtures}/**/*.spec.ts',
       timeout: 60_000,
     },
     {
       // Enterprise run: live Power BI checks — dataset health + visual render.
       // Requires npm run setup first (writes enterprise.generated.json).
       name: 'enterprise',
-      testMatch: /.*visual\/.*\.spec\.ts/,
+      testMatch: '**/tests/visual/**/*.spec.ts',
       timeout: 180_000,
       use: {
         channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
@@ -57,7 +57,7 @@ export default defineConfig({
       // Triggered by npm run setup when focus is pql-schema-drift or pql-key-duplication.
       // Requires: pip install pql-test  +  pql-test auth login  (one-time per machine).
       name: 'pql',
-      testMatch: /.*tests\/pql\/.*\.spec\.ts/,
+      testMatch: '**/tests/pql/**/*.spec.ts',
       timeout: 300_000,
     },
   ],
