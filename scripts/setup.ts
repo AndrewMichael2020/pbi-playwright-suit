@@ -218,26 +218,49 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   );
 
   const OTHER_LABEL = 'Other (enter custom Playwright grep filter)';
-  const OTHER_VALUE = '__other__';
-  const items: Array<{ value: CheckFocus | typeof OTHER_VALUE; label: string; description: string }> = [
-    ...FOCUS_MENU,
+  const OTHER_VALUE = '__other__' as const;
+
+  const liveItems = FOCUS_MENU.filter((m) => !m.tbd);
+  const tbdItems  = FOCUS_MENU.filter((m) => m.tbd);
+
+  // Selectable items: live options + Other
+  type SelectableItem = { value: CheckFocus | typeof OTHER_VALUE; label: string; description: string };
+  const selectable: SelectableItem[] = [
+    ...liveItems,
     { value: OTHER_VALUE, label: OTHER_LABEL, description: '' },
   ];
 
-  items.forEach((item, i) => {
+  const SEP = `\n  ${dim('─'.repeat(72))}\n`;
+
+  // ── Live (numbered) ────────────────────────────────────────────────────────
+  process.stdout.write(SEP);
+  liveItems.forEach((item, i) => {
     const num  = dim(`[${String(i + 1).padStart(2)}]`);
-    const sep  = i === 0 || i === FOCUS_MENU.length ? `\n  ${dim('─'.repeat(72))}\n` : '';
-    const desc = item.description ? dim(`  — ${item.description}`) : '';
-    process.stdout.write(`${sep}  ${num}  ${item.label.padEnd(26)}${desc}\n`);
+    const desc = dim(`  — ${item.description}`);
+    process.stdout.write(`  ${num}  ${item.label.padEnd(30)}${desc}\n`);
   });
 
-  console.log();
+  // ── TBD (non-selectable, dimmed) ───────────────────────────────────────────
+  if (tbdItems.length > 0) {
+    process.stdout.write(SEP);
+    tbdItems.forEach((item) => {
+      const marker = dim('[TBD]');
+      const note   = dim(`  — ${item.description}  `) + yellow('(requires model baselines — coming soon)');
+      process.stdout.write(`  ${marker}  ${dim(item.label.padEnd(30))}${note}\n`);
+    });
+  }
+
+  // ── Other (numbered, last) ─────────────────────────────────────────────────
+  process.stdout.write(SEP);
+  const otherNum = String(selectable.length).padStart(2);
+  process.stdout.write(`  ${dim(`[${otherNum}]`)}  ${OTHER_LABEL}\n`);
+  process.stdout.write(SEP + '\n');
 
   while (true) {
-    const ans = (await rl.question(dim(`  Enter number (1–${items.length}): `))).trim();
+    const ans = (await rl.question(dim(`  Enter number (1–${selectable.length}): `))).trim();
     const idx = parseInt(ans, 10) - 1;
-    if (!isNaN(idx) && idx >= 0 && idx < items.length) {
-      const chosen = items[idx]!;
+    if (!isNaN(idx) && idx >= 0 && idx < selectable.length) {
+      const chosen = selectable[idx]!;
       if (chosen.value === OTHER_VALUE) {
         const grep = (await rl.question(dim('  Playwright grep pattern: '))).trim();
         if (grep) process.env.PBI_GREP = grep;
@@ -245,7 +268,7 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
       }
       return chosen.value as CheckFocus;
     }
-    console.log(red(`  Please enter a number between 1 and ${items.length}.`));
+    console.log(red(`  Please enter a number between 1 and ${selectable.length}.`));
   }
 }
 

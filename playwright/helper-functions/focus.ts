@@ -6,15 +6,17 @@
  *
  * Focus values and what they include:
  *
- *   all              — complete suite (default)
- *   broken-visuals   — report-pages.spec only
+ *   broken-visuals   — report-pages.spec only (VS-NNN)
  *   refresh-failures — latest refresh status check (RH-002)
  *   credential-errors— auth / OAuth / unbound-datasource errors in refresh history (RH-003)
+ *   refresh-health   — all refresh checks: RH-002 + RH-003
+ *   quick-triage     — broken-visuals + refresh-failures (fastest for large workspaces)
+ *   all              — complete live suite (model integrity auto-skips until baselines exist)
+ *
+ * TBD — require committed model baselines (MS-001), not yet available:
  *   duplicate-pk     — M:M relationships outside allowlist (MS-001)
  *   data-integrity   — RH-003 + MS-001 together
- *   refresh-health   — all refresh checks: RH-002 + RH-003
  *   model-integrity  — model structural checks: MS-001
- *   quick-triage     — broken-visuals + refresh-failures (fastest for large workspaces)
  */
 
 import fs   from 'node:fs';
@@ -38,14 +40,15 @@ export interface FocusOptions {
   label: string;
   /** One-line description (business language for PBI developers) */
   description: string;
+  /**
+   * When true the option is shown in the menu but cannot be selected —
+   * it depends on MS-001 model baselines that are not yet implemented.
+   */
+  tbd?: true;
 }
 
 export const FOCUS_MENU: FocusOptions[] = [
-  {
-    value: 'all',
-    label: 'All checks',
-    description: 'Complete suite — every signal that can break a report',
-  },
+  // ── Live checks (selectable) ───────────────────────────────────────────────
   {
     value: 'broken-visuals',
     label: 'Broken visuals',
@@ -58,33 +61,42 @@ export const FOCUS_MENU: FocusOptions[] = [
   },
   {
     value: 'credential-errors',
-    label: 'Credential / OAuth errors',
-    description: 'Gateway auth, unbound datasource, or OAuth failures blocking refresh',
-  },
-  {
-    value: 'duplicate-pk',
-    label: 'Duplicate PK values',
-    description: 'Dimension tables that lost key uniqueness — wrong totals in every visual',
-  },
-  {
-    value: 'data-integrity',
-    label: 'Data integrity errors',
-    description: 'Duplicate-key or constraint violations found in refresh history',
+    label: 'Credential / gateway errors',
+    description: 'OAuth, gateway auth, or unbound datasource blocking refresh',
   },
   {
     value: 'refresh-health',
     label: 'Refresh health',
-    description: 'All refresh-related signals: failures + credential + data integrity',
-  },
-  {
-    value: 'model-integrity',
-    label: 'Model integrity',
-    description: 'Model structural issues: M:M relationships indicating duplicate PKs',
+    description: 'All refresh signals combined: failures + credential errors',
   },
   {
     value: 'quick-triage',
     label: 'Quick triage',
-    description: 'Visuals + latest refresh only — fastest check for 500+ reports',
+    description: 'Visuals + latest refresh — fastest check for large workspaces',
+  },
+  {
+    value: 'all',
+    label: 'All checks',
+    description: 'Every live signal — visual, refresh, credential (model integrity coming soon)',
+  },
+  // ── TBD — require committed model baselines (MS-001 not yet implemented) ──
+  {
+    value: 'duplicate-pk',
+    label: 'Duplicate PK / M:M relationships',
+    description: 'Dimension tables that lost key uniqueness — wrong totals in every visual',
+    tbd: true,
+  },
+  {
+    value: 'data-integrity',
+    label: 'Data integrity errors',
+    description: 'Constraint violations + credential errors combined',
+    tbd: true,
+  },
+  {
+    value: 'model-integrity',
+    label: 'Model integrity',
+    description: 'Full M:M relationship audit — structural model health',
+    tbd: true,
   },
 ];
 
