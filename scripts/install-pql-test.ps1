@@ -46,20 +46,37 @@ try {
 
 # 2. Virtual environment
 Write-Step "Virtual environment..."
-if (-not (Test-Path $VenvDir)) {
+
+$pip    = $null
+$python = $null
+$pql    = $null
+
+if ($env:VIRTUAL_ENV) {
+    # Already inside an active venv -- use it as-is
+    Write-Ok "Active venv detected: $env:VIRTUAL_ENV"
+    $pip    = Join-Path $env:VIRTUAL_ENV 'Scripts\pip.exe'
+    $python = Join-Path $env:VIRTUAL_ENV 'Scripts\python.exe'
+    $pql    = Join-Path $env:VIRTUAL_ENV 'Scripts\pql-test.exe'
+} elseif (Test-Path $VenvDir) {
+    Write-Ok "Found .venv: $VenvDir"
+    $pip    = Join-Path $VenvDir 'Scripts\pip.exe'
+    $python = Join-Path $VenvDir 'Scripts\python.exe'
+    $pql    = Join-Path $VenvDir 'Scripts\pql-test.exe'
+} else {
     Write-Host "  Creating .venv..." -ForegroundColor DarkGray
     python -m venv $VenvDir
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to create venv.  Activate an existing venv first and re-run."
+        exit 1
+    }
     Write-Ok "Created $VenvDir"
-} else {
-    Write-Ok "Already exists: $VenvDir"
+    $pip    = Join-Path $VenvDir 'Scripts\pip.exe'
+    $python = Join-Path $VenvDir 'Scripts\python.exe'
+    $pql    = Join-Path $VenvDir 'Scripts\pql-test.exe'
 }
 
-$pip    = Join-Path $VenvDir 'Scripts\pip.exe'
-$python = Join-Path $VenvDir 'Scripts\python.exe'
-$pql    = Join-Path $VenvDir 'Scripts\pql-test.exe'
-
 if (-not (Test-Path $pip)) {
-    Write-Error "pip not found in venv.  Delete .venv and re-run."
+    Write-Error "pip not found at $pip -- activate your venv and re-run."
     exit 1
 }
 
@@ -102,14 +119,16 @@ if ($LASTEXITCODE -ne 0) {
     Write-Ok "ADOMD.NET driver ready"
 }
 
-# 7. PATH hint
-$venvScripts = Join-Path $VenvDir 'Scripts'
-$inPath = ($env:PATH -split ';') -contains $venvScripts
-if (-not $inPath) {
-    Write-Host ""
-    Write-Host "  NOTE: Add .venv to your PATH so npm run setup can detect pql-test:" -ForegroundColor Yellow
-    Write-Host "    `$env:PATH = `"$venvScripts;`$env:PATH`"" -ForegroundColor DarkGray
-    Write-Host "  Or activate the venv first:  .\.venv\Scripts\Activate.ps1" -ForegroundColor DarkGray
+# 7. PATH hint (only relevant if not already in an active venv)
+if (-not $env:VIRTUAL_ENV) {
+    $venvScripts = Join-Path $VenvDir 'Scripts'
+    $inPath = ($env:PATH -split ';') -contains $venvScripts
+    if (-not $inPath) {
+        Write-Host ""
+        Write-Host "  NOTE: Add .venv to your PATH so npm run setup can detect pql-test:" -ForegroundColor Yellow
+        Write-Host "    `$env:PATH = `"$venvScripts;`$env:PATH`"" -ForegroundColor DarkGray
+        Write-Host "  Or activate the venv first:  .\.venv\Scripts\Activate.ps1" -ForegroundColor DarkGray
+    }
 }
 
 # 8. Auth login
