@@ -75,7 +75,9 @@ test.describe('DIAG — sentinel (remove after bug found)', () => {
 
 test.describe('Report page health', () => {
   console.log(`[DIAG report-pages] OUTER describe callback entered, skipReason="${skipReason}", groups=${reportGroups.size}`);
-  test.skip(Boolean(skipReason), skipReason);
+  // Guard: only call test.skip when there is actually a reason — calling
+  // test.skip(false, '') in Playwright v1.60 appears to zero the test count.
+  if (skipReason) test.skip(true, skipReason);
 
   for (const [reportName, items] of reportGroups) {
     console.log(`[DIAG report-pages] registering inner describe for: "${reportName}" (${items.length} tests)`);

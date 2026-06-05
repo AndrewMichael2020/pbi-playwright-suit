@@ -72,7 +72,8 @@ console.log(`[DIAG dataset-health] uniqueDatasets: ${uniqueDatasets.size}, skipR
 
 test.describe('Dataset health', () => {
   console.log(`[DIAG dataset-health] OUTER describe callback entered, datasets=${uniqueDatasets.size}`);
-  test.skip(Boolean(skipReason), skipReason);
+  // Guard: only call test.skip when there is actually a reason.
+  if (skipReason) test.skip(true, skipReason);
 
   for (const config of uniqueDatasets.values()) {
     test.describe(config.datasetName, () => {
