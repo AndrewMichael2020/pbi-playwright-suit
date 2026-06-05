@@ -290,7 +290,7 @@ playwright/
       schema-drift.spec.ts          # schema signature + drift detection
       source-extraction.spec.ts     # SQL extraction from M expressions
       duplicate-checks.spec.ts      # duplicate table/measure/relationship heuristics
-      model-structure.spec.ts       # MS-001 against committed baseline
+      model-structure.spec.ts       # MS-001 against persisted baseline (upcoming)
     visual/                         # enterprise live checks (require npm run setup)
       dataset-health.spec.ts        # RH-002, RH-003 against live Power BI
       report-pages.spec.ts          # VS-NNN visual smoke via Power BI JS SDK
