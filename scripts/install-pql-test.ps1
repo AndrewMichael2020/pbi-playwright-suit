@@ -105,13 +105,14 @@ Write-Ok "pql-test installed"
 
 # 5. Verify
 Write-Step "Verifying..."
-$verOut = & $pql --version 2>&1
+$verOut = (& $pql --version 2>&1) | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }
 Write-Ok "pql-test $verOut"
 
 # 6. check-prereqs
 Write-Step "Checking ADOMD.NET prerequisites..."
 Write-Host "  (may download driver if missing)" -ForegroundColor DarkGray
-& $pql check-prereqs
+$prereqOut = (& $pql check-prereqs 2>&1) | Where-Object { $_ -isnot [System.Management.Automation.ErrorRecord] }
+$prereqOut | ForEach-Object { Write-Host "  $_" }
 if ($LASTEXITCODE -ne 0) {
     Write-Warn "check-prereqs reported an issue -- see output above."
     Write-Warn "You may need Microsoft.AnalysisServices.AdomdClient installed manually."
