@@ -27,6 +27,10 @@ const BASELINE_PATH = path.join(
   __dirname, '..', '..', 'fixtures', 'snapshots', 'model-baseline', 'sample-model-baseline.json',
 );
 
+const VIOLATION_BASELINE_PATH = path.join(
+  __dirname, '..', '..', 'fixtures', 'snapshots', 'model-baseline', 'sample-model-baseline-violation.json',
+);
+
 interface BaselineRelationship {
   id: string;
   fromTable: string;
@@ -108,6 +112,37 @@ test.describe('Model structure', () => {
           `  If this is intentional, add it to intentionalManyToMany in the baseline JSON.`,
         ).join('\n'),
       ).toBe(0);
+    },
+  );
+});
+
+// ─── MS-001 detection logic — negative / violation test ──────────────────────
+//
+// Verifies that the M:M detection logic correctly surfaces violations when a
+// relationship is Many→Many but absent from intentionalManyToMany.  Uses a
+// dedicated violation fixture that intentionally omits one allowlist entry.
+
+test.describe('Model structure — detection logic (negative test)', () => {
+  test(
+    'MS-001 detection logic flags an unallowlisted M:M relationship in the violation fixture',
+    () => {
+      const raw = fs.readFileSync(VIOLATION_BASELINE_PATH, 'utf-8');
+      const fixture = JSON.parse(raw) as ModelBaseline;
+
+      const allowlisted = new Set(fixture.intentionalManyToMany);
+      const violations  = fixture.relationships
+        .filter((r) => r.cardinality === 'Many -> Many')
+        .filter((r) => !allowlisted.has(relKey(r)));
+
+      expect(
+        violations.length,
+        'The violation fixture must contain at least one unallowlisted M:M relationship ' +
+        'so the detection logic is proven to catch it.',
+      ).toBeGreaterThan(0);
+
+      // Confirm the specific relationship that was left off the allowlist is the one caught.
+      const keys = violations.map(relKey);
+      expect(keys).toContain('Date::DateKey → Calendar Bridge::DateKey');
     },
   );
 });

@@ -87,7 +87,7 @@ npm install
 npm test
 ```
 
-All 47 fixture-based tests run and pass.  Visual enterprise tests auto-skip when no enterprise config is present.
+All 48 fixture-based tests run and pass.  Visual enterprise tests auto-skip when no enterprise config is present.
 
 ---
 
@@ -111,23 +111,21 @@ npm run setup
 2. Lists your workspaces — enter a number or type to search
 3. Lists reports in that workspace — select one or more
 4. Lists pages in each report — select all or specific pages
-5. Asks **what to check** — shows a focus menu so you can skip unrelated tests on large workspaces:
+5. Asks **what to check** — choose a focus so you can skip unrelated checks on large workspaces:
 
-```
-  What do you want to check?  (12 test config(s) queued)
+| # | Focus | VS-NNN | RH-002 | RH-003 | MS-001 | Best for |
+|---|---|:---:|:---:|:---:|:---:|---|
+| 1 | All checks | ✅ | ✅ | ✅ | ✅¹ | Full audit |
+| 2 | Broken visuals | ✅ | — | — | — | Visual smoke only |
+| 3 | Dataset refresh failures | — | ✅ | — | — | Is the data fresh? |
+| 4 | Credential / auth errors | — | — | ✅ | — | OAuth / gateway failures |
+| 5 | Duplicate PK / M:M | — | — | — | ✅¹ | Dimension key integrity |
+| 6 | Data integrity errors | — | — | ✅ | ✅¹ | Bad aggregations, constraint violations |
+| 7 | Refresh health | — | ✅ | ✅ | — | All refresh signals combined |
+| 8 | Model integrity | — | — | — | ✅¹ | M:M relationship audit |
+| 9 | Quick triage | ✅ | ✅ | — | — | Fastest check for large workspaces |
 
-   [ 1]  All signals                   — run every check
-   [ 2]  Broken visuals only           — render errors, SDK failures
-   [ 3]  Broken refresh (latest)       — latest refresh status is not Completed
-   [ 4]  Credential / auth errors      — OAuth, unbound data source, login failure
-   [ 5]  Duplicate PK / M:M errors     — unallowlisted Many-to-Many relationships
-   [ 6]  Data-integrity errors          — duplicate key, RowValueConflict in history
-   [ 7]  Refresh health (all signals)  — RH-002 + RH-003 combined
-   [ 8]  Model integrity               — MS-001 only
-   [ 9]  Quick triage                  — RH-002 + MS-001, fast scan of breakage
-
-  Enter number (1–10):
-```
+> ¹ **MS-001 requires committed model baselines.** If none exists for the selected report, the check is automatically skipped. See [MS-001 setup](#ms-001--model-structure-check-upcoming) below.
 
 6. Confirms config and optionally runs tests immediately
 
@@ -151,37 +149,11 @@ Neither file is committed.  Pull and re-run `npm run setup` after a `git pull` t
 
 ---
 
-## Model baseline workflow
+## MS-001 — model structure check *(upcoming)*
 
-The MS-001 check compares the live model structure against a committed JSON baseline.  
-Generating and maintaining the baseline is a one-time step per report.
+MS-001 flags **unallowlisted Many-to-Many relationships** in a committed JSON snapshot of a report's model.  A M:M relationship indicates a dimension table has lost PK uniqueness — Power BI resolves it silently but filter propagation changes, causing visuals to compute wrong totals.
 
-### 1 — Export model metadata
-
-Use a Python metadata script (or the Power BI REST API) to export a `.txt` file describing the model's tables, columns, and relationships.
-
-### 2 — Ingest into a baseline
-
-```powershell
-npm run ingest:model-txt -- "MyReport.txt"
-```
-
-This writes `playwright/fixtures/snapshots/model-baseline/my-report.json` and commits it.
-
-On subsequent runs, if the model has changed (new M:M relationship, removed table, cardinality change), the script prints a drift report and exits `1`.
-
-### 3 — Review and allowlist intentional changes
-
-Open the baseline JSON and add any intentional M:M relationships to `intentionalManyToMany`:
-
-```json
-"intentionalManyToMany": [
-  "Date::DateKey → Calendar Bridge::DateKey",
-  "User Access::Region → Customer::Region"
-]
-```
-
-Commit the updated baseline.  The test will pass on the next run.
+> ⚠️ **Live XMLA model capture is not yet integrated.** MS-001 is available today if you generate the model export externally (Python metadata script or Power BI REST API) and run `npm run ingest:model-txt -- "MyReport.txt"` to create and commit the baseline JSON.  If no baseline is committed for a report, all MS-001 focus options skip automatically.  Full live integration is planned.
 
 ---
 

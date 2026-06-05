@@ -8,7 +8,7 @@ A lightweight Playwright-based Power BI quality suite that catches every signal 
 
 ## Implemented and passing
 
-### Metadata lane (47/47 tests, dry-run, no credentials required)
+### Metadata lane (48/48 tests, dry-run, no credentials required)
 
 | Test file | What it covers |
 |---|---|
@@ -17,7 +17,7 @@ A lightweight Playwright-based Power BI quality suite that catches every signal 
 | `schema-drift.spec.ts` | Schema signature generation and drift comparison (added/removed tables, columns, measures, relationships, SQL hash changes) |
 | `source-extraction.spec.ts` | SQL extraction from M partition expressions, normalization |
 | `duplicate-checks.spec.ts` | Duplicate table names, measure names, relationship edges, SQL signatures |
-| `model-structure.spec.ts` | **MS-001** — unallowlisted Many-to-Many relationships against committed baseline |
+| `model-structure.spec.ts` | **MS-001** — unallowlisted Many-to-Many relationships against committed baseline (happy path + detection logic negative test) |
 
 ### Enterprise lane (live Power BI, requires `npm run setup`)
 
@@ -65,7 +65,8 @@ Explicitly removed: RH-001 (history exists), DS-001 (datasource connections), MS
 | `playwright/helper-functions/focus.ts` | Focus menu definitions, routing matrix, `isInFocus()` |
 | `playwright/helper-functions/refresh-health.ts` | `evaluateRefreshHealth()`, `scanForDataIntegrityErrors()` |
 | `playwright/helper-functions/powerbi-enterprise.ts` | REST API auth, refresh history, embed token |
-| `playwright/fixtures/snapshots/model-baseline/sample-model-baseline.json` | Generic mock baseline (6 tables, 5 relationships, 2 intentional M:M) |
+| `playwright/fixtures/snapshots/model-baseline/sample-model-baseline.json` | Happy-path mock baseline (6 tables, 5 relationships, 2 intentional M:M — all allowlisted) |
+| `playwright/fixtures/snapshots/model-baseline/sample-model-baseline-violation.json` | Negative-test fixture (same model, one M:M removed from allowlist — used to verify detection logic) |
 
 ---
 
