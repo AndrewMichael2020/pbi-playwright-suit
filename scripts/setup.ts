@@ -15,7 +15,7 @@
  * visual test suite reads automatically.
  */
 
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import {
@@ -38,7 +38,7 @@ import {
   saveEnterpriseConfigs,
   type EnterpriseReportConfig,
 } from '../playwright/helper-functions/enterprise-config';
-import { FOCUS_MENU, saveFocus, type CheckFocus } from '../playwright/helper-functions/focus';
+import { FOCUS_MENU, saveFocus, isPqlFocus, type CheckFocus } from '../playwright/helper-functions/focus';
 
 loadEnvFile();
 
@@ -52,7 +52,23 @@ const yellow  = (s: string) => `\x1b[33m${s}\x1b[0m`;
 const red     = (s: string) => `\x1b[31m${s}\x1b[0m`;
 const magenta = (s: string) => `\x1b[35m${s}\x1b[0m`;
 
-// ── timing helpers ────────────────────────────────────────────────────────────
+// ── pql-test availability ─────────────────────────────────────────────────────
+
+type PqlStatus = 'not-installed' | 'not-authed' | 'ready';
+
+function checkPqlStatus(): PqlStatus {
+  const version = spawnSync('pql-test', ['--version'], { encoding: 'utf-8', shell: true });
+  if (version.status !== 0) return 'not-installed';
+  const authStatus = spawnSync('pql-test', ['auth', 'status'], { encoding: 'utf-8', shell: true });
+  // "auth status" exits 0 and prints something like "Logged in as ..." when authed
+  const out = (authStatus.stdout ?? '') + (authStatus.stderr ?? '');
+  if (authStatus.status !== 0 || /not logged in|no credentials|not authenticated/i.test(out)) {
+    return 'not-authed';
+  }
+  return 'ready';
+}
+
+// ── timing helpers ─────────────────────────────────────────────────────────────
 
 /** Wall-clock timestamp prefix: dim [HH:MM:SS] */
 function ts(): string {
@@ -220,13 +236,16 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   const OTHER_LABEL = 'Other (enter custom Playwright grep filter)';
   const OTHER_VALUE = '__other__' as const;
 
-  const liveItems = FOCUS_MENU.filter((m) => !m.tbd);
-  const tbdItems  = FOCUS_MENU.filter((m) => m.tbd);
+  const pqlStatus  = checkPqlStatus();
+  const liveItems  = FOCUS_MENU.filter((m) => !m.tbd && !m.pql);
+  const pqlItems   = FOCUS_MENU.filter((m) => m.pql);
+  const tbdItems   = FOCUS_MENU.filter((m) => m.tbd);
 
-  // Selectable items: live options + Other
+  // Only include pql items in selectable list when pql-test is ready
   type SelectableItem = { value: CheckFocus | typeof OTHER_VALUE; label: string; description: string };
   const selectable: SelectableItem[] = [
     ...liveItems,
+    ...(pqlStatus === 'ready' ? pqlItems : []),
     { value: OTHER_VALUE, label: OTHER_LABEL, description: '' },
   ];
 
@@ -237,16 +256,36 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   liveItems.forEach((item, i) => {
     const num  = dim(`[${String(i + 1).padStart(2)}]`);
     const desc = dim(`  — ${item.description}`);
-    process.stdout.write(`  ${num}  ${item.label.padEnd(30)}${desc}\n`);
+    process.stdout.write(`  ${num}  ${item.label.padEnd(32)}${desc}\n`);
   });
+
+  // ── pql-test items ─────────────────────────────────────────────────────────
+  process.stdout.write(SEP);
+  if (pqlStatus === 'ready') {
+    pqlItems.forEach((item, i) => {
+      const num  = dim(`[${String(liveItems.length + i + 1).padStart(2)}]`);
+      const desc = dim(`  — ${item.description}`);
+      process.stdout.write(`  ${num}  ${item.label.padEnd(32)}${desc}\n`);
+    });
+  } else {
+    const hint =
+      pqlStatus === 'not-installed'
+        ? yellow('pip install pql-test  +  pql-test auth login')
+        : yellow('pql-test auth login');
+    pqlItems.forEach((item) => {
+      process.stdout.write(
+        `  ${dim('[n/a]')}  ${dim(item.label.padEnd(32))}${dim('  — ')}${hint}\n`,
+      );
+    });
+  }
 
   // ── TBD (non-selectable, dimmed) ───────────────────────────────────────────
   if (tbdItems.length > 0) {
     process.stdout.write(SEP);
     tbdItems.forEach((item) => {
       const marker = dim('[TBD]');
-      const note   = dim(`  — ${item.description}  `) + yellow('(requires model baselines — coming soon)');
-      process.stdout.write(`  ${marker}  ${dim(item.label.padEnd(30))}${note}\n`);
+      const note   = dim(`  — ${item.description}  `) + yellow('(coming soon)');
+      process.stdout.write(`  ${marker}  ${dim(item.label.padEnd(32))}${note}\n`);
     });
   }
 
@@ -479,7 +518,8 @@ async function main(): Promise<void> {
         console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
         const testStart = Date.now();
 
-        testExitCode = await spawnAsync(npm, ['run', 'test:enterprise']);
+        const testScript = isPqlFocus(focus) ? 'test:pql' : 'test:enterprise';
+        testExitCode = await spawnAsync(npm, ['run', testScript]);
 
         const reportPath = `test-archive/${runId}/html-report`;
         console.log(`\n${ts()} ${dim(`Tests finished ${elapsed(testStart)}`)}`);

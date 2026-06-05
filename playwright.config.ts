@@ -52,5 +52,13 @@ export default defineConfig({
         video: 'retain-on-failure',
       },
     },
+    {
+      // pql-test checks: schema drift + key duplication via XMLA.
+      // Triggered by npm run setup when focus is pql-schema-drift or pql-key-duplication.
+      // Requires: pip install pql-test  +  pql-test auth login  (one-time per machine).
+      name: 'pql',
+      testMatch: /.*tests\/pql\/.*\.spec\.ts/,
+      timeout: 300_000,
+    },
   ],
 });
