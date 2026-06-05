@@ -12,7 +12,6 @@
 import { expect, test } from '@playwright/test';
 import {
   getAccessToken,
-  getDataSources,
   getRefreshHistory,
   getPowerBiEndpoints,
   readEnterpriseCredentialsFromEnv,

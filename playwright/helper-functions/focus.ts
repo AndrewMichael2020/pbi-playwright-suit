@@ -4,19 +4,17 @@
  * Written by `npm run setup` to playwright/config/enterprise.focus.json.
  * Each test spec reads it and skips itself when its category is not selected.
  *
- * Focus values and what they include:
+ * Live focus values and what they include:
  *
  *   broken-visuals   — report-pages.spec only (VS-NNN)
  *   refresh-failures — latest refresh status check (RH-002)
  *   credential-errors— auth / OAuth / unbound-datasource errors in refresh history (RH-003)
  *   refresh-health   — all refresh checks: RH-002 + RH-003
  *   quick-triage     — broken-visuals + refresh-failures (fastest for large workspaces)
- *   all              — complete live suite (model integrity auto-skips until baselines exist)
+ *   all              — complete live suite
  *
- * TBD — require committed model baselines (MS-001), not yet available:
- *   duplicate-pk     — M:M relationships outside allowlist (MS-001)
- *   data-integrity   — RH-003 + MS-001 together
- *   model-integrity  — model structural checks: MS-001
+ * TBD — not yet implemented:
+ *   source-schema-drift — column/table changes in source SQL queries (planned)
  */
 
 import fs   from 'node:fs';
@@ -27,11 +25,9 @@ export type CheckFocus =
   | 'broken-visuals'
   | 'refresh-failures'
   | 'credential-errors'
-  | 'duplicate-pk'
-  | 'data-integrity'
   | 'refresh-health'
-  | 'model-integrity'
-  | 'quick-triage';
+  | 'quick-triage'
+  | 'source-schema-drift';
 
 export interface FocusOptions {
   /** Stable machine-readable key */
@@ -42,7 +38,7 @@ export interface FocusOptions {
   description: string;
   /**
    * When true the option is shown in the menu but cannot be selected —
-   * it depends on MS-001 model baselines that are not yet implemented.
+   * the underlying checks are not yet implemented.
    */
   tbd?: true;
 }
@@ -77,25 +73,13 @@ export const FOCUS_MENU: FocusOptions[] = [
   {
     value: 'all',
     label: 'All checks',
-    description: 'Every live signal — visual, refresh, credential (model integrity coming soon)',
+    description: 'Every live signal — visual, refresh, credential errors',
   },
-  // ── TBD — require committed model baselines (MS-001 not yet implemented) ──
+  // ── TBD — not yet implemented ──────────────────────────────────────────────
   {
-    value: 'duplicate-pk',
-    label: 'Duplicate PK / M:M relationships',
-    description: 'Dimension tables that lost key uniqueness — wrong totals in every visual',
-    tbd: true,
-  },
-  {
-    value: 'data-integrity',
-    label: 'Data integrity errors',
-    description: 'Constraint violations + credential errors combined',
-    tbd: true,
-  },
-  {
-    value: 'model-integrity',
-    label: 'Model integrity',
-    description: 'Full M:M relationship audit — structural model health',
+    value: 'source-schema-drift',
+    label: 'Source data schema drift',
+    description: 'Column / table changes in source SQL queries detected against committed baseline',
     tbd: true,
   },
 ];
@@ -122,17 +106,15 @@ export function loadFocus(): CheckFocus {
 // ─── routing — maps focus value to which spec categories are active ───────────
 
 /** Returns true when the given spec category should run under the selected focus. */
-export function isInFocus(focus: CheckFocus, spec: 'visuals' | 'rh-002' | 'rh-003' | 'ms-001'): boolean {
+export function isInFocus(focus: CheckFocus, spec: 'visuals' | 'rh-002' | 'rh-003'): boolean {
   const matrix: Record<CheckFocus, Record<string, boolean>> = {
-    'all':              { visuals: true,  'rh-002': true,  'rh-003': true,  'ms-001': true  },
-    'broken-visuals':   { visuals: true,  'rh-002': false, 'rh-003': false, 'ms-001': false },
-    'refresh-failures': { visuals: false, 'rh-002': true,  'rh-003': false, 'ms-001': false },
-    'credential-errors':{ visuals: false, 'rh-002': false, 'rh-003': true,  'ms-001': false },
-    'duplicate-pk':     { visuals: false, 'rh-002': false, 'rh-003': false, 'ms-001': true  },
-    'data-integrity':   { visuals: false, 'rh-002': false, 'rh-003': true,  'ms-001': true  },
-    'refresh-health':   { visuals: false, 'rh-002': true,  'rh-003': true,  'ms-001': false },
-    'model-integrity':  { visuals: false, 'rh-002': false, 'rh-003': false, 'ms-001': true  },
-    'quick-triage':     { visuals: true,  'rh-002': true,  'rh-003': false, 'ms-001': false },
+    'all':                 { visuals: true,  'rh-002': true,  'rh-003': true  },
+    'broken-visuals':      { visuals: true,  'rh-002': false, 'rh-003': false },
+    'refresh-failures':    { visuals: false, 'rh-002': true,  'rh-003': false },
+    'credential-errors':   { visuals: false, 'rh-002': false, 'rh-003': true  },
+    'refresh-health':      { visuals: false, 'rh-002': true,  'rh-003': true  },
+    'quick-triage':        { visuals: true,  'rh-002': true,  'rh-003': false },
+    'source-schema-drift': { visuals: false, 'rh-002': false, 'rh-003': false },
   };
   return matrix[focus]?.[spec] ?? true;
 }
