@@ -165,6 +165,7 @@ export function analyzeRefreshPatterns(
  *  credential problems — all of these directly prevent visuals from rendering
  *  with correct data. */
 const DATA_INTEGRITY_PATTERNS: RegExp[] = [
+  // ── data integrity ────────────────────────────────────────────────────────
   /duplicate/i,
   /unique.*constraint/i,
   /primary.*key/i,
@@ -172,11 +173,19 @@ const DATA_INTEGRITY_PATTERNS: RegExp[] = [
   /multiple.*values/i,
   /cannot.*determine.*single/i,
   /RowValueConflict/i,
+  // ── credential / gateway auth ─────────────────────────────────────────────
   /MonikerWithUnbound/i,
   /unbound.*data.*source/i,
   /credential/i,
   /unauthorized/i,
   /oauth/i,
+  // Azure AD / DMTS auth errors (e.g. DMTS_UserNotFoundInADGraphError)
+  /UserNotFound/i,
+  /ADGraph/i,
+  /DMTS_/i,
+  // On-premises gateway auth failures
+  /DM_GW.*Auth/i,
+  /InvalidServiceAccount/i,
 ];
 
 export interface DataIntegrityHit {
