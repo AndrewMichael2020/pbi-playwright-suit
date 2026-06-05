@@ -11,7 +11,7 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-scheduled%20%2B%20on--demand-brightgreen?logo=checkmarx&logoColor=white)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Agile Playwright-based Power BI quality suite.  
+Agile Power BI quality suite that includes Playwright-based tests.  
 Catches the signals that break reports **before users notice them**.
 
 ---
