@@ -272,7 +272,13 @@ async function pickFocus(rl: readline.Interface, reportCount: number): Promise<C
   }
 }
 
+// ── promisified spawn ─────────────────────────────────────────────────────────
 
+function spawnAsync(cmd: string, args: string[], opts: object = {}): Promise<number | null> {
+  return new Promise((resolve) => {
+    spawn(cmd, args, { stdio: 'inherit', ...opts }).on('exit', (code) => resolve(code));
+  });
+}
 
 async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFromEnv> & object): Promise<void> {
   const workspaceName   = process.env.PBI_WORKSPACE_NAME!;
@@ -343,7 +349,6 @@ async function main(): Promise<void> {
   }
 
   console.log(`\n${bold(magenta('⚡ Power BI Test Setup'))}\n`);
-  const setupStart = Date.now();
 
   const endpoints = getPowerBiEndpoints(credentials.environment);
   let t = Date.now();
@@ -351,142 +356,161 @@ async function main(): Promise<void> {
   const accessToken = await getAccessToken(credentials, endpoints);
   console.log(`${ts()} ${green('✓ Authenticated')} ${elapsed(t)}\n`);
 
-  const rl = readline.createInterface({ input, output });
+  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
-  try {
-    // 1. Pick workspace
-    t = Date.now();
-    const workspaces = await listWorkspaces(accessToken, endpoints);
-    if (workspaces.length === 0) throw new Error('No workspaces found.');
-    console.log(dim(`  ${ts()} Loaded ${workspaces.length} workspace(s) ${elapsed(t)}`));
-    const workspace: PowerBiWorkspace = await pickOne(rl, workspaces, 'Workspaces');
-    console.log(`\n  ${green('✓')} Workspace: ${bold(workspace.name)}`);
+  // ── main loop — repeat until user says "no more" ────────────────────────────
+  while (true) {
+    const setupStart = Date.now();
+    const rl = readline.createInterface({ input, output });
 
-    // 2. Pick reports (multi-select)
-    t = Date.now();
-    const allReports = await listReports(accessToken, workspace.id, endpoints);
-    if (allReports.length === 0) throw new Error(`No reports in workspace "${workspace.name}".`);
-    console.log(dim(`  ${ts()} Loaded ${allReports.length} report(s) ${elapsed(t)}`));
-    const selectedReports: PowerBiReport[] = await pickMany(rl, allReports, 'Reports');
-    console.log(`\n  ${green('✓')} Selected ${bold(String(selectedReports.length))} report(s).`);
+    try {
+      // 1. Pick workspace
+      t = Date.now();
+      const workspaces = await listWorkspaces(accessToken, endpoints);
+      if (workspaces.length === 0) throw new Error('No workspaces found.');
+      console.log(dim(`  ${ts()} Loaded ${workspaces.length} workspace(s) ${elapsed(t)}`));
+      const workspace: PowerBiWorkspace = await pickOne(rl, workspaces, 'Workspaces');
+      console.log(`\n  ${green('✓')} Workspace: ${bold(workspace.name)}`);
 
-    // 3. Page selection strategy
-    let pageStrategy: 'first' | 'all' | 'pick' = 'first';
-    if (selectedReports.length === 1) {
-      pageStrategy = 'pick';
-    } else {
-      console.log(`\n  ${cyan('Pages per report')} — ${bold('first')} / ${bold('all')} / ${bold('pick')}`);
-      while (true) {
-        const ans = (await rl.question('  > ')).trim().toLowerCase();
-        if (ans === 'first' || ans === 'all' || ans === 'pick') {
-          pageStrategy = ans as 'first' | 'all' | 'pick';
-          break;
+      // 2. Pick reports (multi-select)
+      t = Date.now();
+      const allReports = await listReports(accessToken, workspace.id, endpoints);
+      if (allReports.length === 0) throw new Error(`No reports in workspace "${workspace.name}".`);
+      console.log(dim(`  ${ts()} Loaded ${allReports.length} report(s) ${elapsed(t)}`));
+      const selectedReports: PowerBiReport[] = await pickMany(rl, allReports, 'Reports');
+      console.log(`\n  ${green('✓')} Selected ${bold(String(selectedReports.length))} report(s).`);
+
+      // 3. Page selection strategy
+      let pageStrategy: 'first' | 'all' | 'pick' = 'first';
+      if (selectedReports.length === 1) {
+        pageStrategy = 'pick';
+      } else {
+        console.log(`\n  ${cyan('Pages per report')} — ${bold('first')} / ${bold('all')} / ${bold('pick')}`);
+        while (true) {
+          const ans = (await rl.question('  > ')).trim().toLowerCase();
+          if (ans === 'first' || ans === 'all' || ans === 'pick') {
+            pageStrategy = ans as 'first' | 'all' | 'pick';
+            break;
+          }
+          console.log(red('  Enter: first, all, or pick'));
         }
-        console.log(red('  Enter: first, all, or pick'));
-      }
-    }
-
-    // 4. Resolve datasets once
-    t = Date.now();
-    const datasets = await listDatasets(accessToken, workspace.id, endpoints);
-    console.log(dim(`  ${ts()} Loaded ${datasets.length} dataset(s) ${elapsed(t)}`))
-
-    // 5. Build config entries
-    const configs: EnterpriseReportConfig[] = [];
-
-    for (const report of selectedReports) {
-      const dataset =
-        (report.datasetId ? datasets.find((d) => d.id === report.datasetId) : undefined) ??
-        datasets.find((d) => d.name === report.name) ??
-        datasets[0];
-
-      if (!dataset) {
-        console.log(yellow(`  ⚠  No dataset resolved for "${report.name}" — skipping.`));
-        continue;
       }
 
-      const tp = Date.now();
-      const pages = await listReportPages(accessToken, workspace.id, report.id, endpoints);
-      if (pages.length === 0) {
-        console.log(yellow(`  ⚠  No pages found for "${report.name}" — skipping.`));
-        continue;
+      // 4. Resolve datasets once
+      t = Date.now();
+      const datasets = await listDatasets(accessToken, workspace.id, endpoints);
+      console.log(dim(`  ${ts()} Loaded ${datasets.length} dataset(s) ${elapsed(t)}`));
+
+      // 5. Build config entries
+      const configs: EnterpriseReportConfig[] = [];
+
+      for (const report of selectedReports) {
+        const dataset =
+          (report.datasetId ? datasets.find((d) => d.id === report.datasetId) : undefined) ??
+          datasets.find((d) => d.name === report.name) ??
+          datasets[0];
+
+        if (!dataset) {
+          console.log(yellow(`  ⚠  No dataset resolved for "${report.name}" — skipping.`));
+          continue;
+        }
+
+        const tp = Date.now();
+        const pages = await listReportPages(accessToken, workspace.id, report.id, endpoints);
+        if (pages.length === 0) {
+          console.log(yellow(`  ⚠  No pages found for "${report.name}" — skipping.`));
+          continue;
+        }
+        console.log(dim(`    ${ts()} ${report.name}: ${pages.length} page(s) ${elapsed(tp)}`));
+
+        let chosenPages = pages;
+        if (pageStrategy === 'first') {
+          chosenPages = [pages[0]!];
+        } else if (pageStrategy === 'pick') {
+          const pagesAsNamed = pages.map((p) => ({ ...p, name: p.displayName }));
+          const picked = await pickMany(rl, pagesAsNamed, `Pages — ${report.name}`);
+          chosenPages = pages.filter((p) => picked.some((q) => q.name === p.displayName));
+        }
+
+        for (const page of chosenPages) {
+          configs.push({
+            workspaceId: workspace.id,
+            workspaceName: workspace.name,
+            datasetId: dataset.id,
+            datasetName: dataset.name,
+            reportId: report.id,
+            reportName: report.name,
+            pageId: page.name,
+            pageName: page.name,
+            pageDisplayName: page.displayName,
+            embedUrl: report.embedUrl ?? '',
+            reportUrl: `${endpoints.webPrefix}/groups/${workspace.id}/reports/${report.id}/${page.name}`,
+            discoveredAt: new Date().toISOString(),
+          });
+        }
       }
-      console.log(dim(`    ${ts()} ${report.name}: ${pages.length} page(s) ${elapsed(tp)}`));
 
-      let chosenPages = pages;
-      if (pageStrategy === 'first') {
-        chosenPages = [pages[0]!];
-      } else if (pageStrategy === 'pick') {
-        const pagesAsNamed = pages.map((p) => ({ ...p, name: p.displayName }));
-        const picked = await pickMany(rl, pagesAsNamed, `Pages — ${report.name}`);
-        chosenPages = pages.filter((p) => picked.some((q) => q.name === p.displayName));
-      }
+      if (configs.length === 0) throw new Error('No valid report+page combinations selected.');
 
-      for (const page of chosenPages) {
-        configs.push({
-          workspaceId: workspace.id,
-          workspaceName: workspace.name,
-          datasetId: dataset.id,
-          datasetName: dataset.name,
-          reportId: report.id,
-          reportName: report.name,
-          pageId: page.name,
-          pageName: page.name,
-          pageDisplayName: page.displayName,
-          embedUrl: report.embedUrl ?? '',
-          reportUrl: `${endpoints.webPrefix}/groups/${workspace.id}/reports/${report.id}/${page.name}`,
-          discoveredAt: new Date().toISOString(),
-        });
-      }
-    }
+      saveEnterpriseConfigs(configs);
 
-    if (configs.length === 0) throw new Error('No valid report+page combinations selected.');
+      console.log(`\n${bold(green('✅ Discovery complete'))} — ${configs.length} test(s) queued ${elapsed(setupStart)}:\n`);
+      configs.forEach((c) =>
+        console.log(`    ${dim('▸')} ${c.reportName} ${dim('›')} ${cyan(c.pageDisplayName)}`),
+      );
+      console.log();
 
-    saveEnterpriseConfigs(configs);
+      // 6. Pick focus area
+      const focus = await pickFocus(rl, configs.length);
+      saveFocus(focus);
+      const focusLabel = FOCUS_MENU.find((m) => m.value === focus)?.label ?? focus;
+      console.log(`\n  ${green('✓')} Focus: ${bold(focusLabel)}\n`);
 
-    console.log(`\n${bold(green('✅ Discovery complete'))} — ${configs.length} test(s) queued ${elapsed(setupStart)}:\n`);
-    configs.forEach((c) =>
-      console.log(`    ${dim('▸')} ${c.reportName} ${dim('›')} ${cyan(c.pageDisplayName)}`),
-    );
-    console.log();
+      // 7. Offer to run tests immediately
+      const runNow = (await rl.question(`${bold('Run tests now?')} [Y/n]: `)).trim().toLowerCase();
+      rl.close();
 
-    // 6. Pick focus area
-    const focus = await pickFocus(rl, configs.length);
-    saveFocus(focus);
-    const focusLabel = FOCUS_MENU.find((m) => m.value === focus)?.label ?? focus;
-    console.log(`\n  ${green('✓')} Focus: ${bold(focusLabel)}\n`);
+      let testExitCode: number | null = 0;
 
-    // 7. Offer to run tests immediately
-    const runNow = (await rl.question(`${bold('Run tests now?')} [Y/n]: `)).trim().toLowerCase();
-    rl.close();
+      if (runNow !== 'n' && runNow !== 'no') {
+        console.log(`\n${ts()} ${magenta('🎯 Launching enterprise quality checks…')}\n${'─'.repeat(60)}\n`);
+        const runId = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
+        process.env.PBI_RUN_ID = runId;
+        console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
+        const testStart = Date.now();
 
-    if (runNow !== 'n' && runNow !== 'no') {
-      console.log(`\n${ts()} ${magenta('🎯 Launching enterprise quality checks…')}\n${'─'.repeat(60)}\n`);
-      const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-      // Stamp a run ID so all artifact paths for this run share one folder.
-      const runId = new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
-      process.env.PBI_RUN_ID = runId;
-      console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
-      const testStart = Date.now();
-      spawn(npm, ['run', 'test:enterprise'], { stdio: 'inherit' }).on('exit', (code) => {
+        testExitCode = await spawnAsync(npm, ['run', 'test:enterprise']);
+
         const reportPath = `test-archive/${runId}/html-report`;
         console.log(`\n${ts()} ${dim(`Tests finished ${elapsed(testStart)}`)}`);
-        // Ask user to open the report rather than printing a raw command.
+
+        // 8. Offer to open the HTML report
         const rl2 = readline.createInterface({ input: process.stdin, output: process.stdout });
-        rl2.question(`\n${bold('Open HTML report?')} [Y/n]: `).then((answer) => {
-          rl2.close();
-          if (answer.trim().toLowerCase() !== 'n') {
-            console.log(dim(`  Opening ${reportPath}…`));
-            spawn('npx', ['playwright', 'show-report', reportPath], { stdio: 'inherit', shell: true })
-              .on('exit', () => process.exit(code ?? 0));
-          } else {
-            process.exit(code ?? 0);
-          }
-        }).catch(() => process.exit(code ?? 0));
-      });
+        const openReport = (await rl2.question(`\n${bold('Open HTML report?')} [Y/n]: `)).trim().toLowerCase();
+        rl2.close();
+
+        if (openReport !== 'n' && openReport !== 'no') {
+          console.log(dim(`  Opening ${reportPath}…`));
+          await spawnAsync('npx', ['playwright', 'show-report', reportPath], { shell: true });
+        }
+      }
+
+      // 9. Offer to run another test (loops back to workspace selection, no re-auth)
+      console.log();
+      const rl3 = readline.createInterface({ input: process.stdin, output: process.stdout });
+      const again = (await rl3.question(`${bold('Run another test?')} [Y/n]: `)).trim().toLowerCase();
+      rl3.close();
+
+      if (again === 'n' || again === 'no') {
+        process.exit(testExitCode ?? 0);
+      }
+
+      console.log(`\n${dim('─'.repeat(60))}\n`);
+
+    } catch (err) {
+      rl.close();
+      throw err;
     }
-  } finally {
-    if (!rl.terminal) rl.close();
   }
 }
 
@@ -494,4 +518,3 @@ void main().catch((error: unknown) => {
   console.error(red('\n✖ Discovery failed:'), error instanceof Error ? error.message : String(error));
   process.exit(1);
 });
-
