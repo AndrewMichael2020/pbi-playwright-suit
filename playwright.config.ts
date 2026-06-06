@@ -20,7 +20,6 @@ export default defineConfig({
     ['junit', { outputFile: `${archiveDir}/results.xml` }],
     ['./playwright/reporter'],
   ],
-  globalSetup: require.resolve('./playwright/global/global-setup'),
   use: {
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
