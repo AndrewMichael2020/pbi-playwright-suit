@@ -15,7 +15,7 @@
  * visual test suite reads automatically.
  */
 
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import {
@@ -38,7 +38,7 @@ import {
   saveEnterpriseConfigs,
   type EnterpriseReportConfig,
 } from '../playwright/helper-functions/enterprise-config';
-import { FOCUS_MENU, saveFocus, isPqlFocus, type CheckFocus } from '../playwright/helper-functions/focus';
+import { FOCUS_MENU, saveFocus, type CheckFocus } from '../playwright/helper-functions/focus';
 
 loadEnvFile();
 
@@ -52,32 +52,7 @@ const yellow  = (s: string) => `\x1b[33m${s}\x1b[0m`;
 const red     = (s: string) => `\x1b[31m${s}\x1b[0m`;
 const magenta = (s: string) => `\x1b[35m${s}\x1b[0m`;
 
-// ── pql-test availability ─────────────────────────────────────────────────────
-
-type PqlStatus = 'not-installed' | 'not-authed' | 'ready';
-
-/**
- * Checks only whether pql-test is on PATH — uses `where` (Windows) / `which`
- * (Unix) which is instant and does NOT start Python or load ADOMD.NET.
- * Auth is checked lazily only if the user actually selects a pql focus option.
- */
-function checkPqlStatus(): PqlStatus {
-  const probe = spawnSync(
-    process.platform === 'win32' ? 'where' : 'which',
-    ['pql-test'],
-    { encoding: 'utf-8', shell: false },
-  );
-  if (probe.status !== 0 || !probe.stdout?.trim()) return 'not-installed';
-  // Executable found — assume ready; auth errors surface in the test run itself
-  return 'ready';
-}
-
-function startPqlStatusCheck(): Promise<PqlStatus> {
-  // Synchronous and fast (no Python), so no worker thread needed
-  return Promise.resolve(checkPqlStatus());
-}
-
-// ── timing helpers ─────────────────────────────────────────────────────────────
+// ── timing helpers ────────────────────────────────────────────────────────────
 
 /** Wall-clock timestamp prefix: dim [HH:MM:SS] */
 function ts(): string {
@@ -235,7 +210,7 @@ async function pickMany<T extends { name: string }>(
 
 // ── focus menu ────────────────────────────────────────────────────────────────
 
-async function pickFocus(rl: readline.Interface, reportCount: number, pqlStatusPromise: Promise<PqlStatus>): Promise<CheckFocus> {
+async function pickFocus(rl: readline.Interface, reportCount: number): Promise<CheckFocus> {
   console.log(
     `\n${bold(cyan('What do you want to check?'))}` +
     dim(`  (${reportCount} test config(s) queued)\n`) +
@@ -245,16 +220,13 @@ async function pickFocus(rl: readline.Interface, reportCount: number, pqlStatusP
   const OTHER_LABEL = 'Other (enter custom Playwright grep filter)';
   const OTHER_VALUE = '__other__' as const;
 
-  const pqlStatus  = await pqlStatusPromise;
-  const liveItems  = FOCUS_MENU.filter((m) => !m.tbd && !m.pql);
-  const pqlItems   = FOCUS_MENU.filter((m) => m.pql);
-  const tbdItems   = FOCUS_MENU.filter((m) => m.tbd);
+  const liveItems = FOCUS_MENU.filter((m) => !m.tbd);
+  const tbdItems  = FOCUS_MENU.filter((m) => m.tbd);
 
-  // Only include pql items in selectable list when pql-test is ready
+  // Selectable items: live options + Other
   type SelectableItem = { value: CheckFocus | typeof OTHER_VALUE; label: string; description: string };
   const selectable: SelectableItem[] = [
     ...liveItems,
-    ...(pqlStatus === 'ready' ? pqlItems : []),
     { value: OTHER_VALUE, label: OTHER_LABEL, description: '' },
   ];
 
@@ -265,33 +237,16 @@ async function pickFocus(rl: readline.Interface, reportCount: number, pqlStatusP
   liveItems.forEach((item, i) => {
     const num  = dim(`[${String(i + 1).padStart(2)}]`);
     const desc = dim(`  — ${item.description}`);
-    process.stdout.write(`  ${num}  ${item.label.padEnd(32)}${desc}\n`);
+    process.stdout.write(`  ${num}  ${item.label.padEnd(30)}${desc}\n`);
   });
-
-  // ── pql-test items ─────────────────────────────────────────────────────────
-  process.stdout.write(SEP);
-  if (pqlStatus === 'ready') {
-    pqlItems.forEach((item, i) => {
-      const num  = dim(`[${String(liveItems.length + i + 1).padStart(2)}]`);
-      const desc = dim(`  — ${item.description}`);
-      process.stdout.write(`  ${num}  ${item.label.padEnd(32)}${desc}\n`);
-    });
-  } else {
-    const hint = yellow('Run: npm run pql:install  (installs pql-test and authenticates)');
-    pqlItems.forEach((item) => {
-      process.stdout.write(
-        `  ${dim('[n/a]')}  ${dim(item.label.padEnd(32))}${dim('  — ')}${hint}\n`,
-      );
-    });
-  }
 
   // ── TBD (non-selectable, dimmed) ───────────────────────────────────────────
   if (tbdItems.length > 0) {
     process.stdout.write(SEP);
     tbdItems.forEach((item) => {
       const marker = dim('[TBD]');
-      const note   = dim(`  — ${item.description}  `) + yellow('(coming soon)');
-      process.stdout.write(`  ${marker}  ${dim(item.label.padEnd(32))}${note}\n`);
+      const note   = dim(`  — ${item.description}  `) + yellow('(requires model baselines — coming soon)');
+      process.stdout.write(`  ${marker}  ${dim(item.label.padEnd(30))}${note}\n`);
     });
   }
 
@@ -401,11 +356,6 @@ async function main(): Promise<void> {
   const accessToken = await getAccessToken(credentials, endpoints);
   console.log(`${ts()} ${green('✓ Authenticated')} ${elapsed(t)}\n`);
 
-  // Start pql-test status check in background immediately — Python startup
-  // takes ~10s, so by the time the user finishes picking workspace/report/pages
-  // the result is already available and pickFocus() has zero wait.
-  const pqlStatusPromise = startPqlStatusCheck();
-
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
   // ── main loop — repeat until user says "no more" ────────────────────────────
@@ -511,7 +461,7 @@ async function main(): Promise<void> {
       console.log();
 
       // 6. Pick focus area
-      const focus = await pickFocus(rl, configs.length, pqlStatusPromise);
+      const focus = await pickFocus(rl, configs.length);
       saveFocus(focus);
       const focusLabel = FOCUS_MENU.find((m) => m.value === focus)?.label ?? focus;
       console.log(`\n  ${green('✓')} Focus: ${bold(focusLabel)}\n`);
@@ -529,8 +479,7 @@ async function main(): Promise<void> {
         console.log(dim(`  Run ID: ${runId}  →  test-archive/${runId}/\n`));
         const testStart = Date.now();
 
-        const testScript = isPqlFocus(focus) ? 'test:pql' : 'test:enterprise';
-        testExitCode = await spawnAsync(npm, ['run', testScript]);
+        testExitCode = await spawnAsync(npm, ['run', 'test:enterprise']);
 
         const reportPath = `test-archive/${runId}/html-report`;
         console.log(`\n${ts()} ${dim(`Tests finished ${elapsed(testStart)}`)}`);
