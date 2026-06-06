@@ -107,20 +107,38 @@ export function getPowerBiEndpoints(environment = process.env.PBI_ENVIRONMENT ??
   }
 }
 
-export function readEnterpriseCredentialsFromEnv(): EnterpriseCredentials | null {
-  const clientId = process.env.CLIENT_ID ?? LEGACY_PUBLIC_CLIENT_ID;
-  const tenantId = process.env.TENANT_ID;
-  const environment = process.env.PBI_ENVIRONMENT ?? 'Public';
-  const cacheFile =
-    process.env.PBI_TOKEN_CACHE_FILE ??
-    path.join(process.cwd(), 'playwright', '.auth', 'msal-device-token-cache.json');
+const AUTH_META_PATH = path.join(process.cwd(), 'playwright', '.auth', 'auth-meta.json');
+const TOKEN_CACHE_PATH = path.join(process.cwd(), 'playwright', '.auth', 'msal-device-token-cache.json');
 
+/** Reads auth metadata persisted after the first device-flow sign-in. */
+function readAuthMeta(): { tenantId?: string; environment: string } {
+  if (!fs.existsSync(AUTH_META_PATH)) return { environment: 'Public' };
+  try {
+    return JSON.parse(fs.readFileSync(AUTH_META_PATH, 'utf8')) as { tenantId?: string; environment: string };
+  } catch {
+    return { environment: 'Public' };
+  }
+}
+
+/**
+ * Returns enterprise credentials with no .env dependency.
+ * clientId and cacheFile are hardcoded defaults.
+ * tenantId and environment are read from playwright/.auth/auth-meta.json
+ * which is written automatically after the first device-flow sign-in.
+ */
+export function readEnterpriseCredentials(): EnterpriseCredentials {
+  const meta = readAuthMeta();
   return {
-    clientId,
-    tenantId: tenantId || undefined,
-    environment,
-    cacheFile,
+    clientId: LEGACY_PUBLIC_CLIENT_ID,
+    tenantId: meta.tenantId,
+    environment: meta.environment,
+    cacheFile: TOKEN_CACHE_PATH,
   };
+}
+
+/** @deprecated Use readEnterpriseCredentials() — no .env file required. */
+export function readEnterpriseCredentialsFromEnv(): EnterpriseCredentials {
+  return readEnterpriseCredentials();
 }
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
@@ -196,6 +214,15 @@ export async function getAccessToken(
   if (!interactiveResult?.accessToken) {
     throw new Error('Device-flow authentication did not return an access token.');
   }
+
+  // Persist tenantId + environment so subsequent runs need no .env file.
+  try {
+    fs.mkdirSync(path.dirname(AUTH_META_PATH), { recursive: true });
+    fs.writeFileSync(AUTH_META_PATH, JSON.stringify({
+      tenantId: interactiveResult.tenantId ?? authorityTenant,
+      environment: credentials.environment,
+    }, null, 2) + '\n');
+  } catch { /* non-fatal — next run will re-auth if needed */ }
 
   return interactiveResult.accessToken;
 }

@@ -1,7 +1,4 @@
 import { defineConfig } from '@playwright/test';
-import { loadEnvFile } from './playwright/helper-functions/env-loader';
-
-loadEnvFile();
 
 // Each run gets its own timestamped folder under test-archive/ so results
 // accumulate rather than overwrite. PBI_RUN_ID can be set externally (CI,

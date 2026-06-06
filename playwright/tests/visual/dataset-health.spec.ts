@@ -1,20 +1,9 @@
-/**
- * Live dataset health checks — enterprise project.
- *
- * Each test independently fails on a concrete signal that prevents Power BI
- * report visuals from rendering correctly.  No thresholds — every broken state
- * is a hard failure.
- *
- * Tests are deduplicated per dataset — if 4 pages share one dataset only one
- * set of checks runs, not four.
- */
-
 import { expect, test } from '@playwright/test';
 import {
   getAccessToken,
   getRefreshHistory,
   getPowerBiEndpoints,
-  readEnterpriseCredentialsFromEnv,
+  readEnterpriseCredentials,
 } from '../../helper-functions/powerbi-enterprise';
 import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 import {
@@ -26,13 +15,13 @@ import {
 import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
 const allConfigs = loadEnterpriseConfigs();
-const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
+const enterpriseCredentials = readEnterpriseCredentials();
 const focus = loadFocus();
 
 const skipReason = !allConfigs
-  ? 'Run npm run setup first.'
-  : !enterpriseCredentials
-    ? 'Unable to build enterprise auth settings.'
+  ? 'No report configs found — run npm run setup first.'
+  : !isInFocus(focus, 'rh-002') && !isInFocus(focus, 'rh-003')
+    ? `Focus is "${focus}" — dataset health checks are not in scope.`
     : '';
 
 // Deduplicate by datasetId — one set of health checks per dataset, not per page.
@@ -43,23 +32,30 @@ for (const config of allConfigs ?? []) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 test.describe('Dataset health', () => {
-  // Guard: only call test.skip when there is actually a reason.
-  if (skipReason) test.skip(true, skipReason);
+  if (skipReason) {
+    test('⚠ suite skipped', () => {
+      console.log(`  ↷  Dataset health skipped: ${skipReason}`);
+      test.skip(true, skipReason);
+    });
+    return;
+  }
 
   for (const config of uniqueDatasets.values()) {
     test.describe(config.datasetName, () => {
       async function liveContext() {
-        const endpoints = getPowerBiEndpoints(enterpriseCredentials!.environment);
-        const accessToken = await getAccessToken(enterpriseCredentials!, endpoints);
+        const endpoints = getPowerBiEndpoints(enterpriseCredentials.environment);
+        const accessToken = await getAccessToken(enterpriseCredentials, endpoints);
         return { endpoints, accessToken };
       }
 
       // ── RH-002 ────────────────────────────────────────────────────────────
       test('RH-002 latest refresh completed — visuals are not rendering stale or empty data', async ({}, testInfo) => {
-        test.skip(!isInFocus(focus, 'rh-002'), `Focus is "${focus}" — skipping refresh-failure check.`);
+        if (!isInFocus(focus, 'rh-002')) {
+          const reason = `Focus is "${focus}" — select refresh-failures or refresh-health to run this check.`;
+          console.log(`  ↷  ${config.datasetName} / RH-002: ${reason}`);
+          test.skip(true, reason);
+        }
 
         testInfo.annotations.push(
           { type: 'dataset',    description: config.datasetName },
@@ -73,6 +69,7 @@ test.describe('Dataset health', () => {
         );
 
         if (history.length === 0) {
+          console.log(`  ↷  ${config.datasetName} / RH-002: No refresh history found`);
           test.skip(true, 'No refresh history found for this dataset.');
           return;
         }
@@ -103,7 +100,11 @@ test.describe('Dataset health', () => {
 
       // ── RH-003 ────────────────────────────────────────────────────────────
       test('RH-003 no data-integrity or credential errors in refresh history', async ({}, testInfo) => {
-        test.skip(!isInFocus(focus, 'rh-003'), `Focus is "${focus}" — skipping data-integrity / credential check.`);
+        if (!isInFocus(focus, 'rh-003')) {
+          const reason = `Focus is "${focus}" — select credential-errors or refresh-health to run this check.`;
+          console.log(`  ↷  ${config.datasetName} / RH-003: ${reason}`);
+          test.skip(true, reason);
+        }
 
         testInfo.annotations.push({ type: 'dataset', description: config.datasetName });
 
@@ -113,6 +114,7 @@ test.describe('Dataset health', () => {
         );
 
         if (history.length === 0) {
+          console.log(`  ↷  ${config.datasetName} / RH-003: No refresh history found`);
           test.skip(true, 'No refresh history found for this dataset.');
           return;
         }

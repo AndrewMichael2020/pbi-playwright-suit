@@ -28,19 +28,17 @@ import {
   listReports,
   listWorkspaces,
   listReportPages,
-  readEnterpriseCredentialsFromEnv,
+  readEnterpriseCredentials,
   type PowerBiReport,
   type PowerBiWorkspace,
 } from '../playwright/helper-functions/powerbi-enterprise';
-import { loadEnvFile } from '../playwright/helper-functions/env-loader';
+
 import {
   saveEnterpriseConfig,
   saveEnterpriseConfigs,
   type EnterpriseReportConfig,
 } from '../playwright/helper-functions/enterprise-config';
 import { FOCUS_MENU, saveFocus, type CheckFocus } from '../playwright/helper-functions/focus';
-
-loadEnvFile();
 
 // ── colours ───────────────────────────────────────────────────────────────────
 
@@ -280,7 +278,7 @@ function spawnAsync(cmd: string, args: string[], opts: object = {}): Promise<num
   });
 }
 
-async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFromEnv> & object): Promise<void> {
+async function runCi(credentials: ReturnType<typeof readEnterpriseCredentials> & object): Promise<void> {
   const workspaceName   = process.env.PBI_WORKSPACE_NAME!;
   const reportName      = process.env.PBI_REPORT_NAME!;
   const datasetName     = process.env.PBI_DATASET_NAME ?? reportName;
@@ -339,8 +337,7 @@ async function runCi(credentials: ReturnType<typeof readEnterpriseCredentialsFro
 }
 
 async function main(): Promise<void> {
-  const credentials = readEnterpriseCredentialsFromEnv();
-  if (!credentials) throw new Error('Unable to build enterprise auth settings.');
+  const credentials = readEnterpriseCredentials();
 
   // CI short-circuit: if the required env vars are set, skip the interactive menu.
   if (process.env.PBI_WORKSPACE_NAME && process.env.PBI_REPORT_NAME) {

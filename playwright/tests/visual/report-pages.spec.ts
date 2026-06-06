@@ -1,27 +1,24 @@
-import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import {
   generateReportEmbedToken,
   getAccessToken,
   getRefreshHistory,
   getPowerBiEndpoints,
-  readEnterpriseCredentialsFromEnv,
+  readEnterpriseCredentials,
 } from '../../helper-functions/powerbi-enterprise';
-import { loadEnterpriseConfigs, enterpriseConfigPath } from '../../helper-functions/enterprise-config';
+import { loadEnterpriseConfigs } from '../../helper-functions/enterprise-config';
 import { evaluateRefreshHealth } from '../../helper-functions/refresh-health';
 import { loadFocus, isInFocus } from '../../helper-functions/focus';
 
 const allConfigs = loadEnterpriseConfigs();
-const enterpriseCredentials = readEnterpriseCredentialsFromEnv();
+const enterpriseCredentials = readEnterpriseCredentials();
 const focus = loadFocus();
 
 const skipReason = !allConfigs
-  ? 'Run npm run setup first.'
-  : !enterpriseCredentials
-    ? 'Unable to build enterprise auth settings.'
-    : !isInFocus(focus, 'visuals')
-      ? `Focus is "${focus}" — visual page tests are not in scope.`
-      : '';
+  ? 'No report configs found — run npm run setup first.'
+  : !isInFocus(focus, 'visuals')
+    ? `Focus is "${focus}" — visual page tests are not in scope.`
+    : '';
 
 // Build a stable VS-NNN id per config index, then group by report name
 // so the HTML report shows: Report name › Page name (business-readable).
@@ -34,9 +31,13 @@ for (const [i, config] of (allConfigs ?? []).entries()) {
 }
 
 test.describe('Report page health', () => {
-  // Guard: only call test.skip when there is actually a reason — calling
-  // test.skip(false, '') in Playwright v1.60 appears to zero the test count.
-  if (skipReason) test.skip(true, skipReason);
+  if (skipReason) {
+    test('⚠ suite skipped', () => {
+      console.log(`  ↷  Report page health skipped: ${skipReason}`);
+      test.skip(true, skipReason);
+    });
+    return;
+  }
 
   for (const [reportName, items] of reportGroups) {
     test.describe(reportName, () => {
