@@ -8,6 +8,11 @@ const runId =
   new Date().toISOString().slice(0, 16).replace('T', '_').replace(':', '-');
 const archiveDir = `test-archive/${runId}`;
 
+// Path separator is / on Linux/macOS and \ on Windows — match both.
+const sep = '[\\\\/]';
+const testMatchFor = (dir: string): RegExp =>
+  new RegExp(`.*${sep}${dir}${sep}.*\\.spec\\.ts$`);
+
 export default defineConfig({
   testDir: './playwright/tests',
   timeout: 60_000,
@@ -31,14 +36,14 @@ export default defineConfig({
       // Dry run: validates suite logic against committed mock fixtures.
       // No browser, no credentials required. Runs anywhere.
       name: 'dry-run',
-      testMatch: /.*metadata\/.*\.spec\.ts/,
+      testMatch: testMatchFor('metadata'),
       timeout: 60_000,
     },
     {
       // Enterprise run: live Power BI checks — dataset health + visual render.
       // Requires npm run setup first (writes enterprise.generated.json).
       name: 'enterprise',
-      testMatch: /.*visual\/.*\.spec\.ts/,
+      testMatch: testMatchFor('visual'),
       timeout: 180_000,
       use: {
         channel: (process.env.PBI_BROWSER_CHANNEL as 'msedge' | 'chrome' | undefined) ?? 'chrome',
