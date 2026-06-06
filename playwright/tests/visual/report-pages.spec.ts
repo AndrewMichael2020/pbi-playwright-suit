@@ -14,6 +14,8 @@ const allConfigs = loadEnterpriseConfigs();
 const enterpriseCredentials = readEnterpriseCredentials();
 const focus = loadFocus();
 
+console.log(`[report-pages] configs=${allConfigs?.length ?? 'null'}  focus="${focus}"  cwd=${process.cwd()}`);
+
 const skipReason = !allConfigs
   ? 'No report configs found — run npm run setup first.'
   : !isInFocus(focus, 'visuals')
