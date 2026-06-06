@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Lightweight Playwright-based Power BI workspace quality suite",
   "scripts": {
-    "setup": "node --require tsx/cjs scripts/setup.ts",
+    "clean": "node -e \"const fs=require('fs');['playwright/config/enterprise.generated.json','playwright/config/enterprise.focus.json'].forEach(f=>{try{fs.rmSync(f);console.log('removed '+f);}catch{}});try{fs.rmSync('playwright/.auth',{recursive:true,force:true});console.log('removed playwright/.auth');}catch{}\"",
     "install:browsers": "playwright install",
     "typecheck": "tsc --noEmit",
     "test": "playwright test --project=dry-run",

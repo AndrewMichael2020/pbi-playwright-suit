@@ -119,14 +119,8 @@ npm run setup
 | 4     | Refresh health               |   —    |   ✅   |   ✅   | All refresh signals combined           |
 | 5     | Quick triage                 |   ✅   |   ✅   |   —    | Fastest check for large workspaces     |
 | 6     | All checks                   |   ✅   |   ✅   |   ✅   | Every live signal                      |
-| [n/a] | Schema drift (pql-test)      |   —    |   —    |   —    | **Experimental / unverified** — column / table existence via XMLA; awaits a more stable `pql-test` release |
-| [n/a] | Key duplication (pql-test)   |   —    |   —    |   —    | **Experimental / unverified** — primary-key uniqueness via DAX; awaits a more stable `pql-test` release |
 | [TBD] | Source data schema drift     |   —    |   —    |   —    | Column / table changes in source SQL — coming soon |
 | 7     | Other (custom grep filter)   |   —    |   —    |   —    | Run an arbitrary Playwright `--grep` filter |
-
-> The two **pql-test** options run a separate Playwright project and require `pql-test`
-> installed and authenticated. They are **experimental and not yet verified** —
-> treat their results as indicative only until the upstream tool stabilises.
 
 6. Confirms config and offers to run immediately. When tests finish and you close the report viewer, the wizard asks **"Run another test? [Y/n]"** — answer Y to go back to report selection (no re-authentication needed) and queue another run.
 
@@ -135,9 +129,25 @@ npm run setup
 ### What setup writes
 
 - `playwright/config/enterprise.generated.json` — report/page list (gitignored)
-- `playwright/config/enterprise.focus.json` — selected focus (gitignored)
+- `playwright/config/enterprise.focus.json` — focus selection (gitignored)
+- `playwright/.auth/auth-meta.json` — tenant ID cached after first sign-in (gitignored)
 
-Neither file is committed. Re-run `npm run setup` whenever you want to change the report selection or focus.
+None of these files are committed. Re-run `npm run setup` whenever you want to change the report selection or focus.
+
+### Resetting to a clean state
+
+Run `npm run clean` to wipe all generated configs and the auth token cache — useful when switching workspaces or clearing stale state. Test results in `test-archive/` are preserved.
+
+```powershell
+npm run clean
+```
+
+This removes:
+- `playwright/config/enterprise.generated.json`
+- `playwright/config/enterprise.focus.json`
+- `playwright/.auth/` (token cache + tenant metadata)
+
+After cleaning, run `npm run setup` again to re-authenticate and re-configure.
 
 > **Do NOT run `npm run install:browsers` on Windows.**  
 > The enterprise run uses your existing system Chrome or Edge.
@@ -219,18 +229,16 @@ npx playwright show-trace test-results/<folder>/trace.zip
 
 ## Environment variables
 
-Use `.env.example` as the template for a local `.env` file. Interactive `npm run setup` works without `.env`; these are optional overrides and non-interactive inputs.
+No `.env` file is required. After the first `npm run setup` sign-in, tenant ID and environment are cached automatically in `playwright/.auth/auth-meta.json`.
+
+The following variables are optional overrides for non-interactive / CI use:
 
 | Variable               | Default                | Purpose                                     |
 | ---------------------- | ---------------------- | ------------------------------------------- |
-| `CLIENT_ID`            | built-in public client | Azure AD public client ID for device-flow auth |
-| `TENANT_ID`            | —                      | Optional Azure AD tenant for device-flow auth |
 | `PBI_WORKSPACE_NAME`   | —                      | Non-interactive: target workspace name      |
 | `PBI_REPORT_NAME`      | —                      | Non-interactive: target report name         |
 | `PBI_DATASET_NAME`     | same as report         | Override dataset name                       |
 | `PBI_PAGE_NAME`        | first page             | Override page display name                  |
-| `PBI_ENVIRONMENT`      | `Public`               | Azure cloud (`Public`, `USGov`, `China`, …) |
-| `PBI_TOKEN_CACHE_FILE` | auto                   | Path to MSAL token cache                    |
 | `PBI_BROWSER_CHANNEL`  | `chrome`               | `chrome` or `msedge`                        |
 | `PBI_RUN_ID`           | timestamp              | Override the `test-archive/<run-id>` folder name |
 
@@ -239,11 +247,13 @@ Use `.env.example` as the template for a local `.env` file. Interactive `npm run
 ## Repository layout
 
 ```text
-.env.example                      # local env template (copy to .env)
 playwright/
   config/                           # runtime — gitignored
     enterprise.generated.json       # report/page list written by npm run setup
     enterprise.focus.json           # focus selection written by npm run setup
+  .auth/                            # gitignored
+    msal-device-token-cache.json    # MSAL token cache
+    auth-meta.json                  # tenant ID cached after first sign-in
   fixtures/snapshots/
     refresh-history/
       baseline-refresh-history.json        # mock refresh history fixture
@@ -259,7 +269,7 @@ playwright/
     enterprise-config.ts            # load/save enterprise.generated.json
     focus.ts                        # focus menu definitions + routing matrix
     types.ts                        # shared TypeScript types
-    env-loader.ts                   # .env loading
+    env-loader.ts                   # .env loading (optional CI overrides only)
     file-reader.ts                  # fixture file helpers
   tests/
     metadata/                       # fixture-based checks (no credentials, no browser)
@@ -270,20 +280,11 @@ playwright/
     visual/                         # enterprise live checks (require npm run setup)
       dataset-health.spec.ts        # RH-002, RH-003 against live Power BI
       report-pages.spec.ts          # VS-NNN visual smoke via Power BI JS SDK
-    pql/                            # experimental pql-test lane (unverified)
-      pql-schema.spec.ts            # schema drift via XMLA — awaits stable pql-test
-      pql-dataquality.spec.ts       # key duplication via DAX — awaits stable pql-test
-  global/
-    global-setup.ts
   vendor/
     powerbi.min.js                  # Power BI JS SDK (pinned, no CDN dependency)
   reporter.ts                       # custom Playwright reporter
 scripts/
   setup.ts                          # interactive enterprise configuration wizard
-  pql-generate-stubs.ts             # generates pql-test spec stubs (experimental)
-  install-pql-test.ps1              # one-time pql-test installer (Windows, experimental)
-pql/
-  README.md                         # pql-test lane notes
 docs/
   architecture/
     playwright_test_strategy.md
@@ -348,6 +349,12 @@ It does **not** affect your system Chrome. If you are using system Chrome, ignor
 
 Your Power BI admin needs to enable the XMLA endpoint:  
 **Power BI Admin Portal → Workspaces → (workspace) → Dataset settings → XMLA endpoint → Read**.
+
+---
+
+### `Running 0 test(s)` after setup
+
+Run `npm run clean` then `npm run setup` again. Stale config files from a previous workspace selection can cause Playwright to load configs that no longer match the current state.
 
 ---
 
