@@ -149,6 +149,13 @@ _DAX_UPN_PATTERN  = re.compile(
     re.IGNORECASE,
 )
 
+# Matches: LOOKUPVALUE('Table'[result], 'Table'[upn_col], userprincipalname())
+# Captures: (1) lookup_table  (2) upn_column_in_lookup_table
+_LOOKUPVALUE_UPN_RE = re.compile(
+    r"LOOKUPVALUE\s*\(\s*'?([^'\[\]\r\n,]+)'?\s*\[[^\]]+\]\s*,\s*'?([^'\[\]\r\n,]+)'?\s*\[([^\]]+)\]\s*,\s*USERPRINCIPALNAME\s*\(",
+    re.IGNORECASE,
+)
+
 # ── colours ────────────────────────────────────────────────────────────────────
 
 def _enable_ansi() -> bool:
@@ -759,7 +766,9 @@ def _xmla_rows(
                 dbg(f"  role={role_name!r}  table_id={table_id!r}  has_UPN={has_upn}")
                 if not has_upn:
                     continue
-                upn_m   = _DAX_UPN_PATTERN.search(dax_filter)
+                # Strip block comments (/* ... */) before pattern matching
+                dax_clean = re.sub(r'/\*.*?\*/', '', dax_filter, flags=re.DOTALL).strip()
+                upn_m   = _DAX_UPN_PATTERN.search(dax_clean)
                 upn_col = upn_m.group(1) if upn_m else "(complex — check DAX manually)"
                 role_rows.append((role_name, table_id, dax_filter, upn_col))
 
@@ -795,6 +804,9 @@ def _xmla_rows(
             conn.Close()
 
         # ── 4. Build manifest rows ─────────────────────────────────────────
+        # Reverse map: table name (lower) → table ID
+        table_id_by_name: dict[str, str] = {v.lower(): k for k, v in table_names.items()}
+
         for role_name, table_id, dax_filter, upn_col in role_rows:
             rls_table  = table_names.get(table_id, table_id)
             partitions = m_by_table.get(table_id, [])
@@ -802,27 +814,46 @@ def _xmla_rows(
                 f"partitions={len(partitions)}")
 
             if not partitions:
-                print(f"      {dim('↳')}  {yellow('⚑')}  {dim(f'role={role_name!r}  table={rls_table!r} — embedded (no M partition)')}")
-                rows.append({
-                    "workspace_name":   workspace["name"],
-                    "workspace_id":     workspace["id"],
-                    "dataset_name":     dataset["name"],
-                    "dataset_id":       dataset["id"],
-                    "role_name":        role_name,
-                    "rls_table":        rls_table,
-                    "dax_filter":       dax_filter,
-                    "upn_column":       upn_col,
-                    "source": {
-                        "path":   None,
-                        "file":   None,
-                        "format": "embedded",
-                        "sheet":  None,
-                    },
-                    "discovery_method": "xmla",
-                    "scan_timestamp":   timestamp,
-                    "notes":            "No M partition found — table may be embedded in the model",
-                })
-                continue
+                # Try to follow a LOOKUPVALUE('RefTable'[col], 'RefTable'[upn], userprincipalname())
+                # reference to find the actual file source in a different table's M partition.
+                lv_m = _LOOKUPVALUE_UPN_RE.search(dax_filter)
+                if lv_m:
+                    ref_table = lv_m.group(1).strip()   # same table referenced twice
+                    lv_upn_col = lv_m.group(3).strip()  # upn column in that table
+                    ref_tid = table_id_by_name.get(ref_table.lower())
+                    if ref_tid:
+                        partitions = m_by_table.get(ref_tid, [])
+                        if partitions:
+                            # Upgrade upn_col to the one from LOOKUPVALUE
+                            upn_col = lv_upn_col
+                            dbg(f"  LOOKUPVALUE → following ref_table={ref_table!r}  upn={upn_col!r}  {len(partitions)} partition(s)")
+                        else:
+                            dbg(f"  LOOKUPVALUE → ref_table={ref_table!r} found but also embedded")
+                    else:
+                        dbg(f"  LOOKUPVALUE → ref_table={ref_table!r} not found in model tables")
+
+                if not partitions:
+                    print(f"      {dim('↳')}  {yellow('⚑')}  {dim(f'role={role_name!r}  table={rls_table!r} — embedded (no M partition)')}")
+                    rows.append({
+                        "workspace_name":   workspace["name"],
+                        "workspace_id":     workspace["id"],
+                        "dataset_name":     dataset["name"],
+                        "dataset_id":       dataset["id"],
+                        "role_name":        role_name,
+                        "rls_table":        rls_table,
+                        "dax_filter":       dax_filter,
+                        "upn_column":       upn_col,
+                        "source": {
+                            "path":   None,
+                            "file":   None,
+                            "format": "embedded",
+                            "sheet":  None,
+                        },
+                        "discovery_method": "xmla",
+                        "scan_timestamp":   timestamp,
+                        "notes":            "No M partition found — table may be embedded in the model",
+                    })
+                    continue
 
             for pname, expr in partitions:
                 dbg(f"  partition={pname!r}  expr_len={len(expr)}")
@@ -996,7 +1027,12 @@ def scan_workspace(
                 dbg(f"  XMLA produced {len(rows)} row(s) — skipping REST")
 
         # ── Tier 1: REST (fallback or supplement) ─────────────────────────────
-        if not rows:
+        # Run REST when: no XMLA rows at all, OR XMLA found roles but every
+        # source is embedded (meaning the actual file is unreachable via XMLA).
+        xmla_all_embedded = rows and all(
+            (r.get("source") or {}).get("format") == "embedded" for r in rows
+        )
+        if not rows or xmla_all_embedded:
             if not no_xmla and _XMLA_LIB_OK:
                 print(dim(" → fallback REST …"), end="", flush=True)
             else:
