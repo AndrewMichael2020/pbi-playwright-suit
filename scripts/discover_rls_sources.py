@@ -77,16 +77,18 @@ _DLL_PATHS = {
 }
 
 _XMLA_LIB_OK = False
+_XMLA_DLL_MISSING: list[str] = []
 try:
     import clr as _clr  # pythonnet — required by pyadomd
-    # Pre-load each assembly by full path so the CLR finds them in memory
-    # before pyadomd tries to AddReference by name (which searches PATH/GAC only)
-    for _dll in _DLL_PATHS.values():
+    for _label, _dll in _DLL_PATHS.items():
         if os.path.isfile(_dll):
             _clr.AddReference(_dll)
-    import pyadomd  # noqa: F401
-    from pyadomd import Pyadomd  # noqa: F401
-    _XMLA_LIB_OK = True
+        else:
+            _XMLA_DLL_MISSING.append(f"{_label}: {_dll}")
+    if not _XMLA_DLL_MISSING:
+        import pyadomd  # noqa: F401
+        from pyadomd import Pyadomd  # noqa: F401
+        _XMLA_LIB_OK = True
 except Exception:
     _XMLA_LIB_OK = False
 
@@ -1049,9 +1051,17 @@ def main() -> None:
     token = get_access_token()
     print(f"  {ts()} Authenticated.  {elapsed(t0)}")
 
+    if _XMLA_DLL_MISSING and not args.no_xmla:
+        print(yellow(f"  ⚠  XMLA DLLs not found — falling back to Tier 1 (REST only)"))
+        for m in _XMLA_DLL_MISSING:
+            print(dim(f"       missing: {m}"))
+        print(dim("       Install SSMS 21 or adjust _DLL_PATHS in the script."))
+
     xmla_note = (
         dim("XMLA (Tier 2) available")
         if (_XMLA_LIB_OK and not args.no_xmla)
+        else yellow("Tier 1 only") + dim(" (DLLs missing — see above)")
+        if _XMLA_DLL_MISSING
         else yellow("Tier 1 only") + dim(" (install pyadomd for full XMLA scanning)")
         if not _XMLA_LIB_OK
         else dim("Tier 1 only (--no-xmla)")
