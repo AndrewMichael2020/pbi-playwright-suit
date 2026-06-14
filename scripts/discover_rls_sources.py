@@ -136,13 +136,30 @@ _DAX_UPN_PATTERN  = re.compile(
 
 # ── colours ────────────────────────────────────────────────────────────────────
 
-try:
-    import colorama
-    colorama.init()
-    _NO_COLOUR = False
-except ImportError:
-    # No colorama — only enable ANSI if the terminal claims to support it
-    _NO_COLOUR = not sys.stdout.isatty()
+def _enable_ansi() -> bool:
+    """Enable ANSI escape processing — returns True if colours should be used."""
+    if not sys.stdout.isatty():
+        return False
+    if sys.platform == "win32":
+        try:
+            # Enable ENABLE_VIRTUAL_TERMINAL_PROCESSING on Windows 10+ console
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.GetStdHandle(-11)          # STD_OUTPUT_HANDLE
+            mode = ctypes.c_ulong(0)
+            if kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+                kernel32.SetConsoleMode(handle, mode.value | 0x0004)
+        except Exception:
+            pass
+        # Also try colorama as an extra fallback
+        try:
+            import colorama
+            colorama.init()
+        except ImportError:
+            pass
+    return True
+
+_NO_COLOUR = not _enable_ansi()
 
 def _c(code: str, text: str) -> str:
     return text if _NO_COLOUR else f"\x1b[{code}m{text}\x1b[0m"
