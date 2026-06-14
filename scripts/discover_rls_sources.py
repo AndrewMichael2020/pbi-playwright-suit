@@ -409,28 +409,39 @@ def _source_format_from_path(path: str) -> str:
         return "csv"
     return "unknown"
 
-_UPN_HEADER_HINTS = {"email", "upn", "userprincipalname", "user", "loginname", "login",
-                     "username", "samaccountname", "mail", "account"}
+_UPN_HEADER_HINTS = {
+    "email", "upn", "userprincipalname", "user", "loginname", "login",
+    "username", "samaccountname", "mail", "account",
+    # broader terms common in healthcare/enterprise user-access files
+    "emailaddress", "useraccess", "aduser", "adaccount", "networkid",
+    "networklogin", "domainuser", "employeeemail", "workplaceemail",
+}
 
-def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> str | None:
+_RLS_FILENAME_HINTS = {"user access", "useraccess", "user list", "userlist",
+                       "security", "rls", "permission", "access control"}
+
+def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> tuple[str | None, list[str]]:
     """
-    Open a local or UNC xlsx/csv file and return the most likely UPN column name.
-    Returns None if the file can't be opened or no suitable column is found.
+    Open a local/UNC xlsx/csv file and return (upn_column, all_headers).
+    upn_column is None if not found; all_headers always lists what was read
+    so callers can log it for manual review.
     """
     if not path or not os.path.isfile(path):
-        return None
+        return None, []
     try:
         if fmt == "xlsx" and _OPENPYXL_OK:
             wb = _openpyxl.load_workbook(path, read_only=True, data_only=True)
-            ws_names = [sheet] if sheet and sheet in wb.sheetnames else wb.sheetnames
+            ws_names = [sheet] if sheet and sheet in wb.sheetnames else list(wb.sheetnames)
             for ws_name in ws_names:
                 ws = wb[ws_name]
                 headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(max_row=1))]
-                # Score each header
-                scored = _rank_upn_headers(headers, ws)
+                headers = [h for h in headers if h]  # drop empty trailing cells
+                match = _rank_upn_headers(headers, ws)
                 wb.close()
-                if scored:
-                    return scored
+                if match:
+                    return match, headers
+                if headers:
+                    return None, headers  # return headers even when no match
             wb.close()
 
         elif fmt == "csv":
@@ -438,11 +449,11 @@ def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> str | None:
                 reader = _csv_mod.reader(f)
                 headers = next(reader, [])
                 sample_rows = [next(reader, []) for _ in range(5)]
-            return _rank_upn_headers_from_samples(headers, sample_rows)
+            return _rank_upn_headers_from_samples(headers, sample_rows), headers
 
     except Exception as e:
         dbg(f"_sniff_upn_column: could not read {path!r}: {e}")
-    return None
+    return None, []
 
 
 def _rank_upn_headers(headers: list[str], ws) -> str | None:
@@ -571,13 +582,23 @@ def _file_source_rows_from_rest(
 
         # Try to detect UPN column by reading the file directly (xlsx/csv only)
         upn_col = None
+        file_headers: list[str] = []
         if fmt in ("xlsx", "csv"):
-            sniffed = _sniff_upn_column(path, fmt, None)
-            if sniffed:
-                upn_col = sniffed
-                dbg(f"  sniffed UPN column: {sniffed!r}")
+            upn_col, file_headers = _sniff_upn_column(path, fmt, None)
+            if upn_col:
+                dbg(f"  sniffed UPN column: {upn_col!r}")
+            elif file_headers:
+                # File was readable but no UPN column matched — report headers
+                # so the user can see what's actually in the file
+                fname = Path(path).name.lower()
+                is_likely_rls = any(h in fname for h in _RLS_FILENAME_HINTS)
+                col_preview = ", ".join(file_headers[:10])
+                if is_likely_rls:
+                    notes += f" — likely RLS file but UPN column not auto-detected; columns: [{col_preview}]"
+                else:
+                    notes += f" — columns found: [{col_preview}]"
             else:
-                notes += " — no UPN column detected in file (may be a non-RLS datasource)"
+                notes += " — file not accessible or empty"
 
         rows.append({
             "workspace_name":   workspace["name"],
