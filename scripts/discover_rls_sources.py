@@ -46,10 +46,16 @@ import yaml
 # ── optional deps ──────────────────────────────────────────────────────────────
 
 try:
-    import msal
-    _MSAL_OK = True
+    import openpyxl as _openpyxl
+    _OPENPYXL_OK = True
 except ImportError:
-    _MSAL_OK = False
+    _OPENPYXL_OK = False
+
+try:
+    import csv as _csv_mod
+    _CSV_OK = True
+except ImportError:
+    _CSV_OK = False
 
 try:
     from dotenv import load_dotenv
@@ -396,6 +402,70 @@ def _source_format_from_path(path: str) -> str:
         return "csv"
     return "unknown"
 
+_UPN_HEADER_HINTS = {"email", "upn", "userprincipalname", "user", "loginname", "login",
+                     "username", "samaccountname", "mail", "account"}
+
+def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> str | None:
+    """
+    Open a local or UNC xlsx/csv file and return the most likely UPN column name.
+    Returns None if the file can't be opened or no suitable column is found.
+    """
+    if not path or not os.path.isfile(path):
+        return None
+    try:
+        if fmt == "xlsx" and _OPENPYXL_OK:
+            wb = _openpyxl.load_workbook(path, read_only=True, data_only=True)
+            ws_names = [sheet] if sheet and sheet in wb.sheetnames else wb.sheetnames
+            for ws_name in ws_names:
+                ws = wb[ws_name]
+                headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(max_row=1))]
+                # Score each header
+                scored = _rank_upn_headers(headers, ws)
+                wb.close()
+                if scored:
+                    return scored
+            wb.close()
+
+        elif fmt == "csv":
+            with open(path, newline="", encoding="utf-8-sig", errors="replace") as f:
+                reader = _csv_mod.reader(f)
+                headers = next(reader, [])
+                sample_rows = [next(reader, []) for _ in range(5)]
+            return _rank_upn_headers_from_samples(headers, sample_rows)
+
+    except Exception as e:
+        dbg(f"_sniff_upn_column: could not read {path!r}: {e}")
+    return None
+
+
+def _rank_upn_headers(headers: list[str], ws) -> str | None:
+    """Score headers by name hint, then by @ in sample values."""
+    # Exact/keyword match on header name
+    for h in headers:
+        if h.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+            return h
+    # Sample up to 10 data rows and look for email-like values
+    sample: dict[int, list[str]] = {i: [] for i in range(len(headers))}
+    for row in ws.iter_rows(min_row=2, max_row=11, values_only=True):
+        for i, val in enumerate(row):
+            if val and i < len(headers):
+                sample[i].append(str(val))
+    for i, vals in sample.items():
+        if any("@" in v for v in vals):
+            return headers[i] if i < len(headers) else None
+    return None
+
+
+def _rank_upn_headers_from_samples(headers: list[str], rows: list[list[str]]) -> str | None:
+    for h in headers:
+        if h.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+            return h
+    for i, h in enumerate(headers):
+        if any("@" in (row[i] if i < len(row) else "") for row in rows):
+            return h
+    return None
+
+
 def _file_source_rows_from_rest(
     workspace: dict,
     dataset:   dict,
@@ -432,6 +502,14 @@ def _file_source_rows_from_rest(
         )
         dbg(f"  include  type={ds_type!r}  format={fmt!r}  path={path!r}")
 
+        # Try to detect UPN column by reading the file directly
+        upn_col = "(requires XMLA)"
+        if not is_ad and fmt in ("xlsx", "csv"):
+            sniffed = _sniff_upn_column(path, fmt, None)
+            if sniffed:
+                upn_col = sniffed
+                dbg(f"  sniffed UPN column: {sniffed!r}")
+
         rows.append({
             "workspace_name":   workspace["name"],
             "workspace_id":     workspace["id"],
@@ -440,7 +518,7 @@ def _file_source_rows_from_rest(
             "role_name":        "(requires XMLA)",
             "rls_table":        "(requires XMLA)",
             "dax_filter":       "(requires XMLA)",
-            "upn_column":       "(requires XMLA)",
+            "upn_column":       upn_col,
             "source": {
                 "path":   path,
                 "file":   None if is_ad else (Path(path.split("?")[0]).name or path),

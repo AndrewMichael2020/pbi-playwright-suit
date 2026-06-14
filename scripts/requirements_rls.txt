@@ -3,6 +3,7 @@ requests>=2.32
 python-dotenv>=1.0
 pyyaml>=6.0
 colorama>=0.4
+openpyxl>=3.1
 # pyadomd>=0.1  -- optional XMLA/ADOMD.NET bridge (Windows only)
 #                  install manually if you have Premium/Fabric capacity and want
 #                  full DAX role + M expression extraction (Tier 2 scanning)
