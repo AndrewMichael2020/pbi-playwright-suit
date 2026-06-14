@@ -869,8 +869,12 @@ def _xmla_rows(
 
     except Exception as exc:  # noqa: BLE001
         import traceback as _tb
-        dbg(f"XMLA failed for {dataset['name']}: {exc}\n" + _tb.format_exc())
-        print(yellow(f"  ⚠  XMLA unavailable for {dataset['name'][:50]} — using REST fallback"), flush=True)
+        # Always show the first line of the error so users can diagnose without --debug
+        first_line = str(exc).splitlines()[0][:120] if str(exc) else type(exc).__name__
+        print(yellow(f"\n  ⚠  XMLA failed for {bold(dataset['name'][:50])}"), flush=True)
+        print(dim(f"     {first_line}"), flush=True)
+        print(dim(f"     (run with --debug for full traceback)"), flush=True)
+        dbg(_tb.format_exc())
         return []
 
     dbg(f"_xmla_rows → {len(rows)} row(s) for dataset {dataset['name']!r}")
