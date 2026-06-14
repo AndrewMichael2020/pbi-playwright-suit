@@ -101,7 +101,8 @@ REPO_ROOT        = Path(__file__).resolve().parent.parent
 AUTH_DIR         = REPO_ROOT / "playwright" / ".auth"
 TOKEN_CACHE_PATH = AUTH_DIR / "msal-device-token-cache.json"
 AUTH_META_PATH   = AUTH_DIR / "auth-meta.json"
-MANIFEST_PATH    = REPO_ROOT / "rls_sources_manifest.yaml"
+RLS_DIR          = REPO_ROOT / "rls_discovery"
+MANIFEST_PATH    = RLS_DIR / "rls_sources_manifest.yaml"
 
 TOP_N = 20
 
@@ -843,7 +844,7 @@ def _dedup(rows: list[dict]) -> list[dict]:
     return sorted(out, key=lambda r: (
         r["workspace_name"].lower(),
         r["dataset_name"].lower(),
-        r["role_name"].lower(),
+        (r["role_name"] or "").lower(),
     ))
 
 # ── manifest write ─────────────────────────────────────────────────────────────
@@ -976,7 +977,7 @@ def main() -> None:
     parser.add_argument("--all",       action="store_true", help="Scan all workspaces without prompting")
     parser.add_argument("--workspace", metavar="NAME",      help="Scan a specific workspace by name (skips picker)")
     parser.add_argument("--dataset",   metavar="NAME",      help="Scan only a specific dataset/model by name (skips dataset picker)")
-    parser.add_argument("--output",    metavar="DIR",       help="Write manifest to this directory (default: project root)")
+    parser.add_argument("--output",    metavar="DIR",       help=f"Write manifest to this directory (default: rls_discovery/)")
     parser.add_argument("--no-xmla",   action="store_true", help="Tier 1 (REST) only — skip XMLA even if pyadomd is installed")
     parser.add_argument("--verbose",   action="store_true", help="Print all result rows (default: first 50)")
     parser.add_argument("--debug",     action="store_true", help="Print diagnostic output for every API call, M expression, and XMLA query")

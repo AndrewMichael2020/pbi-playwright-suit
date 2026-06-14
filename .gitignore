@@ -233,3 +233,5 @@ rls_sources_manifest.yaml
 # Allow committed Python scripts in scripts/
 !scripts/*.py
 !scripts/requirements_rls.txt
+rls_discovery/*.yaml
+rls_discovery/*.json
