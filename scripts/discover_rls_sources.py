@@ -549,35 +549,47 @@ def _file_source_rows_from_rest(
             dbg(f"  skip  type={ds_type!r}  (empty connectionDetails — no path)")
             continue
 
-        is_ad = ds_type in ("ActiveDirectory", "Ldap", "Extension")
-        fmt   = "active_directory" if ds_type in ("ActiveDirectory", "Ldap") else _source_format_from_path(path)
-        notes = (
-            "On-prem AD/LDAP source — downstream validation requires LDAP query or Azure AD Graph API, not file open"
-            if is_ad
-            else "Tier 1 only — RLS role details require XMLA"
+        # Classify source type
+        is_dynamics = (
+            ds_type in ("Extension", "CommonDataService")
+            or any(x in path.lower() for x in (".dynamics.com", ".crm", "commondata"))
         )
+        is_ad = ds_type in ("ActiveDirectory", "Ldap") and not is_dynamics
+
+        if is_dynamics:
+            fmt = "dataverse"
+            notes = "Dynamics 365 / Dataverse source — RLS role details require XMLA"
+        elif is_ad:
+            fmt = "active_directory"
+            notes = "On-prem AD/LDAP source — validation requires LDAP query, not file open"
+        else:
+            fmt = _source_format_from_path(path)
+            notes = "Tier 1 only — RLS role/table details require XMLA"
+
         dbg(f"  include  type={ds_type!r}  format={fmt!r}  path={path!r}")
 
-        # Try to detect UPN column by reading the file directly
-        upn_col = "(requires XMLA)"
-        if not is_ad and fmt in ("xlsx", "csv"):
+        # Try to detect UPN column by reading the file directly (xlsx/csv only)
+        upn_col = None
+        if fmt in ("xlsx", "csv"):
             sniffed = _sniff_upn_column(path, fmt, None)
             if sniffed:
                 upn_col = sniffed
                 dbg(f"  sniffed UPN column: {sniffed!r}")
+            else:
+                notes += " — no UPN column detected in file (may be a non-RLS datasource)"
 
         rows.append({
             "workspace_name":   workspace["name"],
             "workspace_id":     workspace["id"],
             "dataset_name":     dataset["name"],
             "dataset_id":       dataset["id"],
-            "role_name":        "(requires XMLA)",
-            "rls_table":        "(requires XMLA)",
-            "dax_filter":       "(requires XMLA)",
+            "role_name":        None,
+            "rls_table":        None,
+            "dax_filter":       None,
             "upn_column":       upn_col,
             "source": {
                 "path":   path,
-                "file":   None if is_ad else (Path(path.split("?")[0]).name or path),
+                "file":   None if (is_ad or is_dynamics) else (Path(path.split("?")[0]).name or path),
                 "format": fmt,
                 "sheet":  None,
             },
@@ -937,8 +949,8 @@ def scan_workspace(
             formats   = ", ".join(sorted({r["source"]["format"] for r in rows if r["source"]}))
             upn_cols  = ", ".join(sorted({
                 r["upn_column"] for r in rows
-                if r["upn_column"] not in ("(requires XMLA)", None)
-            })) or dim("(requires XMLA)")
+                if r["upn_column"] not in (None, "")
+            })) or dim("(unknown)")
             print(f"\r    {counter}  {green('✔')}  {ds['name'][:50]:<52}"
                   f"  {dim(f'[{method}]')}  {count} row(s)  "
                   f"fmt={dim(formats)}  col={cyan(upn_cols)}  {el}")
@@ -1070,7 +1082,7 @@ def main() -> None:
     datasets_with_results = len({r["dataset_name"] for r in all_rows})
     roles_found           = len({(r["dataset_id"], r["role_name"]) for r in all_rows})
     file_sources          = len([r for r in all_rows if (r["source"] or {}).get("path")])
-    needs_xmla            = len([r for r in all_rows if r.get("upn_column") == "(requires XMLA)"])
+    needs_xmla = len([r for r in all_rows if r.get("role_name") is None])
     ad_sources            = len([r for r in all_rows if (r["source"] or {}).get("format") in ("active_directory", "ldap")])
 
     print()
@@ -1081,8 +1093,8 @@ def main() -> None:
     if ad_sources:
         print(f"    {cyan(str(ad_sources))} on-prem AD / LDAP source(s)  {dim('(no file — see notes)')}")
     if needs_xmla:
-        xmla_note = '(upn_column = "(requires XMLA)")'
-        print(f"    {yellow(str(needs_xmla))} row(s) need XMLA for full column detail  "
+        xmla_note = '(role/table/filter unknown — REST tier only)'
+        print(f"    {yellow(str(needs_xmla))} row(s) missing role detail  "
               f"{dim(xmla_note)}")
     if not _XMLA_LIB_OK and not args.no_xmla:
         print(dim("\n  Tip: install pyadomd on Windows to get upn_column values without manual lookup."))
