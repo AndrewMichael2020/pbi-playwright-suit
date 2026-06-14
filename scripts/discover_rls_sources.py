@@ -46,6 +46,12 @@ import yaml
 # ── optional deps ──────────────────────────────────────────────────────────────
 
 try:
+    import msal
+    _MSAL_OK = True
+except ImportError:
+    _MSAL_OK = False
+
+try:
     import openpyxl as _openpyxl
     _OPENPYXL_OK = True
 except ImportError:
@@ -1082,9 +1088,9 @@ def main() -> None:
         print(dim("\n  Tip: install pyadomd on Windows to get upn_column values without manual lookup."))
         print(dim("       pip install pyadomd"))
 
+    write_manifest(all_rows, output_path)
+    print(f"\n  {green('→')} {bold(str(output_path))}  {dim(f'({len(all_rows)} entr' + ('y' if len(all_rows)==1 else 'ies') + ')')}")
     if all_rows:
-        write_manifest(all_rows, output_path)
-        print(f"\n  {green('→')} {bold(str(output_path))}")
         _print_results(all_rows, verbose=args.verbose)
     else:
         print(dim("\n  No RLS file sources found in the scanned workspace(s)."))
