@@ -466,6 +466,54 @@ def _rank_upn_headers_from_samples(headers: list[str], rows: list[list[str]]) ->
     return None
 
 
+def _sniff_upn_from_m_expression(m_code: str) -> str | None:
+    """
+    Parse a Power Query M expression to identify the UPN column name.
+
+    Strategy (in order):
+    1. Track Table.RenameColumns mappings (old → new) and score the *new* name
+    2. Score all quoted string literals that look like column names
+    3. Return the best match, or None
+    """
+    if not m_code:
+        return None
+
+    # ── 1. Parse Table.RenameColumns ─────────────────────────────────────────
+    # Matches: {"old_name", "new_name"}  pairs inside RenameColumns calls
+    rename_map: dict[str, str] = {}
+    for old, new in re.findall(r'\{\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\}', m_code):
+        rename_map[old] = new
+
+    # Score new names (what the model will actually see)
+    for old, new in rename_map.items():
+        if new.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+            dbg(f"  M-parse UPN: rename {old!r} → {new!r} matches hint")
+            return new
+        if old.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+            dbg(f"  M-parse UPN: original {old!r} renamed to {new!r}")
+            return new  # return the post-rename name (what PBI sees)
+
+    # ── 2. Score all quoted literals that appear as column names ─────────────
+    # Table.SelectColumns / Table.ReorderColumns carry the final column list
+    select_match = re.search(
+        r'Table\.(?:SelectColumns|ReorderColumns)\s*\([^,]+,\s*\{([^}]+)\}', m_code
+    )
+    if select_match:
+        cols = re.findall(r'"([^"]+)"', select_match.group(1))
+        for col in cols:
+            if col.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+                dbg(f"  M-parse UPN: SelectColumns match {col!r}")
+                return col
+
+    # ── 3. Fallback: any quoted string matching a hint anywhere in the expression
+    for token in re.findall(r'"([^"]+)"', m_code):
+        if token.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
+            dbg(f"  M-parse UPN: fallback token match {token!r}")
+            return token
+
+    return None
+
+
 def _file_source_rows_from_rest(
     workspace: dict,
     dataset:   dict,
@@ -700,8 +748,39 @@ def _xmla_rows(
                 for pname, expr in partitions:
                     dbg(f"  partition={pname!r}  expr_len={len(expr)}")
                     path, fmt, sheet = _extract_m_path(expr)
+
+                    # Enrich UPN column from M expression when DAX regex wasn't specific
+                    resolved_upn = upn_col
+                    if resolved_upn in ("(complex — check DAX manually)", None):
+                        m_upn = _sniff_upn_from_m_expression(expr)
+                        if m_upn:
+                            resolved_upn = m_upn
+                            dbg(f"  M-parse resolved UPN column: {m_upn!r}")
+
                     if not path:
+                        # Non-file source (e.g. Dataverse/CRM) — still record if we found a UPN column
+                        if resolved_upn and resolved_upn not in ("(complex — check DAX manually)",):
+                            rows.append({
+                                "workspace_name":   workspace["name"],
+                                "workspace_id":     workspace["id"],
+                                "dataset_name":     dataset["name"],
+                                "dataset_id":       dataset["id"],
+                                "role_name":        role_name,
+                                "rls_table":        rls_table,
+                                "dax_filter":       dax_filter,
+                                "upn_column":       resolved_upn,
+                                "source": {
+                                    "path":   None,
+                                    "file":   None,
+                                    "format": "dataverse" if "CommonDataService" in expr or "Dataverse" in expr else "non-file",
+                                    "sheet":  None,
+                                },
+                                "discovery_method": "xmla",
+                                "scan_timestamp":   timestamp,
+                                "notes":            f"Non-file source (partition: {pname})",
+                            })
                         continue
+
                     rows.append({
                         "workspace_name":   workspace["name"],
                         "workspace_id":     workspace["id"],
@@ -710,7 +789,7 @@ def _xmla_rows(
                         "role_name":        role_name,
                         "rls_table":        rls_table,
                         "dax_filter":       dax_filter,
-                        "upn_column":       upn_col,
+                        "upn_column":       resolved_upn,
                         "source": {
                             "path":   path,
                             "file":   Path(path.split("?")[0]).name or path,
