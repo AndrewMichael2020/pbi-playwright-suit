@@ -45,6 +45,18 @@ import yaml
 
 # ── optional deps ──────────────────────────────────────────────────────────────
 
+# Configure ADOMD DLL paths before importing pyadomd (Windows only)
+_DLL_PATHS = {
+    "CORE": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Core.dll",
+    "TABULAR": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Tabular.dll",
+    "ADOMD": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll"
+}
+
+# Add DLL directory to sys.path for pyadomd to find the assemblies
+_DLL_DIR = os.path.dirname(_DLL_PATHS["ADOMD"])
+if os.path.isdir(_DLL_DIR):
+    sys.path.insert(0, _DLL_DIR)
+
 try:
     import msal
     _MSAL_OK = True
@@ -320,7 +332,7 @@ def _rest_get(path: str, token: str, *, retry: int = 5) -> Any:
 
 def list_workspaces(token: str) -> list[dict]:
     data = _rest_get("/v1.0/myorg/groups?$top=1000", token)
-    result = [{"id": w["id"], "name": w["displayName"]} for w in data.get("value", [])]
+    result = [{"id": w["id"], "name": w.get("displayName") or w.get("name", "Unknown")} for w in data.get("value", [])]
     dbg(f"list_workspaces → {len(result)} workspace(s)")
     return result
 
