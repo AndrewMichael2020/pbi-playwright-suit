@@ -136,7 +136,13 @@ _DAX_UPN_PATTERN  = re.compile(
 
 # ── colours ────────────────────────────────────────────────────────────────────
 
-_NO_COLOUR = not sys.stdout.isatty()
+try:
+    import colorama
+    colorama.init()
+    _NO_COLOUR = False
+except ImportError:
+    # No colorama — only enable ANSI if the terminal claims to support it
+    _NO_COLOUR = not sys.stdout.isatty()
 
 def _c(code: str, text: str) -> str:
     return text if _NO_COLOUR else f"\x1b[{code}m{text}\x1b[0m"
