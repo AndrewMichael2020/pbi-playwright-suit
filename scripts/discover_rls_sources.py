@@ -45,18 +45,6 @@ import yaml
 
 # ── optional deps ──────────────────────────────────────────────────────────────
 
-# Configure ADOMD DLL paths before importing pyadomd (Windows only)
-_DLL_PATHS = {
-    "CORE": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Core.dll",
-    "TABULAR": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Tabular.dll",
-    "ADOMD": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll"
-}
-
-# Add DLL directory to Windows PATH for pyadomd to find the assemblies
-_DLL_DIR = os.path.dirname(_DLL_PATHS["ADOMD"])
-if os.path.isdir(_DLL_DIR) and _DLL_DIR not in os.environ.get("PATH", ""):
-    os.environ["PATH"] = _DLL_DIR + os.pathsep + os.environ.get("PATH", "")
-
 try:
     import msal
     _MSAL_OK = True
@@ -71,8 +59,9 @@ except ImportError:
 
 try:
     import pyadomd  # noqa: F401
+    from pyadomd import Pyadomd  # noqa: F401  # Force full import now to catch DLL errors
     _XMLA_LIB_OK = True
-except Exception:
+except Exception as e:
     _XMLA_LIB_OK = False
 
 # ── constants ──────────────────────────────────────────────────────────────────
@@ -772,9 +761,7 @@ def main() -> None:
     )
 
     print()
-    print(bold(cyan("  ╔══════════════════════════════════════════════╗")))
-    print(bold(cyan("  ║  Power BI RLS Source Discovery               ║")))
-    print(bold(cyan("  ╚══════════════════════════════════════════════╝")))
+    print(f"  {bold('Power BI RLS Source Discovery')} ({yellow('Tier 1 REST') if not _XMLA_LIB_OK else green('Tier 2 XMLA')})")
     if _DEBUG:
         print(yellow("  DEBUG MODE ON — verbose diagnostic output enabled"))
     print()
