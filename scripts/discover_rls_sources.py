@@ -57,20 +57,24 @@ try:
 except ImportError:
     pass
 
+# ── SSMS 21 ADOMD DLL paths (validated) ───────────────────────────────────────
+_DLL_PATHS = {
+    "CORE":    r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Core.dll",
+    "TABULAR": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.Tabular.dll",
+    "ADOMD":   r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll",
+}
+
 _XMLA_LIB_OK = False
 try:
-    # pyadomd may print .NET runtime errors to stderr even if caught
-    # Suppress stderr during import to avoid noise
-    import sys as _sys_tmp
-    import io as _io_tmp
-    _stderr_backup = _sys_tmp.stderr
-    _sys_tmp.stderr = _io_tmp.StringIO()
-    try:
-        import pyadomd  # noqa: F401
-        from pyadomd import Pyadomd  # noqa: F401
-        _XMLA_LIB_OK = True
-    finally:
-        _sys_tmp.stderr = _stderr_backup
+    import clr as _clr  # pythonnet — required by pyadomd
+    # Pre-load each assembly by full path so the CLR finds them in memory
+    # before pyadomd tries to AddReference by name (which searches PATH/GAC only)
+    for _dll in _DLL_PATHS.values():
+        if os.path.isfile(_dll):
+            _clr.AddReference(_dll)
+    import pyadomd  # noqa: F401
+    from pyadomd import Pyadomd  # noqa: F401
+    _XMLA_LIB_OK = True
 except Exception:
     _XMLA_LIB_OK = False
 
