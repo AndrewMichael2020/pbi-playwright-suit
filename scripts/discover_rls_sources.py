@@ -422,7 +422,7 @@ _UPN_HEADER_HINTS = {
 _RLS_FILENAME_HINTS = {"user access", "useraccess", "user list", "userlist",
                        "security", "rls", "permission", "access control"}
 
-def _find_header_row(ws, max_search: int = 10) -> tuple[list[str], int]:
+def _find_header_row(ws, max_search: int = 25) -> tuple[list[str], int]:
     """
     Scan up to max_search rows to find the first row that looks like
     real column headers (≥2 non-empty short cells, no long prose sentences).
