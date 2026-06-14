@@ -466,46 +466,48 @@ def _rank_upn_headers_from_samples(headers: list[str], rows: list[list[str]]) ->
     return None
 
 
+_DERIVED_TABLE_RE = re.compile(r'^\s*let\s+\w[\w\s]*=\s*#"', re.MULTILINE)
+
 def _sniff_upn_from_m_expression(m_code: str) -> str | None:
     """
     Parse a Power Query M expression to identify the UPN column name.
-
-    Strategy (in order):
-    1. Track Table.RenameColumns mappings (old → new) and score the *new* name
-    2. Score all quoted string literals that look like column names
-    3. Return the best match, or None
+    Returns None (without trying) for derived tables that reference another
+    model table via  Source = #"Table Name"  — those inherit columns from
+    the parent and are too idiosyncratic to resolve generically.
     """
     if not m_code:
         return None
 
+    # Bail out early if this is a derived/downstream table referencing another
+    # model table rather than a direct file or DB source
+    if _DERIVED_TABLE_RE.search(m_code):
+        dbg("  M-parse: derived table reference — skipping UPN sniff")
+        return None
+
     # ── 1. Parse Table.RenameColumns ─────────────────────────────────────────
-    # Matches: {"old_name", "new_name"}  pairs inside RenameColumns calls
     rename_map: dict[str, str] = {}
     for old, new in re.findall(r'\{\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\}', m_code):
         rename_map[old] = new
 
-    # Score new names (what the model will actually see)
     for old, new in rename_map.items():
         if new.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
             dbg(f"  M-parse UPN: rename {old!r} → {new!r} matches hint")
             return new
         if old.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
             dbg(f"  M-parse UPN: original {old!r} renamed to {new!r}")
-            return new  # return the post-rename name (what PBI sees)
+            return new
 
-    # ── 2. Score all quoted literals that appear as column names ─────────────
-    # Table.SelectColumns / Table.ReorderColumns carry the final column list
+    # ── 2. Final column list from SelectColumns / ReorderColumns ─────────────
     select_match = re.search(
         r'Table\.(?:SelectColumns|ReorderColumns)\s*\([^,]+,\s*\{([^}]+)\}', m_code
     )
     if select_match:
-        cols = re.findall(r'"([^"]+)"', select_match.group(1))
-        for col in cols:
+        for col in re.findall(r'"([^"]+)"', select_match.group(1)):
             if col.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
                 dbg(f"  M-parse UPN: SelectColumns match {col!r}")
                 return col
 
-    # ── 3. Fallback: any quoted string matching a hint anywhere in the expression
+    # ── 3. Fallback: any quoted token matching a hint ─────────────────────────
     for token in re.findall(r'"([^"]+)"', m_code):
         if token.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
             dbg(f"  M-parse UPN: fallback token match {token!r}")
