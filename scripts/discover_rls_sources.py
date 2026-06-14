@@ -154,7 +154,7 @@ def _enable_ansi() -> bool:
         # Also try colorama as an extra fallback
         try:
             import colorama
-            colorama.init()
+            colorama.init(wrap=True, strip=False)
         except ImportError:
             pass
     return True
