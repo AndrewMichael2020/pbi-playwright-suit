@@ -713,17 +713,31 @@ def _print_results(rows: list[dict], verbose: bool) -> None:
 # ── scan one workspace ─────────────────────────────────────────────────────────
 
 def scan_workspace(
-    workspace:  dict,
-    token:      str,
-    no_xmla:    bool,
-    timestamp:  str,
+    workspace:      dict,
+    token:          str,
+    no_xmla:        bool,
+    timestamp:      str,
+    dataset_filter: str | None = None,
 ) -> list[dict]:
-    datasets = list_datasets(token, workspace["id"])
-    total    = len(datasets)
-    ws_id    = workspace["id"]
+    all_datasets = list_datasets(token, workspace["id"])
+
+    # Apply dataset filter (exact match first, then fuzzy substring)
+    if dataset_filter:
+        fl = dataset_filter.lower()
+        datasets = [d for d in all_datasets if d["name"].lower() == fl]
+        if not datasets:
+            datasets = [d for d in all_datasets if fl in d["name"].lower()]
+        if not datasets:
+            print(yellow(f"  No dataset matching {dataset_filter!r} in {workspace['name']}"))
+            return []
+    else:
+        datasets = all_datasets
+
+    total = len(datasets)
+    ws_id = workspace["id"]
+    tier  = 'Tier 2 (XMLA)' if (_XMLA_LIB_OK and not no_xmla) else 'Tier 1 (REST only)'
     print(f"\n  {ts()} {bold(cyan(workspace['name']))}  {dim(f'({ws_id})')}")
-    print(f"  {ts()} {total} dataset(s) to scan  •  "
-          f"{'Tier 2 (XMLA)' if (_XMLA_LIB_OK and not no_xmla) else 'Tier 1 (REST only)'}")
+    print(f"  {ts()} {total} dataset(s) to scan  •  {tier}")
 
     all_rows: list[dict] = []
 
@@ -784,6 +798,7 @@ def main() -> None:
     )
     parser.add_argument("--all",       action="store_true", help="Scan all workspaces without prompting")
     parser.add_argument("--workspace", metavar="NAME",      help="Scan a specific workspace by name (skips picker)")
+    parser.add_argument("--dataset",   metavar="NAME",      help="Scan only a specific dataset/model by name (skips dataset picker)")
     parser.add_argument("--output",    metavar="DIR",       help="Write manifest to this directory (default: project root)")
     parser.add_argument("--no-xmla",   action="store_true", help="Tier 1 (REST) only — skip XMLA even if pyadomd is installed")
     parser.add_argument("--verbose",   action="store_true", help="Print all result rows (default: first 50)")
@@ -854,12 +869,34 @@ def main() -> None:
 
     print()
 
+    # ── optional dataset filter ───────────────────────────────────────────────
+    dataset_filter: str | None = None
+
+    if args.dataset:
+        dataset_filter = args.dataset
+    elif len(targets) == 1:
+        # Single workspace selected — offer dataset picker
+        print(f"  {bold('Dataset scope')}")
+        print(f"    {dim('[1]')}  All datasets in workspace")
+        print(f"    {dim('[2]')}  Pick a specific dataset")
+        ds_choice = input(f"  {dim('> ')}").strip()
+        if ds_choice == "2":
+            all_datasets = list_datasets(token, targets[0]["id"])
+            picked_ds = pick_one(all_datasets, "Datasets")
+            dataset_filter = picked_ds["name"]
+            print()
+
     # ── scan ──────────────────────────────────────────────────────────────────
     timestamp = now_iso()
     all_rows: list[dict] = []
 
     for ws in targets:
-        rows = scan_workspace(ws, token, no_xmla=args.no_xmla, timestamp=timestamp)
+        rows = scan_workspace(
+            ws, token,
+            no_xmla=args.no_xmla,
+            timestamp=timestamp,
+            dataset_filter=dataset_filter,
+        )
         all_rows.extend(rows)
 
     all_rows = _dedup(all_rows)
