@@ -768,8 +768,14 @@ def _xmla_rows(
                     continue
                 # Strip block comments (/* ... */) before pattern matching
                 dax_clean = re.sub(r'/\*.*?\*/', '', dax_filter, flags=re.DOTALL).strip()
-                upn_m   = _DAX_UPN_PATTERN.search(dax_clean)
-                upn_col = upn_m.group(1) if upn_m else "(complex — check DAX manually)"
+                upn_m = _DAX_UPN_PATTERN.search(dax_clean)
+                if upn_m:
+                    upn_col = upn_m.group(1)
+                else:
+                    # LOOKUPVALUE('Table'[result], 'Table'[upn_col], userprincipalname())
+                    # group(3) is the search/UPN column
+                    lv_m = _LOOKUPVALUE_UPN_RE.search(dax_filter)
+                    upn_col = lv_m.group(3).strip() if lv_m else "(complex — check DAX manually)"
                 role_rows.append((role_name, table_id, dax_filter, upn_col))
 
             dbg(f"  {len(role_rows)} UPN role(s) found")
@@ -1024,7 +1030,7 @@ def scan_workspace(
         if not no_xmla and _XMLA_LIB_OK:
             rows = _xmla_rows(workspace, ds, token, timestamp)
             if rows:
-                dbg(f"  XMLA produced {len(rows)} row(s) — skipping REST")
+                dbg(f"  XMLA produced {len(rows)} row(s)")
 
         # ── Tier 1: REST (fallback or supplement) ─────────────────────────────
         # Run REST when: no XMLA rows at all, OR XMLA found roles but every
@@ -1034,12 +1040,31 @@ def scan_workspace(
         )
         if not rows or xmla_all_embedded:
             if not no_xmla and _XMLA_LIB_OK:
-                print(dim(" → fallback REST …"), end="", flush=True)
+                print(dim(" → REST supplement …"), end="", flush=True)
             else:
                 print(dim("  [REST] …"), end="", flush=True)
             datasources = get_datasources(token, workspace["id"], ds["id"])
             tier1       = _file_source_rows_from_rest(workspace, ds, datasources, timestamp)
-            rows.extend(tier1)
+
+            if xmla_all_embedded and tier1:
+                # Enrich each XMLA embedded row with file sources from REST:
+                # produce one row per (role × file) so role metadata is preserved.
+                enriched: list[dict] = []
+                for xrow in rows:
+                    for src_row in tier1:
+                        merged = dict(xrow)  # copy XMLA role metadata
+                        merged["source"]           = src_row["source"]
+                        merged["discovery_method"] = "xmla+rest"
+                        # Prefer XMLA's upn_column; fall back to REST's
+                        if not merged.get("upn_column"):
+                            merged["upn_column"] = src_row.get("upn_column")
+                        enriched.append(merged)
+                # Also keep any pure REST rows that weren't covered by XMLA
+                rows = enriched
+                # Append REST-only rows that have file paths but no XMLA match
+                rows.extend(tier1)
+            else:
+                rows.extend(tier1)
 
         count = len(rows)
         el    = elapsed(start)
