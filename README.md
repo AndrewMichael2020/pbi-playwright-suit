@@ -365,3 +365,22 @@ Remove-Item -Recurse -Force node_modules
 Remove-Item package-lock.json
 npm install
 ```
+
+---
+
+## RLS Source Discovery
+
+A companion Python service scans every semantic model in a workspace and produces
+a machine-readable manifest of every dataset, role, and source file that
+participates in Row-Level Security.
+
+```powershell
+pip install -r scripts/requirements_rls.txt
+python scripts/discover_rls_sources.py
+```
+
+Output: `rls_discovery/rls_sources_manifest.yaml`
+
+See **[scripts/README_rls_discovery.md](scripts/README_rls_discovery.md)** for full
+documentation — authentication, XMLA setup, CLI flags, and manifest format.
+
