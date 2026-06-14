@@ -57,11 +57,21 @@ try:
 except ImportError:
     pass
 
+_XMLA_LIB_OK = False
 try:
-    import pyadomd  # noqa: F401
-    from pyadomd import Pyadomd  # noqa: F401  # Force full import now to catch DLL errors
-    _XMLA_LIB_OK = True
-except Exception as e:
+    # pyadomd may print .NET runtime errors to stderr even if caught
+    # Suppress stderr during import to avoid noise
+    import sys as _sys_tmp
+    import io as _io_tmp
+    _stderr_backup = _sys_tmp.stderr
+    _sys_tmp.stderr = _io_tmp.StringIO()
+    try:
+        import pyadomd  # noqa: F401
+        from pyadomd import Pyadomd  # noqa: F401
+        _XMLA_LIB_OK = True
+    finally:
+        _sys_tmp.stderr = _stderr_backup
+except Exception:
     _XMLA_LIB_OK = False
 
 # ── constants ──────────────────────────────────────────────────────────────────
