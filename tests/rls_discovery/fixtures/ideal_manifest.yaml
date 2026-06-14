@@ -1,0 +1,189 @@
+# rls_sources_manifest.yaml — IDEAL EXAMPLE
+#
+# This file shows what a fully-populated manifest looks like after running:
+#   python scripts/discover_rls_sources.py --workspace "Finance Analytics"
+#
+# KEY INSIGHT: every report was built independently, so the column that holds
+# user principal names has a different name in each source file.
+# The manifest is what makes a generic downstream test script possible —
+# it maps each report/role to the exact file and column to validate.
+#
+# DISCOVERY TIERS:
+#   discovery_method: xmla   → full detail (role name, DAX, UPN column, M path)
+#   discovery_method: rest   → partial    (file path only; upn_column unknown)
+#   discovery_method: manual → hand-edited after Tier 1 discovery
+#
+# HOW TO USE THIS MANIFEST FOR TESTING (downstream):
+#   for entry in yaml.safe_load(open("rls_sources_manifest.yaml")):
+#       open entry["source"]["path"]
+#       read column entry["upn_column"]
+#       validate each value against Active Directory
+#
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Entry 1: Full XMLA discovery — SharePoint Excel, named sheet ─────────────
+# The gold-standard case: XMLA gave us everything.
+- workspace_name: Finance Analytics
+  workspace_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  dataset_name: Sales Performance Dashboard
+  dataset_id: d1e2f3a4-b5c6-7890-abcd-ef1234567890
+  role_name: RegionManager
+  rls_table: UserAccessTable
+  dax_filter: "[UserEmail] = USERPRINCIPALNAME()"
+  upn_column: UserEmail           # ← column that holds UPNs in this file
+  source:
+    path: https://contoso.sharepoint.com/sites/Finance/Shared Documents/RLS/UserAccess.xlsx
+    file: UserAccess.xlsx
+    format: xlsx
+    sheet: Sheet1
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: ""
+
+# ── Entry 2: REST-only discovery — upn_column unknown, fill in manually ──────
+# This dataset is on a non-Premium workspace — XMLA was unavailable.
+# Action: open BudgetAccess.xlsx, find the UPN column, set upn_column below.
+- workspace_name: Finance Analytics
+  workspace_id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+  dataset_name: Budget Tracker
+  dataset_id: d2e3f4a5-b6c7-8901-bcde-f01234567890
+  role_name: (requires XMLA)
+  rls_table: (requires XMLA)
+  dax_filter: (requires XMLA)
+  upn_column: (requires XMLA)    # ← FILL IN: open the file and check the column name
+  source:
+    path: https://contoso.sharepoint.com/sites/Finance/Shared Documents/BudgetAccess.xlsx
+    file: BudgetAccess.xlsx
+    format: xlsx
+    sheet: null
+  discovery_method: rest
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: "Tier 1 only — RLS role details require XMLA"
+
+# ── Entry 3: CSV on a Windows file share ─────────────────────────────────────
+# Different column name from Entry 1 — this is the idiosyncratic-per-report
+# problem the manifest solves.
+- workspace_name: Operations
+  workspace_id: b2c3d4e5-f6a7-8901-bcde-f01234567891
+  dataset_name: Workforce Analytics
+  dataset_id: d3e4f5a6-b7c8-9012-cdef-012345678901
+  role_name: HRManager
+  rls_table: EmployeeRoster
+  dax_filter: "[CorporateUPN] = USERPRINCIPALNAME()"
+  upn_column: CorporateUPN       # ← different column name from Entry 1
+  source:
+    path: "\\\\server01\\HR\\access\\EmployeeRoster.csv"
+    file: EmployeeRoster.csv
+    format: csv
+    sheet: null
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: ""
+
+# ── Entry 4: Second role on the same dataset (same model, different table) ───
+- workspace_name: Operations
+  workspace_id: b2c3d4e5-f6a7-8901-bcde-f01234567891
+  dataset_name: Workforce Analytics
+  dataset_id: d3e4f5a6-b7c8-9012-cdef-012345678901
+  role_name: DepartmentHead
+  rls_table: DeptAccessTable
+  dax_filter: "[LoginName] = USERPRINCIPALNAME()"
+  upn_column: LoginName          # ← yet another column name — same dataset, different role
+  source:
+    path: https://contoso.sharepoint.com/sites/Ops/Documents/DeptAccess.xlsx
+    file: DeptAccess.xlsx
+    format: xlsx
+    sheet: Access
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: ""
+
+# ── Entry 5: Embedded table — no external source file ────────────────────────
+# The user list is baked into the model itself (in-memory table in Power BI).
+# Downstream test cannot open a file — must validate via DAX query instead.
+- workspace_name: Sales
+  workspace_id: c3d4e5f6-a7b8-9012-cdef-012345678902
+  dataset_name: CRM Reporting
+  dataset_id: d4e5f6a7-b8c9-0123-def0-123456789012
+  role_name: SalesRep
+  rls_table: SalesRepAccess
+  dax_filter: "[Email] = USERPRINCIPALNAME()"
+  upn_column: Email
+  source:
+    path: null                    # ← no file — table is embedded in the model
+    file: null
+    format: embedded
+    sheet: null
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: "No M partition found — table may be embedded in the model"
+
+# ── Entry 6: Complex DAX — group-based RLS, not individual UPN ───────────────
+# This report filters by AD group name rather than individual UPN.
+# The downstream test must check group membership, not individual address match.
+- workspace_name: Sales
+  workspace_id: c3d4e5f6-a7b8-9012-cdef-012345678902
+  dataset_name: Territory Management
+  dataset_id: d5e6f7a8-b9c0-1234-ef01-234567890123
+  role_name: TerritoryOwner
+  rls_table: TerritoryGroupMap
+  dax_filter: "[ADGroupName] = USERPRINCIPALNAME()"
+  upn_column: ADGroupName        # ← group-based — validate against AD group membership
+  source:
+    path: https://contoso.sharepoint.com/sites/Sales/Shared Documents/TerritoryGroups.xlsx
+    file: TerritoryGroups.xlsx
+    format: xlsx
+    sheet: Groups
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: ""
+
+# ── Entry 7: Manually edited after REST-only run ─────────────────────────────
+# An analyst opened the file, found the UPN column, and edited this entry.
+# discovery_method changed to "manual" to flag that this was human-verified.
+- workspace_name: Sales
+  workspace_id: c3d4e5f6-a7b8-9012-cdef-012345678902
+  dataset_name: Pipeline Dashboard
+  dataset_id: d6e7f8a9-b0c1-2345-f012-345678901234
+  role_name: SalesManager
+  rls_table: ManagerAccess
+  dax_filter: "[ManagerUPN] = USERPRINCIPALNAME()"
+  upn_column: ManagerUPN         # ← filled in manually after REST-only discovery
+  source:
+    path: https://contoso.sharepoint.com/sites/Sales/Shared Documents/ManagerAccess.xlsx
+    file: ManagerAccess.xlsx
+    format: xlsx
+    sheet: Managers
+  discovery_method: manual
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: "upn_column set manually — originally discovered via REST only"
+
+# ── Entry 8: On-prem Active Directory security groups ────────────────────────
+# Some reports don't use a flat file at all — the RLS table is sourced directly
+# from on-premises Active Directory via the Power Query ActiveDirectory connector
+# (or LDAP.Contents), going through an on-prem data gateway.
+#
+# What this means for downstream testing:
+#   - There is no Excel/CSV file to open.
+#   - To validate RLS you must query AD (e.g. via ldap3, python-ldap, or the
+#     Microsoft Graph API) to enumerate the security group members, then compare
+#     that list against what Power BI is using.
+#   - upn_column here is the AD attribute used for matching — typically
+#     "userPrincipalName" (the LDAP attribute) or "sAMAccountName".
+#   - source.path is the LDAP base DN or domain connection string.
+- workspace_name: Operations
+  workspace_id: b2c3d4e5-f6a7-8901-bcde-f01234567891
+  dataset_name: Facilities Access Control
+  dataset_id: d7e8f9a0-b1c2-3456-0123-456789012345
+  role_name: FacilitiesManager
+  rls_table: ADSecurityGroups
+  dax_filter: "[userPrincipalName] = USERPRINCIPALNAME()"
+  upn_column: userPrincipalName   # ← LDAP attribute name, not a column in a file
+  source:
+    path: "LDAP://DC=contoso,DC=local"   # ← on-prem AD base DN via gateway
+    file: null                           # ← no file — source is Active Directory
+    format: active_directory             # ← signals: use LDAP/Graph query, not file open
+    sheet: null
+  discovery_method: xmla
+  scan_timestamp: "2026-06-14T06:00:00Z"
+  notes: "On-prem AD source via gateway — downstream validation requires LDAP query or Azure AD Graph API, not file open"

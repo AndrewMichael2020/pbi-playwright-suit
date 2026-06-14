@@ -1,0 +1,7 @@
+msal>=1.29
+requests>=2.32
+python-dotenv>=1.0
+pyyaml>=6.0
+# pyadomd>=0.1  -- optional XMLA/ADOMD.NET bridge (Windows only)
+#                  install manually if you have Premium/Fabric capacity and want
+#                  full DAX role + M expression extraction (Tier 2 scanning)

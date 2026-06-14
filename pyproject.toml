@@ -1,0 +1,14 @@
+[tool.pytest.ini_options]
+testpaths = ["tests/rls_discovery"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--tb=short -q"
+
+[tool.coverage.run]
+source = ["discover_rls_sources"]
+omit = []
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

@@ -226,4 +226,10 @@ playwright/config/enterprise.focus.json
 playwright/.auth/
 test-archive/
 
+# RLS source discovery manifest (contains internal file paths — do not commit)
+rls_sources_manifest.yaml
+
 *.py
+# Allow committed Python scripts in scripts/
+!scripts/*.py
+!scripts/requirements_rls.txt
