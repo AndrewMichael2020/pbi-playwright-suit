@@ -52,10 +52,10 @@ _DLL_PATHS = {
     "ADOMD": r"C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll"
 }
 
-# Add DLL directory to sys.path for pyadomd to find the assemblies
+# Add DLL directory to Windows PATH for pyadomd to find the assemblies
 _DLL_DIR = os.path.dirname(_DLL_PATHS["ADOMD"])
-if os.path.isdir(_DLL_DIR):
-    sys.path.insert(0, _DLL_DIR)
+if os.path.isdir(_DLL_DIR) and _DLL_DIR not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = _DLL_DIR + os.pathsep + os.environ.get("PATH", "")
 
 try:
     import msal
