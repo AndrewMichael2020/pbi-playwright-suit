@@ -525,23 +525,28 @@ def _xmla_rows(
     rows: list[dict] = []
     try:
         with Pyadomd(conn_str) as conn:
-            print(f"      {dim('↳')}  {dim('XMLA connected')}", flush=True)
+            dbg("XMLA connected")
 
-            # ── 1. Fetch RLS roles + table filter expressions ──────────────────
-            role_query = """
-                SELECT
-                    ROLES.[NAME]               AS role_name,
-                    TABLE_PERMISSIONS.[TABLE_ID] AS table_id,
-                    TABLE_PERMISSIONS.[FILTER_EXPRESSION] AS dax_filter
-                FROM $SYSTEM.TMSCHEMA_TABLE_PERMISSIONS
-                    INNER JOIN $SYSTEM.TMSCHEMA_ROLES
-                        ON TABLE_PERMISSIONS.[ROLE_ID] = ROLES.[ID]
-            """
-            dbg("XMLA: querying TMSCHEMA_TABLE_PERMISSIONS …")
-            role_rows: list[tuple[str, str, str]] = []
-            with conn.cursor().execute(role_query) as cur:
+            # ── 1a. Fetch roles (ID → name) ───────────────────────────────────
+            dbg("XMLA: querying TMSCHEMA_ROLES …")
+            roles: dict[str, str] = {}
+            with conn.cursor().execute(
+                "SELECT [ID], [NAME] FROM $SYSTEM.TMSCHEMA_ROLES"
+            ) as cur:
                 for row in cur.fetchall():
-                    role_name, table_id, dax_filter = row
+                    roles[row[0]] = row[1]
+            dbg(f"  {len(roles)} role(s) in model")
+
+            # ── 1b. Fetch table permissions (no JOIN — not supported in DMX) ──
+            dbg("XMLA: querying TMSCHEMA_TABLE_PERMISSIONS …")
+            role_rows: list[tuple[str, str, str, str]] = []
+            with conn.cursor().execute(
+                "SELECT [ROLE_ID], [TABLE_ID], [FILTER_EXPRESSION] "
+                "FROM $SYSTEM.TMSCHEMA_TABLE_PERMISSIONS"
+            ) as cur:
+                for row in cur.fetchall():
+                    role_id, table_id, dax_filter = row
+                    role_name = roles.get(role_id, role_id)
                     has_upn = "USERPRINCIPALNAME" in (dax_filter or "").upper()
                     dbg(f"  role={role_name!r}  table_id={table_id!r}  "
                         f"has_UPN={has_upn}  filter={str(dax_filter)[:80]!r}")
@@ -552,7 +557,7 @@ def _xmla_rows(
                     dbg(f"  → UPN role kept: role={role_name!r}  upn_column={upn_col!r}")
                     role_rows.append((role_name, table_id, dax_filter, upn_col))
 
-            print(f"      {dim('↳')}  {dim(str(len(role_rows)))} UPN role(s) found", flush=True)
+            dbg(f"  {len(role_rows)} UPN role(s) found")
             if not role_rows:
                 dbg("No USERPRINCIPALNAME roles — skipping table/partition queries")
                 return []
@@ -640,12 +645,9 @@ def _xmla_rows(
                     })
 
     except Exception as exc:  # noqa: BLE001
-        import traceback
-        print(yellow(f"    ⚠  XMLA failed for {bold(dataset['name'])}: {exc}"))
-        if _DEBUG:
-            print(red("    XMLA traceback:"))
-            for line in traceback.format_exc().splitlines():
-                print(red(f"      {line}"))
+        import traceback as _tb
+        dbg(f"XMLA failed for {dataset['name']}: {exc}\n" + _tb.format_exc())
+        print(yellow(f"  ⚠  XMLA unavailable for {dataset['name'][:50]} — using REST fallback"), flush=True)
         return []
 
     dbg(f"_xmla_rows → {len(rows)} row(s) for dataset {dataset['name']!r}")
@@ -735,7 +737,6 @@ def scan_workspace(
 
         # ── Tier 2: XMLA ──────────────────────────────────────────────────────
         if not no_xmla and _XMLA_LIB_OK:
-            print(dim("  [XMLA] …"), end="", flush=True)
             rows = _xmla_rows(workspace, ds, token, timestamp)
             if rows:
                 dbg(f"  XMLA produced {len(rows)} row(s) — skipping REST")
