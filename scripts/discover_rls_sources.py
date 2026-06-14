@@ -412,19 +412,37 @@ def _source_format_from_path(path: str) -> str:
 _UPN_HEADER_HINTS = {
     "email", "upn", "userprincipalname", "user", "loginname", "login",
     "username", "samaccountname", "mail", "account",
-    # broader terms common in healthcare/enterprise user-access files
+    # broader enterprise/healthcare terms
     "emailaddress", "useraccess", "aduser", "adaccount", "networkid",
     "networklogin", "domainuser", "employeeemail", "workplaceemail",
+    # FH-specific
+    "fhemail", "fhmail",
 }
 
 _RLS_FILENAME_HINTS = {"user access", "useraccess", "user list", "userlist",
                        "security", "rls", "permission", "access control"}
 
+def _find_header_row(ws, max_search: int = 10) -> tuple[list[str], int]:
+    """
+    Scan up to max_search rows to find the first row that looks like
+    real column headers (≥2 non-empty short cells, no long prose sentences).
+    Returns (headers, row_index_1based).
+    """
+    for i, row in enumerate(ws.iter_rows(max_row=max_search, values_only=True), start=1):
+        cells = [str(v).strip() for v in row if v is not None and str(v).strip()]
+        if len(cells) < 2:
+            continue
+        # Reject rows that look like prose (any single cell > 60 chars)
+        if any(len(c) > 60 for c in cells):
+            continue
+        return cells, i
+    return [], 1
+
+
 def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> tuple[str | None, list[str]]:
     """
     Open a local/UNC xlsx/csv file and return (upn_column, all_headers).
-    upn_column is None if not found; all_headers always lists what was read
-    so callers can log it for manual review.
+    Handles multi-row preambles by scanning for the real header row.
     """
     if not path or not os.path.isfile(path):
         return None, []
@@ -434,14 +452,15 @@ def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> tuple[str | Non
             ws_names = [sheet] if sheet and sheet in wb.sheetnames else list(wb.sheetnames)
             for ws_name in ws_names:
                 ws = wb[ws_name]
-                headers = [str(c.value).strip() if c.value else "" for c in next(ws.iter_rows(max_row=1))]
-                headers = [h for h in headers if h]  # drop empty trailing cells
-                match = _rank_upn_headers(headers, ws)
+                headers, hdr_row = _find_header_row(ws)
+                if not headers:
+                    continue
+                match = _rank_upn_headers_by_name(headers)
+                if not match:
+                    # Sample data rows below the header for @ values
+                    match = _rank_upn_headers_by_sample(headers, ws, hdr_row)
                 wb.close()
-                if match:
-                    return match, headers
-                if headers:
-                    return None, headers  # return headers even when no match
+                return match, headers
             wb.close()
 
         elif fmt == "csv":
@@ -456,15 +475,18 @@ def _sniff_upn_column(path: str, fmt: str, sheet: str | None) -> tuple[str | Non
     return None, []
 
 
-def _rank_upn_headers(headers: list[str], ws) -> str | None:
-    """Score headers by name hint, then by @ in sample values."""
-    # Exact/keyword match on header name
+def _rank_upn_headers_by_name(headers: list[str]) -> str | None:
+    """Match column names against UPN hint keywords."""
     for h in headers:
         if h.lower().replace(" ", "").replace("_", "") in _UPN_HEADER_HINTS:
             return h
-    # Sample up to 10 data rows and look for email-like values
+    return None
+
+
+def _rank_upn_headers_by_sample(headers: list[str], ws, hdr_row: int) -> str | None:
+    """Sample rows below the header row looking for @ email values."""
     sample: dict[int, list[str]] = {i: [] for i in range(len(headers))}
-    for row in ws.iter_rows(min_row=2, max_row=11, values_only=True):
+    for row in ws.iter_rows(min_row=hdr_row + 1, max_row=hdr_row + 10, values_only=True):
         for i, val in enumerate(row):
             if val and i < len(headers):
                 sample[i].append(str(val))
