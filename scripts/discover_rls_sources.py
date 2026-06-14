@@ -78,16 +78,16 @@ _DLL_PATHS = {
 
 _XMLA_LIB_OK = False
 _XMLA_DLL_MISSING: list[str] = []
+_AdomdConnection = None
 try:
-    import clr as _clr  # pythonnet — required by pyadomd
+    import clr as _clr
     for _label, _dll in _DLL_PATHS.items():
         if os.path.isfile(_dll):
             _clr.AddReference(_dll)
         else:
             _XMLA_DLL_MISSING.append(f"{_label}: {_dll}")
     if not _XMLA_DLL_MISSING:
-        import pyadomd  # noqa: F401
-        from pyadomd import Pyadomd  # noqa: F401
+        from Microsoft.AnalysisServices.AdomdClient import AdomdConnection as _AdomdConnection  # type: ignore[import]
         _XMLA_LIB_OK = True
 except Exception:
     _XMLA_LIB_OK = False
@@ -698,174 +698,187 @@ def _xmla_rows(
     Returns [] if pyadomd is unavailable or the connection fails.
     """
     if not _XMLA_LIB_OK:
-        dbg("_xmla_rows: pyadomd not available — skipping Tier 2")
+        dbg("_xmla_rows: AdomdConnection not available — skipping Tier 2")
         return []
-
-    from pyadomd import Pyadomd  # type: ignore[import]
 
     conn_str = (
         f"Provider=MSOLAP;"
         f"Data Source=powerbi://api.powerbi.com/v1.0/myorg/{workspace['name']};"
         f"Initial Catalog={dataset['name']};"
         f"User ID=;"
-        f"Password=<token>;"   # password logged as placeholder for security
+        f"Password={token};"
     )
-    dbg(f"XMLA connecting: {conn_str}")
-    # Rebuild with real token for actual connection
-    conn_str = conn_str.replace("Password=<token>;", f"Password={token};")
+    dbg(f"XMLA connecting: Provider=MSOLAP; Data Source=powerbi://api.powerbi.com/v1.0/myorg/{workspace['name']}; Initial Catalog={dataset['name']}")
+
+    def _exec_dmv(conn, query: str) -> list[dict]:
+        """Execute a DMV query directly via AdomdConnection.CreateCommand() (validated pattern)."""
+        cmd = conn.CreateCommand()
+        cmd.CommandText = query
+        out: list[dict] = []
+        reader = cmd.ExecuteReader()
+        try:
+            cols = [reader.GetName(i) for i in range(reader.FieldCount)]
+            dbg(f"  DMV columns: {cols}")
+            while reader.Read():
+                row = {}
+                for i, c in enumerate(cols):
+                    v = reader.GetValue(i)
+                    row[c] = str(v) if v is not None else None
+                out.append(row)
+        finally:
+            reader.Close()
+        dbg(f"  DMV → {len(out)} row(s)")
+        return out
 
     rows: list[dict] = []
     try:
-        with Pyadomd(conn_str) as conn:
+        conn = _AdomdConnection(conn_str)
+        conn.Open()
+        try:
             dbg("XMLA connected")
 
             # ── 1a. Fetch roles (ID → name) ───────────────────────────────────
             dbg("XMLA: querying TMSCHEMA_ROLES …")
             roles: dict[str, str] = {}
-            with conn.cursor().execute(
-                "SELECT [ID], [NAME] FROM $SYSTEM.TMSCHEMA_ROLES"
-            ) as cur:
-                for row in cur.fetchall():
-                    roles[row[0]] = row[1]
+            for r in _exec_dmv(conn, "SELECT * FROM $SYSTEM.TMSCHEMA_ROLES"):
+                rid  = r.get("ID") or r.get("Id") or r.get("id") or ""
+                name = r.get("Name") or r.get("name") or rid
+                if rid:
+                    roles[str(rid)] = str(name)
             dbg(f"  {len(roles)} role(s) in model")
 
-            # ── 1b. Fetch table permissions (no JOIN — not supported in DMX) ──
+            # ── 1b. Fetch table permissions ───────────────────────────────────
             dbg("XMLA: querying TMSCHEMA_TABLE_PERMISSIONS …")
             role_rows: list[tuple[str, str, str, str]] = []
-            with conn.cursor().execute(
-                "SELECT [ROLE_ID], [TABLE_ID], [FILTER_EXPRESSION] "
-                "FROM $SYSTEM.TMSCHEMA_TABLE_PERMISSIONS"
-            ) as cur:
-                for row in cur.fetchall():
-                    role_id, table_id, dax_filter = row
-                    role_name = roles.get(role_id, role_id)
-                    has_upn = "USERPRINCIPALNAME" in (dax_filter or "").upper()
-                    dbg(f"  role={role_name!r}  table_id={table_id!r}  "
-                        f"has_UPN={has_upn}  filter={str(dax_filter)[:80]!r}")
-                    if not has_upn:
-                        continue
-                    upn_m = _DAX_UPN_PATTERN.search(dax_filter or "")
-                    upn_col = upn_m.group(1) if upn_m else "(complex — check DAX manually)"
-                    dbg(f"  → UPN role kept: role={role_name!r}  upn_column={upn_col!r}")
-                    role_rows.append((role_name, table_id, dax_filter, upn_col))
+            for r in _exec_dmv(conn, "SELECT * FROM $SYSTEM.TMSCHEMA_TABLE_PERMISSIONS"):
+                role_id    = str(r.get("RoleID") or r.get("RoleId") or r.get("role_id") or "")
+                table_id   = str(r.get("TableID") or r.get("TableId") or r.get("table_id") or "")
+                dax_filter = str(r.get("FilterExpression") or r.get("filter_expression") or "")
+                role_name  = roles.get(role_id, role_id)
+                has_upn    = "USERPRINCIPALNAME" in dax_filter.upper()
+                dbg(f"  role={role_name!r}  table_id={table_id!r}  has_UPN={has_upn}")
+                if not has_upn:
+                    continue
+                upn_m   = _DAX_UPN_PATTERN.search(dax_filter)
+                upn_col = upn_m.group(1) if upn_m else "(complex — check DAX manually)"
+                role_rows.append((role_name, table_id, dax_filter, upn_col))
 
             dbg(f"  {len(role_rows)} UPN role(s) found")
             if not role_rows:
-                dbg("No USERPRINCIPALNAME roles — skipping table/partition queries")
+                dbg("No USERPRINCIPALNAME roles — skipping")
+                conn.Close()
                 return []
 
             # ── 2. Fetch table names keyed by ID ──────────────────────────────
-            table_query = "SELECT [ID], [NAME] FROM $SYSTEM.TMSCHEMA_TABLES"
             dbg("XMLA: querying TMSCHEMA_TABLES …")
             table_names: dict[str, str] = {}
-            with conn.cursor().execute(table_query) as cur:
-                for row in cur.fetchall():
-                    table_names[row[0]] = row[1]
+            for r in _exec_dmv(conn, "SELECT * FROM $SYSTEM.TMSCHEMA_TABLES"):
+                tid  = str(r.get("ID") or r.get("Id") or r.get("id") or "")
+                name = str(r.get("Name") or r.get("name") or tid)
+                if tid:
+                    table_names[tid] = name
             dbg(f"  {len(table_names)} table(s) in model")
 
             # ── 3. Fetch M partition expressions ──────────────────────────────
-            part_query = """
-                SELECT
-                    PARTITIONS.[TABLE_ID],
-                    PARTITIONS.[NAME],
-                    PARTITIONS.[QUERY_DEFINITION]
-                FROM $SYSTEM.TMSCHEMA_PARTITIONS
-                WHERE PARTITIONS.[SOURCE_TYPE] = 2   -- M partitions
-            """
-            dbg("XMLA: querying TMSCHEMA_PARTITIONS (SOURCE_TYPE=2, M only) …")
+            dbg("XMLA: querying TMSCHEMA_PARTITIONS …")
             m_by_table: dict[str, list[tuple[str, str]]] = {}
-            with conn.cursor().execute(part_query) as cur:
-                for row in cur.fetchall():
-                    tid, pname, expr = row
-                    m_by_table.setdefault(tid, []).append((pname, expr or ""))
-            dbg(f"  {sum(len(v) for v in m_by_table.values())} M partition(s) across "
-                f"{len(m_by_table)} table(s)")
+            for r in _exec_dmv(conn, "SELECT * FROM $SYSTEM.TMSCHEMA_PARTITIONS"):
+                src_type = str(r.get("SourceType") or r.get("source_type") or "")
+                if src_type not in ("2", "M", "m"):   # 2 = M partition
+                    continue
+                tid   = str(r.get("TableID") or r.get("TableId") or r.get("table_id") or "")
+                pname = str(r.get("Name") or r.get("name") or "")
+                expr  = str(r.get("QueryDefinition") or r.get("query_definition") or r.get("Expression") or r.get("expression") or "")
+                m_by_table.setdefault(tid, []).append((pname, expr))
+            dbg(f"  {sum(len(v) for v in m_by_table.values())} M partition(s)")
+        finally:
+            conn.Close()
 
-            # ── 4. Build manifest rows ─────────────────────────────────────────
-            for role_name, table_id, dax_filter, upn_col in role_rows:
-                rls_table  = table_names.get(table_id, table_id)
-                partitions = m_by_table.get(table_id, [])
-                dbg(f"Building row: role={role_name!r}  table={rls_table!r}  "
-                    f"partitions={len(partitions)}")
+        # ── 4. Build manifest rows ─────────────────────────────────────────
+        for role_name, table_id, dax_filter, upn_col in role_rows:
+            rls_table  = table_names.get(table_id, table_id)
+            partitions = m_by_table.get(table_id, [])
+            dbg(f"Building row: role={role_name!r}  table={rls_table!r}  "
+                f"partitions={len(partitions)}")
 
-                if not partitions:
-                    print(f"      {dim('↳')}  {yellow('⚑')}  {dim(f'role={role_name!r}  table={rls_table!r} — embedded (no M partition)')}")
-                    rows.append({
-                        "workspace_name":   workspace["name"],
-                        "workspace_id":     workspace["id"],
-                        "dataset_name":     dataset["name"],
-                        "dataset_id":       dataset["id"],
-                        "role_name":        role_name,
-                        "rls_table":        rls_table,
-                        "dax_filter":       dax_filter,
-                        "upn_column":       upn_col,
-                        "source": {
-                            "path":   None,
-                            "file":   None,
-                            "format": "embedded",
-                            "sheet":  None,
-                        },
-                        "discovery_method": "xmla",
-                        "scan_timestamp":   timestamp,
-                        "notes":            "No M partition found — table may be embedded in the model",
-                    })
+            if not partitions:
+                print(f"      {dim('↳')}  {yellow('⚑')}  {dim(f'role={role_name!r}  table={rls_table!r} — embedded (no M partition)')}")
+                rows.append({
+                    "workspace_name":   workspace["name"],
+                    "workspace_id":     workspace["id"],
+                    "dataset_name":     dataset["name"],
+                    "dataset_id":       dataset["id"],
+                    "role_name":        role_name,
+                    "rls_table":        rls_table,
+                    "dax_filter":       dax_filter,
+                    "upn_column":       upn_col,
+                    "source": {
+                        "path":   None,
+                        "file":   None,
+                        "format": "embedded",
+                        "sheet":  None,
+                    },
+                    "discovery_method": "xmla",
+                    "scan_timestamp":   timestamp,
+                    "notes":            "No M partition found — table may be embedded in the model",
+                })
+                continue
+
+            for pname, expr in partitions:
+                dbg(f"  partition={pname!r}  expr_len={len(expr)}")
+                path, fmt, sheet = _extract_m_path(expr)
+
+                # Enrich UPN column from M expression when DAX regex wasn't specific
+                resolved_upn = upn_col
+                if resolved_upn in ("(complex — check DAX manually)", None):
+                    m_upn = _sniff_upn_from_m_expression(expr)
+                    if m_upn:
+                        resolved_upn = m_upn
+                        dbg(f"  M-parse resolved UPN column: {m_upn!r}")
+
+                if not path:
+                    # Non-file source (e.g. Dataverse/CRM) — still record if we found a UPN column
+                    if resolved_upn and resolved_upn not in ("(complex — check DAX manually)",):
+                        rows.append({
+                            "workspace_name":   workspace["name"],
+                            "workspace_id":     workspace["id"],
+                            "dataset_name":     dataset["name"],
+                            "dataset_id":       dataset["id"],
+                            "role_name":        role_name,
+                            "rls_table":        rls_table,
+                            "dax_filter":       dax_filter,
+                            "upn_column":       resolved_upn,
+                            "source": {
+                                "path":   None,
+                                "file":   None,
+                                "format": "dataverse" if "CommonDataService" in expr or "Dataverse" in expr else "non-file",
+                                "sheet":  None,
+                            },
+                            "discovery_method": "xmla",
+                            "scan_timestamp":   timestamp,
+                            "notes":            f"Non-file source (partition: {pname})",
+                        })
                     continue
 
-                for pname, expr in partitions:
-                    dbg(f"  partition={pname!r}  expr_len={len(expr)}")
-                    path, fmt, sheet = _extract_m_path(expr)
-
-                    # Enrich UPN column from M expression when DAX regex wasn't specific
-                    resolved_upn = upn_col
-                    if resolved_upn in ("(complex — check DAX manually)", None):
-                        m_upn = _sniff_upn_from_m_expression(expr)
-                        if m_upn:
-                            resolved_upn = m_upn
-                            dbg(f"  M-parse resolved UPN column: {m_upn!r}")
-
-                    if not path:
-                        # Non-file source (e.g. Dataverse/CRM) — still record if we found a UPN column
-                        if resolved_upn and resolved_upn not in ("(complex — check DAX manually)",):
-                            rows.append({
-                                "workspace_name":   workspace["name"],
-                                "workspace_id":     workspace["id"],
-                                "dataset_name":     dataset["name"],
-                                "dataset_id":       dataset["id"],
-                                "role_name":        role_name,
-                                "rls_table":        rls_table,
-                                "dax_filter":       dax_filter,
-                                "upn_column":       resolved_upn,
-                                "source": {
-                                    "path":   None,
-                                    "file":   None,
-                                    "format": "dataverse" if "CommonDataService" in expr or "Dataverse" in expr else "non-file",
-                                    "sheet":  None,
-                                },
-                                "discovery_method": "xmla",
-                                "scan_timestamp":   timestamp,
-                                "notes":            f"Non-file source (partition: {pname})",
-                            })
-                        continue
-
-                    rows.append({
-                        "workspace_name":   workspace["name"],
-                        "workspace_id":     workspace["id"],
-                        "dataset_name":     dataset["name"],
-                        "dataset_id":       dataset["id"],
-                        "role_name":        role_name,
-                        "rls_table":        rls_table,
-                        "dax_filter":       dax_filter,
-                        "upn_column":       resolved_upn,
-                        "source": {
-                            "path":   path,
-                            "file":   Path(path.split("?")[0]).name or path,
-                            "format": fmt,
-                            "sheet":  sheet,
-                        },
-                        "discovery_method": "xmla",
-                        "scan_timestamp":   timestamp,
-                        "notes":            "",
-                    })
+                rows.append({
+                    "workspace_name":   workspace["name"],
+                    "workspace_id":     workspace["id"],
+                    "dataset_name":     dataset["name"],
+                    "dataset_id":       dataset["id"],
+                    "role_name":        role_name,
+                    "rls_table":        rls_table,
+                    "dax_filter":       dax_filter,
+                    "upn_column":       resolved_upn,
+                    "source": {
+                        "path":   path,
+                        "file":   Path(path.split("?")[0]).name or path,
+                        "format": fmt,
+                        "sheet":  sheet,
+                    },
+                    "discovery_method": "xmla",
+                    "scan_timestamp":   timestamp,
+                    "notes":            "",
+                })
 
     except Exception as exc:  # noqa: BLE001
         import traceback as _tb

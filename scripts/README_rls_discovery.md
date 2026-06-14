@@ -17,7 +17,7 @@ The manifest is the configuration input for downstream RLS validation tests.
 
 For each dataset the script:
 
-1. Connects via XMLA (if pyadomd + SSMS 21 DLLs are available) and queries `TMSCHEMA_ROLES`, `TMSCHEMA_TABLE_PERMISSIONS`, and `TMSCHEMA_PARTITIONS`
+1. Connects via XMLA (if SSMS 21 DLLs are available) using `AdomdConnection` directly, and queries `TMSCHEMA_ROLES`, `TMSCHEMA_TABLE_PERMISSIONS`, and `TMSCHEMA_PARTITIONS`
 2. Extracts all roles whose DAX filter contains `USERPRINCIPALNAME()`
 3. Reads the M partition expression to locate the source file (SharePoint, UNC share, Dataverse, etc.)
 4. Attempts to identify the UPN column by:
@@ -85,16 +85,91 @@ XMLA provides full role/table/filter detail that the REST API cannot return.
 - Power BI Premium or Fabric capacity (XMLA endpoint must be enabled)
 - SSMS 21 installed at the default path:  
   `C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\`
-- pyadomd Python package:
+- `pythonnet` (`clr`) — typically installed as a dependency of pyadomd, or install directly:
 
 ```powershell
-pip install pyadomd
+pip install pythonnet
 ```
 
-The script auto-detects the DLLs and falls back to Tier 1 silently if unavailable.
+The script uses `AdomdConnection` directly from the SSMS DLLs via `pythonnet/clr` —
+**pyadomd is no longer required**. It falls back to Tier 1 silently if the DLLs are absent.
 
 To enable the XMLA endpoint:  
 **Power BI Admin Portal → Workspaces → (workspace) → Dataset settings → XMLA endpoint → Read**
+
+---
+
+## Diagnosing XMLA connectivity
+
+Run these PowerShell commands to verify everything is in place before filing a bug.
+
+### 1 — Check DLLs exist
+
+```powershell
+$base = "C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE"
+"Microsoft.AnalysisServices.Core.dll",
+"Microsoft.AnalysisServices.Tabular.dll",
+"Microsoft.AnalysisServices.AdomdClient.dll" | ForEach-Object {
+    $p = Join-Path $base $_
+    [PSCustomObject]@{ File = $_; Exists = (Test-Path $p) }
+}
+```
+
+Expected: all three rows show `Exists = True`.
+
+### 2 — Load DLL and open an XMLA connection
+
+```powershell
+$token = Get-Content "playwright\.auth\msal-device-token-cache.json" |
+    ConvertFrom-Json |
+    Select-Object -ExpandProperty AccessToken |
+    Select-Object -First 1
+
+Add-Type -Path "C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll"
+
+$ws   = "FHA-ADAR-BI-UAT"    # replace with your workspace
+$ds   = "UPCC Dashboard"      # replace with your dataset
+$conn = New-Object Microsoft.AnalysisServices.AdomdClient.AdomdConnection(
+    "Provider=MSOLAP;Data Source=powerbi://api.powerbi.com/v1.0/myorg/$ws;Initial Catalog=$ds;User ID=;Password=$token;"
+)
+$conn.Open()
+Write-Host "State: $($conn.State)"   # should print "State: Open"
+$conn.Close()
+```
+
+### 3 — Run a TMSCHEMA query
+
+```powershell
+# (after step 2, before $conn.Close())
+$cmd = $conn.CreateCommand()
+$cmd.CommandText = "SELECT * FROM `$SYSTEM.TMSCHEMA_ROLES"
+$reader = $cmd.ExecuteReader()
+while ($reader.Read()) {
+    Write-Host "Role: $($reader.GetValue(1))"   # column 1 = Name
+}
+$reader.Close()
+```
+
+### 4 — Confirm pythonnet sees the DLLs
+
+```powershell
+python -c "
+import clr
+clr.AddReference(r'C:\Program Files\Microsoft SQL Server Management Studio 21\Release\Common7\IDE\Microsoft.AnalysisServices.AdomdClient.dll')
+from Microsoft.AnalysisServices.AdomdClient import AdomdConnection
+print('OK — AdomdConnection loaded')
+"
+```
+
+### Common errors
+
+| Error | Likely cause | Fix |
+|---|---|---|
+| `FileNotFoundException: AdomdClient` | DLL path wrong or SSMS 21 not installed | Verify path in step 1 |
+| `The specified column was not found` | TMSCHEMA column name case mismatch | Script uses `SELECT *` to avoid this — update the script |
+| `Unexpected end of URI` | Workspace name contains special chars | URL-encode or use `--workspace-id` flag |
+| `XMLA unavailable` warning | Not a Premium/Fabric workspace | Check capacity assignment in Power BI Admin Portal |
+| `400 BadRequest` on XMLA connect | XMLA endpoint not enabled | Enable in Admin Portal → Workspaces → Settings |
 
 ---
 
@@ -155,5 +230,6 @@ The folder itself is tracked so it always exists after a fresh clone.
 | `pyyaml` | Manifest serialisation |
 | `python-dotenv` | `.env` support for `TENANT_ID` etc. |
 | `colorama` | Colour output in Windows PowerShell |
+| `pythonnet` | CLR bridge — loads SSMS DLLs so `AdomdConnection` is available in Python |
 | `openpyxl` | Reading xlsx/xlsm files to sniff UPN column |
-| `pyadomd` *(optional)* | XMLA/ADOMD.NET bridge — Tier 2 scanning |
+| `pyadomd` *(no longer required)* | Previously used as XMLA bridge; replaced by direct `AdomdConnection` via pythonnet |
