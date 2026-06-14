@@ -854,8 +854,9 @@ def main() -> None:
     if ad_sources:
         print(f"    {cyan(str(ad_sources))} on-prem AD / LDAP source(s)  {dim('(no file — see notes)')}")
     if needs_xmla:
+        xmla_note = '(upn_column = "(requires XMLA)")'
         print(f"    {yellow(str(needs_xmla))} row(s) need XMLA for full column detail  "
-              f"{dim('(upn_column = \"(requires XMLA)\")')}")
+              f"{dim(xmla_note)}")
     if not _XMLA_LIB_OK and not args.no_xmla:
         print(dim("\n  Tip: install pyadomd on Windows to get upn_column values without manual lookup."))
         print(dim("       pip install pyadomd"))
